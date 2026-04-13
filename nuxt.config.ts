@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: [],
   css: ['~/assets/css/main.css'],
+  build: {
+    transpile: ['vuetify']
+  },
   app: {
     head: {
       title: 'IClean - Record Manager',
