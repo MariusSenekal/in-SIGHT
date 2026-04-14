@@ -22,15 +22,15 @@ export default defineNuxtConfig({
       start_url: '/',
       icons: [
         {
-          src: '/icons/pwa-192x192.svg',
+          src: '/icons/pwa-192x192.png',
           sizes: '192x192',
-          type: 'image/svg+xml',
+          type: 'image/png',
           purpose: 'any maskable'
         },
         {
-          src: '/icons/pwa-512x512.svg',
+          src: '/icons/pwa-512x512.png',
           sizes: '512x512',
-          type: 'image/svg+xml',
+          type: 'image/png',
           purpose: 'any maskable'
         }
       ]
@@ -56,8 +56,8 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
       link: [
-        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.svg' },
-        { rel: 'icon', type: 'image/svg+xml', href: '/icons/pwa-192x192.svg' }
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', href: '/icons/pwa-192x192.png' }
       ]
     }
   }

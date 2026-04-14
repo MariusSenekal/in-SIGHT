@@ -167,9 +167,11 @@ h3 {
 }
 
 .heading-search-icon {
-  width: 64px;
-  height: 64px;
-  display: inline-block;
+  height: clamp(76px, 12vw, 148px);
+  width: auto;
+  max-width: min(95vw, 640px);
+  display: block;
+  object-fit: contain;
 }
 
 .heading-search-icon .inner-ring {

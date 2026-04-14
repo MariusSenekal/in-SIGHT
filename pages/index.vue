@@ -3,12 +3,9 @@
     <v-row justify="center">
       <v-col cols="12" md="10" lg="8">
         <v-card v-if="!currentUser" rounded="xl" elevation="8" class="pa-4 pa-md-8">
-          <div class="d-flex flex-wrap align-center ga-3 mb-4">
-            <InSightSearchIcon class="heading-search-icon" />
-            <div>
-              <h1 class="text-h4 text-md-h3 font-weight-bold">in-SIGHT</h1>
-              <p class="text-medium-emphasis">Welcome back! Sign in to continue.</p>
-            </div>
+          <div class="d-flex flex-column align-center text-center mb-4">
+            <img src="/branding/login-logo-slide1-trimmed.png" alt="in-SIGHT logo" class="heading-search-icon" />
+            <p class="text-medium-emphasis mt-2">Welcome back! Sign in to continue.</p>
           </div>
 
           <v-form v-if="mode === 'login'" @submit.prevent="submitLogin">
