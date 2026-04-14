@@ -1,31 +1,38 @@
 <template>
-  <div class="container simple-panel">
-    <h1>Scan QR Code</h1>
-    <p>Point your camera at a QR code to continue.</p>
+  <v-container class="py-6">
+    <v-row justify="center">
+      <v-col cols="12" md="9" lg="7">
+        <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
+          <h1 class="text-h4 text-md-h3 font-weight-bold mb-1">Scan QR Code</h1>
+          <p class="text-medium-emphasis mb-4">Point your camera at a QR code to continue.</p>
 
-    <div class="scanner-wrap">
-      <video ref="videoRef" class="scanner-video" autoplay playsinline muted />
-    </div>
+          <v-card variant="outlined" rounded="lg" class="mb-4 pa-2">
+            <video ref="videoRef" class="scanner-video" autoplay playsinline muted />
+          </v-card>
 
-    <p class="scan-status">{{ status }}</p>
+          <v-alert type="info" variant="tonal" border="start" class="mb-4">{{ status }}</v-alert>
 
-    <form class="manual-form" @submit.prevent="submitManualCode">
-      <label>
-        Manual code fallback
-        <input
-          v-model="manualCode"
-          type="text"
-          placeholder="Paste QR value (e.g. /scan/REC-1A7C9D or REC-1A7C9D)"
-        />
-      </label>
-      <button type="submit" class="primary-btn">Open Code</button>
-    </form>
-
-    <NuxtLink to="/" class="back-button" style="margin-top: 25px;">Back Home</NuxtLink>
-  </div>
+          <v-form @submit.prevent="submitManualCode">
+            <v-text-field
+              v-model="manualCode"
+              label="Manual code fallback"
+              prepend-inner-icon="mdi-keyboard"
+              variant="outlined"
+              placeholder="Paste QR value (e.g. /scan/REC-1A7C9D or REC-1A7C9D)"
+            />
+            <div class="d-flex flex-wrap ga-2">
+              <v-btn type="submit" color="primary" prepend-icon="mdi-open-in-new">Open Code</v-btn>
+              <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack()">Back Home</v-btn>
+            </div>
+          </v-form>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup lang="ts">
+const { goBack } = useAppNavigation()
 const videoRef = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null)
 const status = ref('Requesting camera access...')
@@ -156,3 +163,12 @@ onBeforeUnmount(() => {
   stopScanner()
 })
 </script>
+
+<style scoped>
+.scanner-video {
+  width: 100%;
+  min-height: 220px;
+  border-radius: 12px;
+  background: #111827;
+}
+</style>

@@ -1,57 +1,47 @@
 <template>
-  <div class="container">
-    <div class="detail-container">
-      <button
-        v-if="isAdmin"
-        type="button"
-        class="back-button"
-        @click="goBackToAdmin"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-        Back to Admin Area
-      </button>
-      <NuxtLink v-else to="/records" class="back-button">← Back to Records</NuxtLink>
+  <v-container class="py-6">
+    <v-row justify="center">
+      <v-col cols="12" md="10" lg="8">
+        <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
+          <v-btn variant="tonal" prepend-icon="mdi-arrow-left" class="mb-4" @click="goBack()">Back to Welcome Page</v-btn>
 
-      <div v-if="record">
-        <h1>{{ record.name }}</h1>
-        <p><strong>Record Code:</strong> {{ record.code }}</p>
-        <p><strong>Type:</strong> {{ record.type }}</p>
-        <p><strong>Location:</strong> {{ record.location }}</p>
-        <p style="margin-top: 20px;">{{ record.description }}</p>
+          <div v-if="record">
+            <h1 class="text-h4 text-md-h3 font-weight-bold mb-2">{{ record.name }}</h1>
+            <v-chip color="primary" variant="tonal" class="mb-2">{{ record.code }}</v-chip>
+            <p><strong>Type:</strong> {{ record.type }}</p>
+            <p><strong>Location:</strong> {{ record.location }}</p>
+            <p class="text-medium-emphasis mt-2">{{ record.description }}</p>
 
-        <div class="qr-section">
-          <h3>📱 Scan QR Code</h3>
-          <p style="margin-bottom: 20px; color: #666;">
-            Scan this QR code to view record details on any device
-          </p>
-          <div class="qr-code-wrapper">
-            <QrcodeVue
-              :value="qrCodeUrl"
-              :size="300"
-              level="H"
-              render-as="svg"
-            />
+            <v-card variant="outlined" rounded="lg" class="mt-4 pa-4 text-center">
+              <h3 class="text-h6 mb-1">Scan QR Code</h3>
+              <p class="text-medium-emphasis mb-4">Scan this QR code to view record details on any device.</p>
+              <div class="d-flex justify-center mb-3">
+                <QrcodeVue
+                  :value="qrCodeUrl"
+                  :size="280"
+                  level="H"
+                  render-as="svg"
+                />
+              </div>
+              <v-btn color="primary" prepend-icon="mdi-printer" @click="printQR">Print QR Code</v-btn>
+            </v-card>
           </div>
-          <br />
-          <button @click="printQR" class="print-button">🖨️ Print QR Code</button>
-        </div>
-      </div>
 
-      <div v-else>
-        <h1>Record Not Found</h1>
-        <p>The requested record could not be found.</p>
-      </div>
-    </div>
-  </div>
+          <v-alert v-else type="error" variant="tonal" border="start">
+            Record not found. The requested record could not be located.
+          </v-alert>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup lang="ts">
 import QrcodeVue from 'qrcode.vue'
 
-const router = useRouter()
 const route = useRoute()
-const config = useRuntimeConfig()
-const { isAdmin, initAuth } = useAuth()
+const { initAuth } = useAuth()
+const { goBack } = useAppNavigation()
 const { getRecordById } = useRecords()
 
 const recordId = parseInt(route.params.id as string)
@@ -77,12 +67,4 @@ const printQR = () => {
   window.print()
 }
 
-const goBackToAdmin = () => {
-  if (import.meta.client && window.history.length > 1) {
-    router.back()
-    return
-  }
-
-  navigateTo('/dashboard')
-}
 </script>

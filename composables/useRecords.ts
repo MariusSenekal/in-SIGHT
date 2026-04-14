@@ -5,6 +5,8 @@ export interface Record {
   description: string
   type: string
   location: string
+  ownerUserId: number | null
+  createdAt: string
 }
 
 export const useRecords = () => {
@@ -17,7 +19,9 @@ export const useRecords = () => {
       name: 'Kitchen Cleaning Station',
       description: 'Main kitchen area cleaning equipment and supplies storage. Includes mops, cleaning solutions, and sanitizers.',
       type: 'Cleaning Station',
-      location: 'Ground Floor - Kitchen'
+      location: 'Ground Floor - Kitchen',
+      ownerUserId: null,
+      createdAt: '2026-04-01T08:00:00.000Z'
     },
     {
       id: 2,
@@ -25,7 +29,9 @@ export const useRecords = () => {
       name: 'Bathroom Supply Cabinet',
       description: 'Dedicated storage for bathroom cleaning materials. Contains toilet cleaners, disinfectants, and paper products.',
       type: 'Supply Cabinet',
-      location: '2nd Floor - Main Bathroom'
+      location: '2nd Floor - Main Bathroom',
+      ownerUserId: null,
+      createdAt: '2026-04-02T08:00:00.000Z'
     },
     {
       id: 3,
@@ -33,7 +39,9 @@ export const useRecords = () => {
       name: 'Equipment Storage Room',
       description: 'Central storage for all major cleaning equipment including vacuum cleaners, floor polishers, and specialized tools.',
       type: 'Equipment Room',
-      location: 'Basement - Storage Area'
+      location: 'Basement - Storage Area',
+      ownerUserId: null,
+      createdAt: '2026-04-03T08:00:00.000Z'
     }
   ]
 
@@ -48,6 +56,14 @@ export const useRecords = () => {
     localStorage.setItem(storageKey, JSON.stringify(records.value))
   }
 
+  const normalizeRecord = (record: Record): Record => {
+    return {
+      ...record,
+      ownerUserId: record.ownerUserId ?? null,
+      createdAt: record.createdAt || new Date().toISOString()
+    }
+  }
+
   const ensureHydrated = () => {
     if (!import.meta.client || recordsHydrated.value) {
       return
@@ -59,7 +75,8 @@ export const useRecords = () => {
       try {
         const parsed = JSON.parse(raw) as Record[]
         if (Array.isArray(parsed) && parsed.length > 0) {
-          records.value = parsed
+          records.value = parsed.map(item => normalizeRecord(item))
+          saveRecords()
         }
       } catch {
         records.value = [...defaultRecords]
@@ -108,7 +125,7 @@ export const useRecords = () => {
     return records.value.find(record => record.code.toUpperCase() === normalized)
   }
 
-  const addRecord = (input: Omit<Record, 'id' | 'code'>) => {
+  const addRecord = (input: Omit<Record, 'id' | 'code' | 'ownerUserId' | 'createdAt'> & { ownerUserId?: number | null }) => {
     ensureHydrated()
 
     const maxId = records.value.reduce((max, record) => Math.max(max, record.id), 0)
@@ -118,7 +135,9 @@ export const useRecords = () => {
       name: input.name,
       description: input.description,
       type: input.type,
-      location: input.location
+      location: input.location,
+      ownerUserId: input.ownerUserId ?? null,
+      createdAt: new Date().toISOString()
     }
 
     records.value = [newRecord, ...records.value]
@@ -127,8 +146,14 @@ export const useRecords = () => {
     return newRecord
   }
 
+  const getRecordsByOwner = (ownerUserId: number) => {
+    ensureHydrated()
+    return records.value.filter(record => record.ownerUserId === ownerUserId)
+  }
+
   return {
     getRecords,
+    getRecordsByOwner,
     getRecordById,
     getRecordByCode,
     addRecord

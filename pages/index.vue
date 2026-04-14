@@ -1,161 +1,124 @@
 <template>
-  <div class="container auth-shell">
-    <section v-if="!currentUser" class="auth-panel">
-      <div class="auth-header">
-        <div class="brand-title-row">
-          <InSightSearchIcon class="heading-search-icon" />
-          <h1>in-<span class="sight-highlight">SIGHT</span></h1>
-        </div>
-        <h2>Welcome Back!</h2>
-      </div>
-
-      <form v-if="mode === 'login'" class="auth-form" @submit.prevent="submitLogin">
-        <label class="field">
-          Username
-          <div class="field-row">
-            <span class="material-symbols-outlined input-icon" aria-hidden="true">person</span>
-            <input v-model="loginForm.username" type="text" required autocomplete="username" />
+  <v-container class="py-6" fluid>
+    <v-row justify="center">
+      <v-col cols="12" md="10" lg="8">
+        <v-card v-if="!currentUser" rounded="xl" elevation="8" class="pa-4 pa-md-8">
+          <div class="d-flex flex-wrap align-center ga-3 mb-4">
+            <InSightSearchIcon class="heading-search-icon" />
+            <div>
+              <h1 class="text-h4 text-md-h3 font-weight-bold">in-SIGHT</h1>
+              <p class="text-medium-emphasis">Welcome back! Sign in to continue.</p>
+            </div>
           </div>
-        </label>
 
-        <label class="field">
-          Password
-          <div class="field-row password-row">
-              <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
-              <input
-                v-model="loginForm.password"
-                :type="showLoginPassword ? 'text' : 'password'"
-                required
-                autocomplete="current-password"
-              />
-            <button
-              type="button"
-              class="toggle-password-inline"
-              aria-label="Toggle password visibility"
-              @click="showLoginPassword = !showLoginPassword"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">
-                {{ showLoginPassword ? 'visibility_off' : 'visibility' }}
-              </span>
-            </button>
+          <v-form v-if="mode === 'login'" @submit.prevent="submitLogin">
+            <v-row dense>
+              <v-col cols="12">
+                <v-text-field v-model="loginForm.username" label="Username" prepend-inner-icon="mdi-account" variant="outlined" required />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="loginForm.password"
+                  :type="showLoginPassword ? 'text' : 'password'"
+                  label="Password"
+                  prepend-inner-icon="mdi-lock"
+                  :append-inner-icon="showLoginPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  variant="outlined"
+                  required
+                  @click:append-inner="showLoginPassword = !showLoginPassword"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-btn block color="primary" size="large" prepend-icon="mdi-login" type="submit">Login</v-btn>
+              </v-col>
+            </v-row>
+          </v-form>
+
+          <v-form v-else @submit.prevent="submitSignup">
+            <v-row dense>
+              <v-col cols="12">
+                <v-text-field v-model="signupForm.name" label="Full Name" prepend-inner-icon="mdi-badge-account" variant="outlined" required />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field v-model="signupForm.username" label="Username" prepend-inner-icon="mdi-account-plus" variant="outlined" required />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="signupForm.password"
+                  :type="showSignupPassword ? 'text' : 'password'"
+                  label="Password"
+                  prepend-inner-icon="mdi-lock"
+                  :append-inner-icon="showSignupPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  variant="outlined"
+                  required
+                  @click:append-inner="showSignupPassword = !showSignupPassword"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-btn block color="primary" size="large" prepend-icon="mdi-account-plus" type="submit">Create Account</v-btn>
+              </v-col>
+            </v-row>
+          </v-form>
+
+          <div class="d-flex flex-column align-center mt-4">
+            <p class="text-medium-emphasis mb-2">Switch form</p>
+            <v-btn-toggle v-model="mode" mandatory color="primary">
+              <v-btn value="login" prepend-icon="mdi-login">Login</v-btn>
+              <v-btn value="signup" prepend-icon="mdi-account-plus">Sign Up</v-btn>
+            </v-btn-toggle>
           </div>
-        </label>
 
-        <button type="submit" class="primary-btn">
-          <span class="material-symbols-outlined" aria-hidden="true">login</span>
-          Login
-        </button>
-      </form>
+          <v-alert v-if="formMessage" type="info" variant="tonal" border="start" class="mt-4">{{ formMessage }}</v-alert>
+          <v-alert type="info" variant="tonal" border="start" class="mt-3">Admin demo login: admin / admin123</v-alert>
+        </v-card>
 
-      <form v-else class="auth-form" @submit.prevent="submitSignup">
-        <label class="field">
-          Full Name
-          <div class="field-row">
-            <span class="material-symbols-outlined input-icon" aria-hidden="true">badge</span>
-            <input v-model="signupForm.name" type="text" required autocomplete="name" />
+        <v-card v-else rounded="xl" elevation="8" class="pa-4 pa-md-6">
+          <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
+            <div>
+              <h1 class="text-h4 text-md-h3 font-weight-bold">Welcome back {{ currentUser.name }}</h1>
+              <p class="text-medium-emphasis">Choose what you want to do next.</p>
+            </div>
+            <div class="d-flex ga-2">
+              <v-btn icon="mdi-account-circle" variant="tonal" @click="showProfileModal = true" />
+              <v-btn color="error" variant="tonal" prepend-icon="mdi-logout" @click="logout">Log Out</v-btn>
+            </div>
           </div>
-        </label>
 
-        <label class="field">
-          Username
-          <div class="field-row">
-            <span class="material-symbols-outlined input-icon" aria-hidden="true">person_add</span>
-            <input v-model="signupForm.username" type="text" required autocomplete="username" />
+          <div class="d-flex flex-column align-center ga-3">
+            <v-card rounded="lg" variant="tonal" class="w-100" max-width="560" @click="goToScan">
+              <v-card-title class="d-flex align-center ga-2 justify-center"><v-icon icon="mdi-qrcode-scan" />Scan QR Code</v-card-title>
+              <v-card-text class="text-medium-emphasis text-center">Open camera scanning immediately.</v-card-text>
+            </v-card>
+
+            <v-card rounded="lg" variant="tonal" class="w-100" max-width="560" @click="goToUpload">
+              <v-card-title class="d-flex align-center ga-2 justify-center"><v-icon icon="mdi-camera" />Upload Photo</v-card-title>
+              <v-card-text class="text-medium-emphasis text-center">Upload cleaning evidence and media.</v-card-text>
+            </v-card>
+
+            <v-card v-if="isAdmin" rounded="lg" variant="tonal" class="w-100" max-width="560" @click="goToDashboard">
+              <v-card-title class="d-flex align-center ga-2 justify-center"><v-icon icon="mdi-view-dashboard" />Dashboards and Management</v-card-title>
+              <v-card-text class="text-medium-emphasis text-center">Admin tools, records, and reporting.</v-card-text>
+            </v-card>
           </div>
-        </label>
+        </v-card>
+      </v-col>
+    </v-row>
 
-        <label class="field">
-          Password
-          <div class="field-row password-row">
-              <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
-              <input
-                v-model="signupForm.password"
-                :type="showSignupPassword ? 'text' : 'password'"
-                required
-                autocomplete="new-password"
-              />
-            <button
-              type="button"
-              class="toggle-password-inline"
-              aria-label="Toggle password visibility"
-              @click="showSignupPassword = !showSignupPassword"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">
-                {{ showSignupPassword ? 'visibility_off' : 'visibility' }}
-              </span>
-            </button>
-          </div>
-        </label>
-
-        <button type="submit" class="primary-btn">
-          <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
-          Create Account
-        </button>
-      </form>
-
-      <p v-if="formMessage" class="form-message">{{ formMessage }}</p>
-
-      <p class="demo-credentials auth-footer-note">
-        <span class="material-symbols-outlined" aria-hidden="true">info</span>
-        Admin demo login: <strong>admin</strong> / <strong>admin123</strong>
-      </p>
-
-      <p class="auth-bottom-link">
-        <span class="auth-bottom-label" v-if="mode === 'login'">Don't have an account?</span>
-        <span class="auth-bottom-label" v-else>Already have an account?</span>
-
-        <button
-          v-if="mode === 'login'"
-          type="button"
-          class="text-link"
-          @click="mode = 'signup'"
-        >
-          Sign Up
-        </button>
-        <button
-          v-else
-          type="button"
-          class="text-link"
-          @click="mode = 'login'"
-        >
-          Back to Login
-        </button>
-      </p>
-    </section>
-
-    <section v-else class="dashboard-panel">
-      <div class="dashboard-header">
-        <h1>Welcome Back {{ currentUser.name }}</h1>
-        <button class="ghost-btn" type="button" @click="logout">Log Out</button>
-      </div>
-
-      <div class="action-grid dashboard-actions">
-        <button type="button" class="action-card" @click="goToScan">
-          <div class="action-card-title-row">
-            <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
-            <h2>Scan QR Code</h2>
-          </div>
-          <p>Open the camera and start scanning immediately.</p>
-        </button>
-
-        <button type="button" class="action-card" @click="goToUpload">
-          <div class="action-card-title-row">
-            <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
-            <h2>Upload Photo</h2>
-          </div>
-          <p>Upload a cleaning photo for your records.</p>
-        </button>
-
-        <button v-if="isAdmin" type="button" class="action-card admin-card" @click="goToDashboard">
-          <div class="action-card-title-row">
-            <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
-            <h2>Dashboards and Management</h2>
-          </div>
-          <p>Admin tools, reports, and record management.</p>
-        </button>
-      </div>
-    </section>
-  </div>
+    <v-dialog v-model="showProfileModal" max-width="460">
+      <v-card rounded="lg">
+        <v-card-title>My Profile</v-card-title>
+        <v-card-text>
+          <p><strong>Name:</strong> {{ currentUser?.profile?.displayName || currentUser?.name }}</p>
+          <p><strong>Username:</strong> {{ currentUser?.username }}</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showProfileModal = false">Close</v-btn>
+          <v-btn color="primary" @click="goToProfilePage">Open Profile Page</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script setup lang="ts">
@@ -167,6 +130,7 @@ const mode = ref<AuthMode>('login')
 const formMessage = ref('')
 const showLoginPassword = ref(false)
 const showSignupPassword = ref(false)
+const showProfileModal = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -178,6 +142,7 @@ const signupForm = reactive({
   username: '',
   password: ''
 })
+
 
 onMounted(() => {
   initAuth()
@@ -212,4 +177,8 @@ const submitSignup = () => {
 const goToScan = () => navigateTo('/scan')
 const goToUpload = () => navigateTo('/upload')
 const goToDashboard = () => navigateTo('/dashboard')
+const goToProfilePage = () => {
+  showProfileModal.value = false
+  navigateTo('/profile')
+}
 </script>

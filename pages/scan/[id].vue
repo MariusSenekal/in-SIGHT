@@ -37,9 +37,9 @@
               </tr>
             </thead>
             <tbody>
-              <tr 
-                v-for="(entry, index) in serviceHistory" 
-                :key="index"
+              <tr
+                v-for="entry in serviceHistory"
+                :key="entry.id"
                 class="clickable-row"
                 @click="openHistoryDetail(entry)"
               >
@@ -93,12 +93,20 @@
               <div class="checklist-section">
                 <h4>Task Checklist</h4>
                 <ul class="task-checklist">
-                  <li 
-                    v-for="(task, idx) in selectedHistory.checklist" 
-                    :key="idx"
+                  <li
+                    v-for="task in selectedHistory.checklist"
+                    :key="task.id"
                     :class="{ completed: task.completed }"
                   >
-                    <span class="checkbox">
+                    <label v-if="canUpdateChecklist" class="task-checkbox-label">
+                      <input
+                        type="checkbox"
+                        :checked="task.completed"
+                        @change="onTaskCheckboxChange(task.id, $event)"
+                      />
+                      <span class="checkbox">{{ task.completed ? '✅' : '⬜' }}</span>
+                    </label>
+                    <span v-else class="checkbox">
                       {{ task.completed ? '✅' : '⬜' }}
                     </span>
                     <span class="task-text">{{ task.task }}</span>
@@ -110,6 +118,42 @@
                 <h4>Notes</h4>
                 <div class="notes-box">
                   {{ selectedHistory.notes }}
+                </div>
+              </div>
+
+              <div class="messages-section">
+                <h4>Updates and Messages</h4>
+                <p v-if="selectedHistory.messages.length === 0" class="empty-message-thread">
+                  No updates yet for this service entry.
+                </p>
+                <ul v-else class="message-thread-list">
+                  <li v-for="message in selectedHistory.messages" :key="message.id">
+                    <div class="message-line">
+                      <strong>{{ message.fromName }}</strong>
+                      <span class="message-role">{{ message.fromRole }}</span>
+                    </div>
+                    <p>{{ message.text }}</p>
+                    <small>{{ formatDateTime(message.createdAt) }}</small>
+                  </li>
+                </ul>
+
+                <div v-if="canUpdateChecklist" class="staff-message-box">
+                  <p class="staff-message-help">
+                    If tasks are not fully completed, send a short update to the site user so they can view it on this QR page.
+                  </p>
+                  <textarea
+                    v-model="staffMessageDraft"
+                    class="request-input"
+                    rows="3"
+                    maxlength="180"
+                    placeholder="Short update for this site"
+                  />
+                  <div class="request-form-actions">
+                    <button type="button" class="primary-btn" @click="submitTaskMessage">
+                      Send Update
+                    </button>
+                  </div>
+                  <p v-if="staffMessageFeedback" class="request-feedback">{{ staffMessageFeedback }}</p>
                 </div>
               </div>
             </div>
@@ -167,12 +211,85 @@
         </button>
       </div>
 
+      <transition name="request-modal">
+        <div
+          v-if="requestType"
+          class="request-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="request-modal-title"
+          @click="cancelRequest"
+        >
+          <div class="request-modal-card" @click.stop>
+            <div class="request-modal-header">
+              <h3 id="request-modal-title">
+                {{ requestType === 'maintenance' ? 'Maintenance Request' : 'Cleaning Request' }}
+              </h3>
+              <button type="button" class="close-btn" @click="cancelRequest">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div class="request-form-wrap">
+              <label>
+                Request Target
+                <select v-model="requestTargetType" class="request-input" required>
+                  <option value="qr">Specified QR Code</option>
+                  <option value="site-room">Site / Room</option>
+                </select>
+              </label>
+
+              <label v-if="requestTargetType === 'qr'">
+                Select QR Code
+                <select v-model="selectedRecordCode" class="request-input" required>
+                  <option value="" disabled>Select a QR code</option>
+                  <option v-for="item in allRecords" :key="item.id" :value="item.code">
+                    {{ item.code }} - {{ item.name }}
+                  </option>
+                </select>
+              </label>
+
+              <label v-else>
+                Site / Room Reference
+                <input
+                  v-model="siteRoomReference"
+                  type="text"
+                  class="request-input"
+                  placeholder="e.g. Ground Floor Kitchen or Room 204"
+                  maxlength="80"
+                  required
+                />
+              </label>
+
+              <label>
+                Short Request Message
+                <textarea
+                  v-model="requestMessage"
+                  class="request-input"
+                  rows="3"
+                  maxlength="160"
+                  placeholder="Type a short message for the admin team"
+                  required
+                />
+              </label>
+
+              <div class="request-form-actions">
+                <button type="button" class="ghost-btn" @click="cancelRequest">Cancel</button>
+                <button type="button" class="primary-btn" @click="submitServiceRequest">Send Request</button>
+              </div>
+
+              <p v-if="requestFeedback" class="request-feedback">{{ requestFeedback }}</p>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- Back Link -->
       <div class="back-link-container">
-        <NuxtLink to="/records" class="back-button">
+        <button type="button" class="back-button" @click="handleBackToWelcome()">
           <span class="material-symbols-outlined">arrow_back</span>
-          View All Records
-        </NuxtLink>
+          Back to Welcome Page
+        </button>
       </div>
     </div>
 
@@ -183,17 +300,24 @@
       </div>
       <h1>Record Not Found</h1>
       <p>This QR code does not match any existing record.</p>
-      <NuxtLink to="/" class="back-button">
+      <button type="button" class="back-button" @click="handleBackToWelcome()">
         <span class="material-symbols-outlined">home</span>
         Go to Home
-      </NuxtLink>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ServiceRequestType } from '~/composables/useServiceRequests'
+import type { ServiceEntry } from '~/composables/useScheduleTracking'
+
 const route = useRoute()
-const { getRecordByCode, getRecordById } = useRecords()
+const { goBack } = useAppNavigation()
+const { getRecordByCode, getRecordById, getRecords } = useRecords()
+const { currentUser, isAdmin } = useAuth()
+const { addRequest } = useServiceRequests()
+const { getEntriesByRecordCode, toggleTask, addMessage } = useScheduleTracking()
 
 const recordParam = String(route.params.id || '').trim()
 const numericId = Number.parseInt(recordParam, 10)
@@ -214,7 +338,57 @@ const record = computed(() => {
 
 const selectedRating = ref<number | null>(null)
 const ratingSubmitted = ref(false)
-const selectedHistory = ref<any>(null)
+const selectedHistory = ref<ServiceEntry | null>(null)
+const allRecords = computed(() => getRecords())
+const requestType = ref<ServiceRequestType | null>(null)
+const requestTargetType = ref<'qr' | 'site-room'>('qr')
+const selectedRecordCode = ref('')
+const siteRoomReference = ref('')
+const requestMessage = ref('')
+const requestFeedback = ref('')
+const staffMessageDraft = ref('')
+const staffMessageFeedback = ref('')
+
+const canUpdateChecklist = computed(() => Boolean(currentUser.value))
+
+const serviceHistory = computed(() => {
+  if (!record.value) {
+    return []
+  }
+
+  return getEntriesByRecordCode(record.value.code)
+})
+
+watch(record, (current) => {
+  selectedRecordCode.value = current?.code || ''
+  selectedHistory.value = null
+  staffMessageDraft.value = ''
+  staffMessageFeedback.value = ''
+}, { immediate: true })
+
+const closeRequestOnEscape = (event: KeyboardEvent) => {
+  if (event.key !== 'Escape' || !requestType.value) {
+    return
+  }
+
+  cancelRequest()
+}
+
+onMounted(() => {
+  if (!import.meta.client) {
+    return
+  }
+
+  window.addEventListener('keydown', closeRequestOnEscape)
+})
+
+onBeforeUnmount(() => {
+  if (!import.meta.client) {
+    return
+  }
+
+  window.removeEventListener('keydown', closeRequestOnEscape)
+})
 
 const emojis = [
   { value: 1, icon: '😞', label: 'Very Poor' },
@@ -224,135 +398,74 @@ const emojis = [
   { value: 5, icon: '😄', label: 'Excellent' }
 ]
 
-// Mock service history data with status and checklists
-const serviceHistory = [
-  {
-    startTime: '13 Apr 2026, 08:00',
-    endTime: '13 Apr 2026, 08:45',
-    status: 'Done',
-    checklist: [
-      { task: 'Clean kitchen surfaces', completed: true },
-      { task: 'Mop floors', completed: true },
-      { task: 'Sanitize equipment', completed: true },
-      { task: 'Empty trash bins', completed: true }
-    ],
-    notes: 'Deep cleaning completed successfully. All surfaces sanitized and equipment checked.'
-  },
-  {
-    startTime: '12 Apr 2026, 14:30',
-    endTime: '12 Apr 2026, 15:15',
-    status: 'Incomplete',
-    checklist: [
-      { task: 'Restock cleaning supplies', completed: true },
-      { task: 'Routine inspection', completed: true },
-      { task: 'Check ventilation', completed: false },
-      { task: 'Replace air filters', completed: false }
-    ],
-    notes: 'Supplies restocked and basic inspection done. Ventilation check postponed due to equipment unavailability.'
-  },
-  {
-    startTime: '11 Apr 2026, 09:15',
-    endTime: '11 Apr 2026, 10:00',
-    status: 'Done',
-    checklist: [
-      { task: 'Clean all surfaces', completed: true },
-      { task: 'Empty waste bins', completed: true },
-      { task: 'Restock paper products', completed: true }
-    ],
-    notes: 'Regular maintenance completed on schedule. No issues found.'
-  },
-  {
-    startTime: '10 Apr 2026, 16:00',
-    endTime: '10 Apr 2026, 16:30',
-    status: 'Done',
-    checklist: [
-      { task: 'Quick clean high-traffic areas', completed: true },
-      { task: 'Spot treatment', completed: true }
-    ],
-    notes: 'Quick afternoon touch-up. Areas look good.'
-  },
-  {
-    startTime: '09 Apr 2026, 07:45',
-    endTime: '09 Apr 2026, 08:30',
-    status: 'Done',
-    checklist: [
-      { task: 'Clean floors', completed: true },
-      { task: 'Wipe counters', completed: true },
-      { task: 'Disinfection routine', completed: true }
-    ],
-    notes: 'Morning cleaning routine completed. Fresh start for the day.'
-  },
-  {
-    startTime: '08 Apr 2026, 13:00',
-    endTime: '08 Apr 2026, 14:15',
-    status: 'Not Done',
-    checklist: [
-      { task: 'Clean ventilation areas', completed: false },
-      { task: 'Window washing', completed: false },
-      { task: 'Deep clean ducts', completed: false }
-    ],
-    notes: 'Service cancelled - equipment malfunction. Rescheduled for next week.'
-  },
-  {
-    startTime: '07 Apr 2026, 10:30',
-    endTime: '07 Apr 2026, 11:45',
-    status: 'Done',
-    checklist: [
-      { task: 'Comprehensive cleaning', completed: true },
-      { task: 'Equipment maintenance', completed: true },
-      { task: 'Inspection report', completed: true }
-    ],
-    notes: 'Full service completed. All equipment functioning properly.'
-  },
-  {
-    startTime: '06 Apr 2026, 15:00',
-    endTime: '06 Apr 2026, 15:40',
-    status: 'Done',
-    checklist: [
-      { task: 'Routine cleaning', completed: true },
-      { task: 'Restock paper products', completed: true }
-    ],
-    notes: 'Standard afternoon service. No issues.'
-  },
-  {
-    startTime: '05 Apr 2026, 08:30',
-    endTime: '05 Apr 2026, 09:20',
-    status: 'Done',
-    checklist: [
-      { task: 'Weekend deep clean', completed: true },
-      { task: 'Behind equipment cleaning', completed: true },
-      { task: 'Floor waxing', completed: true }
-    ],
-    notes: 'Thorough weekend cleaning. Areas behind equipment addressed.'
-  },
-  {
-    startTime: '04 Apr 2026, 12:00',
-    endTime: '04 Apr 2026, 12:45',
-    status: 'Incomplete',
-    checklist: [
-      { task: 'Midday touch-up', completed: true },
-      { task: 'Sanitize surfaces', completed: true },
-      { task: 'Refill dispensers', completed: false }
-    ],
-    notes: 'Touch-up completed. Dispenser refills pending - supplies on order.'
-  }
-]
-
 const getStatusEmoji = (status: string) => {
-  const emojis: Record<string, string> = {
+  const statusEmojis: Record<string, string> = {
     'Done': '✅',
     'Incomplete': '⚠️',
     'Not Done': '❌'
   }
-  return emojis[status] || '❓'
+  return statusEmojis[status] || '❓'
 }
 
-const openHistoryDetail = (entry: any) => {
+const openHistoryDetail = (entry: ServiceEntry) => {
   selectedHistory.value = entry
+  staffMessageFeedback.value = ''
 }
 
 const closeHistoryDetail = () => {
   selectedHistory.value = null
+  staffMessageFeedback.value = ''
+}
+
+const refreshSelectedHistory = () => {
+  if (!selectedHistory.value) {
+    return
+  }
+
+  const refreshed = serviceHistory.value.find(item => item.id === selectedHistory.value?.id)
+  selectedHistory.value = refreshed || null
+}
+
+const toggleHistoryTask = (taskId: string, completed: boolean) => {
+  if (!selectedHistory.value) {
+    return
+  }
+
+  toggleTask(selectedHistory.value.id, taskId, completed)
+  refreshSelectedHistory()
+}
+
+const onTaskCheckboxChange = (taskId: string, event: Event) => {
+  const target = event.target as HTMLInputElement | null
+  toggleHistoryTask(taskId, Boolean(target?.checked))
+}
+
+const formatDateTime = (iso: string) => {
+  return new Date(iso).toLocaleString()
+}
+
+const submitTaskMessage = () => {
+  if (!selectedHistory.value) {
+    return
+  }
+
+  const message = staffMessageDraft.value.trim()
+
+  if (!message) {
+    staffMessageFeedback.value = 'Type a short update first.'
+    return
+  }
+
+  addMessage(
+    selectedHistory.value.id,
+    isAdmin.value ? 'admin' : 'staff',
+    currentUser.value?.profile?.displayName || currentUser.value?.name || 'Staff',
+    message
+  )
+
+  staffMessageDraft.value = ''
+  staffMessageFeedback.value = 'Update sent. Admin and the site user can now see it.'
+  refreshSelectedHistory()
 }
 
 const selectRating = (value: number) => {
@@ -368,15 +481,68 @@ const selectRating = (value: number) => {
 }
 
 const requestMaintenance = () => {
-  alert(`Maintenance request submitted for ${record.value?.name}`)
-  // TODO: Implement backend call to submit maintenance request
-  console.log('Maintenance requested for:', record.value?.code)
+  requestType.value = 'maintenance'
+  requestTargetType.value = 'qr'
+  requestFeedback.value = ''
 }
 
 const requestCleaning = () => {
-  alert(`Cleaning request submitted for ${record.value?.name}`)
-  // TODO: Implement backend call to submit cleaning request
-  console.log('Cleaning requested for:', record.value?.code)
+  requestType.value = 'cleaning'
+  requestTargetType.value = 'qr'
+  requestFeedback.value = ''
+}
+
+const cancelRequest = () => {
+  requestType.value = null
+  siteRoomReference.value = ''
+  requestMessage.value = ''
+  requestFeedback.value = ''
+}
+
+const submitServiceRequest = () => {
+  if (!requestType.value) {
+    return
+  }
+
+  const message = requestMessage.value.trim()
+  if (!message) {
+    requestFeedback.value = 'Please enter a short message before sending.'
+    return
+  }
+
+  if (requestTargetType.value === 'qr' && !selectedRecordCode.value) {
+    requestFeedback.value = 'Please select a QR code target.'
+    return
+  }
+
+  const siteRoom = siteRoomReference.value.trim()
+  if (requestTargetType.value === 'site-room' && !siteRoom) {
+    requestFeedback.value = 'Please provide a site or room reference.'
+    return
+  }
+
+  addRequest({
+    requestType: requestType.value,
+    targetType: requestTargetType.value,
+    recordCode: requestTargetType.value === 'qr' ? selectedRecordCode.value : null,
+    siteRoom: requestTargetType.value === 'site-room' ? siteRoom : null,
+    message,
+    requestedBy: currentUser.value?.name || 'Unknown User',
+    requestedByUserId: currentUser.value?.id ?? null
+  })
+
+  requestFeedback.value = 'Request sent successfully. The admin team can review it in Service Requests.'
+  requestMessage.value = ''
+  siteRoomReference.value = ''
+}
+
+const handleBackToWelcome = () => {
+  if (!isAdmin.value) {
+    navigateTo('/')
+    return
+  }
+
+  goBack({ adminFallback: '/dashboard', userFallback: '/' })
 }
 </script>
 
@@ -619,7 +785,114 @@ const requestCleaning = () => {
 .cleaning-button:hover {
   background: linear-gradient(145deg, #0284c7, #0369a1);
 }
-status-cell {
+
+.request-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(13, 27, 62, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.request-modal-card {
+  width: min(100%, 620px);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(13, 27, 62, 0.32);
+  overflow: hidden;
+}
+
+.request-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  background: linear-gradient(145deg, var(--brand), var(--accent));
+  color: #fff;
+}
+
+.request-modal-header h3 {
+  margin: 0;
+}
+
+.request-form-wrap {
+  padding: 16px;
+  background: #f8fbff;
+}
+
+.request-form-wrap label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.request-input {
+  width: 100%;
+  border: 1px solid #bfd0f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+select.request-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 42px;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #1e40af 50%),
+    linear-gradient(135deg, #1e40af 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px);
+  background-size: 7px 7px, 7px 7px;
+  background-repeat: no-repeat;
+}
+
+.request-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.request-feedback {
+  margin-top: 10px;
+  color: #065f46;
+  font-weight: 600;
+}
+
+textarea.request-input {
+  resize: vertical;
+}
+
+.request-modal-enter-active,
+.request-modal-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.request-modal-enter-active .request-modal-card,
+.request-modal-leave-active .request-modal-card {
+  transition: transform 0.22s ease;
+}
+
+.request-modal-enter-from,
+.request-modal-leave-to {
+  opacity: 0;
+}
+
+.request-modal-enter-from .request-modal-card,
+.request-modal-leave-to .request-modal-card {
+  transform: translateY(10px) scale(0.98);
+}
+.status-cell {
   text-align: center;
 }
 
@@ -811,6 +1084,17 @@ status-cell {
   color: var(--muted);
 }
 
+.task-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-checkbox-label input {
+  width: 16px;
+  height: 16px;
+}
+
 .notes-section h4::before {
   content: '📝';
   font-size: 1.2rem;
@@ -825,6 +1109,62 @@ status-cell {
   line-height: 1.6;
   font-size: 0.95rem;
   min-height: 80px;
+}
+
+.messages-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.empty-message-thread {
+  color: var(--muted);
+}
+
+.message-thread-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.message-thread-list li {
+  border: 1px solid #d7e3fb;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px;
+}
+
+.message-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.message-role {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.message-thread-list p {
+  margin: 6px 0;
+}
+
+.message-thread-list small {
+  color: var(--muted);
+}
+
+.staff-message-box {
+  margin-top: 12px;
+  border-top: 1px dashed #c6d6f7;
+  padding-top: 12px;
+}
+
+.staff-message-help {
+  color: var(--muted);
+  margin-bottom: 8px;
 }
 
 /* Modal Transitions */

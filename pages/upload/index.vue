@@ -1,40 +1,36 @@
 <template>
-  <div class="container simple-panel">
-    <h1>Upload Photo</h1>
-    <p>
-      Select and upload cleaning photos to attach visual proof to your records.
-    </p>
+  <v-container class="py-6">
+    <v-row justify="center">
+      <v-col cols="12" md="9" lg="7">
+        <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
+          <h1 class="text-h4 text-md-h3 font-weight-bold mb-1">Upload Photo</h1>
+          <p class="text-medium-emphasis mb-4">Attach visual cleaning proof to your records.</p>
 
-    <form class="upload-form" @submit.prevent="submitUpload">
-      <label class="upload-input">
-        <span>Choose Photo</span>
-        <input type="file" accept="image/*" @change="onFileSelected" required />
-      </label>
+          <v-form @submit.prevent="submitUpload">
+            <v-file-input
+              label="Choose Photo"
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              variant="outlined"
+              @update:model-value="onFileSelected"
+            />
 
-      <button type="submit" class="primary-btn" :disabled="!selectedFile">
-        Upload Photo
-      </button>
-    </form>
+            <div class="d-flex flex-wrap ga-2">
+              <v-btn type="submit" color="primary" prepend-icon="mdi-upload" :disabled="!selectedFile">Upload Photo</v-btn>
+              <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack()">Back to Welcome Page</v-btn>
+            </div>
+          </v-form>
 
-    <p v-if="message" class="form-message">{{ message }}</p>
-
-    <button
-      v-if="isAdmin"
-      type="button"
-      class="back-button"
-      style="margin-top: 25px;"
-      @click="goBackToAdmin"
-    >
-      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-      Back to Admin Area
-    </button>
-    <NuxtLink v-else to="/" class="back-button" style="margin-top: 25px;">Back Home</NuxtLink>
-  </div>
+          <v-alert v-if="message" type="success" variant="tonal" border="start" class="mt-4">{{ message }}</v-alert>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup lang="ts">
-const router = useRouter()
-const { isAdmin, initAuth } = useAuth()
+const { initAuth } = useAuth()
+const { goBack } = useAppNavigation()
 const selectedFile = ref<File | null>(null)
 const message = ref('')
 
@@ -42,9 +38,13 @@ onMounted(() => {
   initAuth()
 })
 
-const onFileSelected = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  selectedFile.value = target.files?.[0] ?? null
+const onFileSelected = (value: File[] | File | null) => {
+  if (Array.isArray(value)) {
+    selectedFile.value = value[0] ?? null
+  } else {
+    selectedFile.value = value
+  }
+
   message.value = ''
 }
 
@@ -58,12 +58,4 @@ const submitUpload = () => {
   selectedFile.value = null
 }
 
-const goBackToAdmin = () => {
-  if (import.meta.client && window.history.length > 1) {
-    router.back()
-    return
-  }
-
-  navigateTo('/dashboard')
-}
 </script>
