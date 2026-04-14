@@ -39,6 +39,38 @@ npm run build
 npm run preview
 ```
 
+## Docker
+
+### Build and run locally
+
+```bash
+docker build -t insight:latest --build-arg NUXT_APP_BASE_URL=/login/ .
+docker run --rm -p 3007:3000 insight:latest
+```
+
+Then open: http://localhost:3007/login/
+
+## Simple server deploy (OCI)
+
+This repository includes a one-command deploy script that:
+
+- Uploads project files over SSH
+- Builds a Docker image on the server
+- Replaces only the `insight` container
+- Adds an Nginx route for `/login` on `129.151.162.246`
+- Reloads Nginx safely
+
+### Run deployment
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+After deployment, the app is available at:
+
+http://129.151.162.246/login/
+
 ## Usage
 
 1. Open the application in your browser

@@ -45,6 +45,7 @@ export default defineNuxtConfig({
     }
   },
   app: {
+    baseURL: '/login/',
     head: {
       title: 'IClean - Record Manager',
       meta: [
