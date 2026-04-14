@@ -14,10 +14,11 @@ RUN NODE_OPTIONS=${NODE_OPTIONS_BUILD} npm run build
 FROM node:22-alpine AS runner
 
 WORKDIR /app
+ARG NUXT_APP_BASE_URL=/
 ENV NODE_ENV=production
 ENV NITRO_HOST=0.0.0.0
 ENV NITRO_PORT=3000
-ENV NUXT_APP_BASE_URL=/
+ENV NUXT_APP_BASE_URL=${NUXT_APP_BASE_URL}
 
 COPY --from=builder /app/.output ./.output
 
