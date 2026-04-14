@@ -516,4 +516,10 @@ const toScanUrl = (code: string) => {
   max-height: 540px;
   overflow: auto;
 }
+
+@media (max-width: 960px) {
+  .user-list-vuetify {
+    max-height: 360px;
+  }
+}
 </style>

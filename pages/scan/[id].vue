@@ -1316,6 +1316,28 @@ textarea.request-input {
     padding: 0 16px;
   }
 
+  .table-wrapper {
+    max-height: none;
+  }
+
+  .history-table {
+    font-size: 0.88rem;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 10px 10px;
+  }
+
+  .request-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .request-form-actions .primary-btn,
+  .request-form-actions .ghost-btn {
+    width: 100%;
+  }
+
   .record-info-card {
     padding: 24px 20px;
   }
@@ -1360,6 +1382,10 @@ textarea.request-input {
 }
 
 @media (max-width: 480px) {
+  .tracking-container {
+    padding: 0 10px;
+  }
+
   .success-badge {
     width: 64px;
     height: 64px;
@@ -1387,15 +1413,31 @@ textarea.request-input {
   }
 
   .modal-overlay {
-    padding: 10px;
+    padding: 8px;
   }
 
   .modal-header {
-    padding: 18px 20px;
+    padding: 14px 14px;
   }
 
   .modal-header h3 {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  .request-modal-overlay {
+    padding: 8px;
+  }
+
+  .request-modal-header {
+    padding: 14px 14px 12px;
+  }
+
+  .request-form-wrap {
+    padding: 12px;
   }
 }
 </style>

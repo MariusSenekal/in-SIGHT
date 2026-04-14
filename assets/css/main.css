@@ -19,6 +19,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#__nuxt {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Manrope', sans-serif;
   color: var(--ink);
@@ -34,6 +41,44 @@ body {
 .v-application,
 .v-main {
   min-height: 100vh;
+}
+
+.v-main {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+.v-table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.v-table table {
+  min-width: 640px;
+}
+
+.v-btn,
+button,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+.v-container {
+  width: 100%;
+}
+
+.v-dialog > .v-overlay__content {
+  max-width: min(96vw, 720px);
 }
 
 .material-symbols-outlined {
@@ -1042,7 +1087,12 @@ input:focus {
 
 @media (max-width: 700px) {
   body {
-    padding: 14px;
+    padding: 0;
+  }
+
+  .container {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .auth-panel,
@@ -1050,8 +1100,37 @@ input:focus {
   .simple-panel,
   .detail-container,
   .scan-result {
-    padding: 20px;
+    padding: 16px;
     border-radius: 18px;
+  }
+
+  .v-card-title {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .v-btn {
+    min-height: 44px;
+  }
+
+  .v-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .v-dialog > .v-overlay__content {
+    width: min(96vw, 520px);
+    margin: 0 auto;
+  }
+
+  .v-card {
+    border-radius: 14px !important;
+  }
+
+  .v-card-text,
+  .v-card-title,
+  .v-card-subtitle {
+    overflow-wrap: anywhere;
   }
 
   .dashboard-header {

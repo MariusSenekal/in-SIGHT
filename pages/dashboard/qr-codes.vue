@@ -584,6 +584,24 @@ const printSheets = () => {
   }
 }
 
+@media (max-width: 959px) {
+  .qr-controls-scroll {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .preview-pane {
+    position: static;
+    max-height: none;
+  }
+
+  .preview-pane :deep(.v-card-text) {
+    max-height: none;
+  }
+}
+
 .preview-pane {
   position: sticky;
   top: 12px;
