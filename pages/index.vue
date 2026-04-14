@@ -4,7 +4,7 @@
       <v-col cols="12" md="10" lg="8">
         <v-card v-if="!currentUser" rounded="xl" elevation="8" class="pa-4 pa-md-8">
           <div class="d-flex flex-column align-center text-center mb-4">
-            <img src="/login/branding/login-logo-slide1-trimmed.png" alt="in-SIGHT logo" class="heading-search-icon" />
+            <img :src="logoUrl" alt="in-SIGHT logo" class="heading-search-icon" />
             <p class="text-medium-emphasis mt-2">Welcome back! Sign in to continue.</p>
           </div>
 
@@ -121,6 +121,7 @@
 <script setup lang="ts">
 type AuthMode = 'login' | 'signup'
 
+const logoUrl = `${useRuntimeConfig().app.baseURL}branding/login-logo-slide1-trimmed.png`
 const { currentUser, isAdmin, initAuth, login, signup, logout } = useAuth()
 
 const mode = ref<AuthMode>('login')
