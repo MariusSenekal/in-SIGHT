@@ -1,4 +1,4 @@
-# IClean - QR Code Record Manager
+# in-SIGHT - QR Code Record Manager
 
 A simple Nuxt 3 application for managing cleaning records with QR code functionality.
 
@@ -57,7 +57,8 @@ This repository includes a one-command deploy script that:
 - Uploads project files over SSH
 - Builds a Docker image on the server
 - Replaces only the `insight` container
-- Adds an Nginx route for `/login` on `129.151.162.246`
+- Configures Nginx for `in-sight.app` and `/login`
+- Issues or renews a Let's Encrypt certificate for HTTPS
 - Reloads Nginx safely
 
 ### Run deployment
@@ -69,7 +70,7 @@ chmod +x deploy.sh
 
 After deployment, the app is available at:
 
-http://129.151.162.246/login/
+https://in-sight.app/login/
 
 ## Usage
 
