@@ -70,6 +70,10 @@
         </v-card>
 
         <v-card v-else rounded="xl" elevation="8" class="pa-4 pa-md-6">
+          <div class="d-flex justify-center mb-4">
+            <img :src="logoUrl" alt="in-SIGHT logo" class="heading-search-icon" />
+          </div>
+
           <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
             <div>
               <h1 class="text-h4 text-md-h3 font-weight-bold">Welcome back {{ currentUser.name }}</h1>
@@ -96,10 +100,70 @@
               <v-card-title class="d-flex align-center ga-2 justify-center"><v-icon icon="mdi-view-dashboard" />Dashboards and Management</v-card-title>
               <v-card-text class="text-medium-emphasis text-center">Admin tools, records, and reporting.</v-card-text>
             </v-card>
+
+            <v-card rounded="lg" variant="tonal" class="w-100" max-width="560" @click="showMaintenanceDialog = true">
+              <v-card-title class="d-flex align-center ga-2 justify-center"><v-icon icon="mdi-wrench-outline" />Request Maintenance</v-card-title>
+              <v-card-text class="text-medium-emphasis text-center">Report a maintenance issue or cleaning request.</v-card-text>
+            </v-card>
           </div>
         </v-card>
       </v-col>
     </v-row>
+
+    <v-dialog v-model="showMaintenanceDialog" max-width="480">
+      <v-card rounded="lg">
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-wrench-outline" />
+          Request Maintenance
+        </v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="maintenanceForm.targetType"
+            :items="[{ title: 'Site / Room', value: 'site-room' }, { title: 'QR Code / Record', value: 'qr' }]"
+            item-title="title"
+            item-value="value"
+            label="Target Type"
+            variant="outlined"
+            density="comfortable"
+            class="mb-2"
+          />
+          <v-autocomplete
+            v-if="maintenanceForm.targetType === 'qr'"
+            v-model="maintenanceForm.recordCode"
+            :items="allRecordSelectItems"
+            item-title="label"
+            item-value="value"
+            label="Select Record / QR Code"
+            variant="outlined"
+            density="comfortable"
+            class="mb-2"
+          />
+          <v-text-field
+            v-else
+            v-model="maintenanceForm.siteRoom"
+            label="Site / Room"
+            prepend-inner-icon="mdi-map-marker-outline"
+            variant="outlined"
+            density="comfortable"
+            class="mb-2"
+          />
+          <v-textarea
+            v-model="maintenanceForm.message"
+            label="Describe the issue"
+            prepend-inner-icon="mdi-text"
+            variant="outlined"
+            density="comfortable"
+            rows="3"
+          />
+          <v-alert v-if="maintenanceFeedback" type="success" variant="tonal" density="compact" class="mt-2">{{ maintenanceFeedback }}</v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showMaintenanceDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" prepend-icon="mdi-send" @click="submitMaintenanceRequest">Submit Request</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="showProfileModal" max-width="460">
       <v-card rounded="lg">
@@ -123,6 +187,8 @@ type AuthMode = 'login' | 'signup'
 
 const logoUrl = `${useRuntimeConfig().app.baseURL}branding/login-logo-slide1-trimmed.png`
 const { currentUser, isAdmin, initAuth, login, signup, logout } = useAuth()
+const { addRequest } = useServiceRequests()
+const { getRecords } = useRecords()
 
 const mode = ref<AuthMode>('login')
 const formMessage = ref('')
@@ -140,6 +206,45 @@ const signupForm = reactive({
   username: '',
   password: ''
 })
+
+// ── Maintenance Request ───────────────────────────────────────────────────────
+const showMaintenanceDialog = ref(false)
+const maintenanceFeedback = ref('')
+const maintenanceForm = reactive({
+  targetType: 'site-room' as 'qr' | 'site-room',
+  recordCode: '',
+  siteRoom: '',
+  message: ''
+})
+
+const allRecordSelectItems = computed(() =>
+  getRecords().map((r: { code: string; name: string }) => ({ label: `${r.code} - ${r.name}`, value: r.code }))
+)
+
+const submitMaintenanceRequest = () => {
+  if (!maintenanceForm.message.trim()) {
+    return
+  }
+
+  addRequest({
+    requestType: 'maintenance',
+    targetType: maintenanceForm.targetType,
+    recordCode: maintenanceForm.targetType === 'qr' ? maintenanceForm.recordCode : null,
+    siteRoom: maintenanceForm.targetType === 'site-room' ? maintenanceForm.siteRoom.trim() || null : null,
+    message: maintenanceForm.message.trim(),
+    requestedBy: currentUser.value?.profile?.displayName || currentUser.value?.name || 'Unknown',
+    requestedByUserId: currentUser.value?.id ?? null
+  })
+
+  maintenanceFeedback.value = 'Maintenance request submitted successfully!'
+  setTimeout(() => {
+    showMaintenanceDialog.value = false
+    maintenanceFeedback.value = ''
+    maintenanceForm.message = ''
+    maintenanceForm.siteRoom = ''
+    maintenanceForm.recordCode = ''
+  }, 1500)
+}
 
 
 onMounted(() => {

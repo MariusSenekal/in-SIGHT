@@ -3,8 +3,15 @@ export interface AppUser {
   name: string
   username: string
   password: string
-  role: 'user' | 'admin'
+  role: 'user' | 'admin' | 'staff'
   profile: UserProfile
+}
+
+export interface Company {
+  id: number
+  name: string
+  linkedUserIds: number[]
+  createdAt: string
 }
 
 export interface UserProfile {
@@ -38,6 +45,7 @@ interface RevokedToken {
 const USERS_KEY = 'insight_users'
 const AUTH_TOKEN_KEY = 'insight_auth_token'
 const REVOKED_TOKENS_KEY = 'insight_revoked_tokens'
+const COMPANIES_KEY = 'insight_companies'
 const JWT_SECRET = 'in-sight-jwt-secret-v1'
 const SESSION_DURATION_SECONDS = 15 * 60
 
@@ -80,6 +88,7 @@ export const useAuth = () => {
   const currentUser = useState<AppUser | null>('auth-current-user', () => null)
   const authToken = useState<string | null>('auth-token', () => null)
   const initialized = useState<boolean>('auth-initialized', () => false)
+  const companies = useState<Company[]>('auth-companies', () => [])
 
   const toBase64Url = (value: string) => {
     if (!import.meta.client || typeof btoa !== 'function') {
@@ -201,6 +210,14 @@ export const useAuth = () => {
     localStorage.setItem(USERS_KEY, JSON.stringify(users.value))
   }
 
+  const persistCompanies = () => {
+    if (!import.meta.client) {
+      return
+    }
+
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies.value))
+  }
+
   const persistAuthToken = () => {
     if (!import.meta.client) {
       return
@@ -310,6 +327,13 @@ export const useAuth = () => {
 
     if (!savedToken || !applyToken(savedToken)) {
       clearAuthState()
+    }
+
+    try {
+      const savedCompanies = localStorage.getItem(COMPANIES_KEY)
+      companies.value = savedCompanies ? (JSON.parse(savedCompanies) as Company[]) : []
+    } catch {
+      companies.value = []
     }
 
     initialized.value = true
@@ -462,6 +486,87 @@ export const useAuth = () => {
     }
   }
 
+  const createUser = (name: string, username: string, password: string, role: AppUser['role']): AuthResult => {
+    const normalizedName = name.trim()
+    const normalizedUsername = username.trim()
+
+    if (!normalizedName || !normalizedUsername || !password) {
+      return { ok: false, message: 'Please fill in all required fields.' }
+    }
+
+    const exists = users.value.some(
+      u => u.username.toLowerCase() === normalizedUsername.toLowerCase()
+    )
+
+    if (exists) {
+      return { ok: false, message: 'That username is already taken.' }
+    }
+
+    const newUser: AppUser = {
+      id: Date.now(),
+      name: normalizedName,
+      username: normalizedUsername,
+      password,
+      role,
+      profile: buildDefaultProfile(normalizedName)
+    }
+
+    users.value = [...users.value, newUser]
+    persistUsers()
+
+    return { ok: true, message: `User "${normalizedName}" created successfully.` }
+  }
+
+  const getCompanies = () => [...companies.value]
+
+  const createCompany = (name: string): AuthResult => {
+    const normalizedName = name.trim()
+
+    if (!normalizedName) {
+      return { ok: false, message: 'Company name is required.' }
+    }
+
+    const exists = companies.value.some(
+      c => c.name.toLowerCase() === normalizedName.toLowerCase()
+    )
+
+    if (exists) {
+      return { ok: false, message: 'A company with that name already exists.' }
+    }
+
+    const newCompany: Company = {
+      id: Date.now(),
+      name: normalizedName,
+      linkedUserIds: [],
+      createdAt: new Date().toISOString()
+    }
+
+    companies.value = [...companies.value, newCompany]
+    persistCompanies()
+
+    return { ok: true, message: `Company "${normalizedName}" created.` }
+  }
+
+  const linkUserToCompany = (companyId: number, userId: number) => {
+    companies.value = companies.value.map(c => {
+      if (c.id !== companyId || c.linkedUserIds.includes(userId)) {
+        return c
+      }
+      return { ...c, linkedUserIds: [...c.linkedUserIds, userId] }
+    })
+    persistCompanies()
+  }
+
+  const unlinkUserFromCompany = (companyId: number, userId: number) => {
+    companies.value = companies.value.map(c => {
+      if (c.id !== companyId) {
+        return c
+      }
+      return { ...c, linkedUserIds: c.linkedUserIds.filter(id => id !== userId) }
+    })
+    persistCompanies()
+  }
+
   const isAdmin = computed(() => currentUser.value?.role === 'admin')
   const isAuthenticated = computed(() => Boolean(currentUser.value && authToken.value))
 
@@ -477,6 +582,12 @@ export const useAuth = () => {
     signup,
     updateProfile,
     refreshToken,
-    logout
+    logout,
+    createUser,
+    companies,
+    getCompanies,
+    createCompany,
+    linkUserToCompany,
+    unlinkUserFromCompany
   }
 }

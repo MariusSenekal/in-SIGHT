@@ -27,9 +27,14 @@
       <v-row>
         <v-col cols="12" lg="4">
           <v-card variant="outlined" rounded="lg">
-            <v-card-title class="d-flex align-center justify-space-between">
+            <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-2">
               <span>All Users</span>
-              <v-chip size="small" color="primary" variant="tonal">{{ filteredUsers.length }} / {{ users.length }}</v-chip>
+              <div class="d-flex align-center ga-2">
+                <v-chip size="small" color="primary" variant="tonal">{{ filteredUsers.length }} / {{ users.length }}</v-chip>
+                <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-account-plus" @click="showCreateUserDialog = true">
+                  Create User
+                </v-btn>
+              </div>
             </v-card-title>
             <v-card-text>
               <v-text-field
@@ -251,14 +256,140 @@
           </v-card>
         </v-col>
       </v-row>
+
+      <!-- ── Companies ─────────────────────────────────────────────────────── -->
+      <v-row class="mt-4">
+        <v-col cols="12">
+          <v-card variant="outlined" rounded="lg">
+            <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-2">
+              <span>Companies</span>
+              <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-domain-plus" @click="showCreateCompanyDialog = true">
+                Create Company
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-alert v-if="companies.length === 0" type="info" variant="tonal" border="start">
+                No companies yet. Create one to link users to it.
+              </v-alert>
+
+              <v-row v-else dense>
+                <v-col cols="12" md="6" lg="4" v-for="company in companies" :key="company.id">
+                  <v-card variant="tonal" rounded="lg" class="pa-3">
+                    <div class="d-flex align-center justify-space-between mb-3">
+                      <h3 class="text-subtitle-1 font-weight-bold">{{ company.name }}</h3>
+                      <v-chip size="x-small" color="primary" variant="outlined">{{ company.linkedUserIds.length }} users</v-chip>
+                    </div>
+                    <v-autocomplete
+                      :model-value="company.linkedUserIds"
+                      :items="usersForCompanySelect"
+                      item-title="title"
+                      item-value="value"
+                      label="Linked Users"
+                      multiple
+                      chips
+                      closable-chips
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      placeholder="Select users…"
+                      @update:model-value="(ids) => setCompanyUsers(company.id, ids)"
+                    />
+                  </v-card>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
     </v-card>
   </div>
+
+  <!-- ── Create User Dialog ──────────────────────────────────────────────── -->
+  <v-dialog v-model="showCreateUserDialog" max-width="440" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-account-plus" />
+        Create New User
+      </v-card-title>
+      <v-card-text>
+        <v-text-field
+          v-model="createUserForm.name"
+          label="Full Name"
+          prepend-inner-icon="mdi-badge-account"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+        />
+        <v-text-field
+          v-model="createUserForm.username"
+          label="Username"
+          prepend-inner-icon="mdi-account"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+        />
+        <v-text-field
+          v-model="createUserForm.password"
+          label="Password"
+          type="password"
+          prepend-inner-icon="mdi-lock"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+        />
+        <v-select
+          v-model="createUserForm.role"
+          :items="roleOptions"
+          item-title="title"
+          item-value="value"
+          label="Role"
+          prepend-inner-icon="mdi-shield-account"
+          variant="outlined"
+          density="comfortable"
+        />
+        <v-alert v-if="createUserError" type="error" variant="tonal" density="compact" class="mt-2">{{ createUserError }}</v-alert>
+        <v-alert v-if="createUserSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createUserSuccess }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="showCreateUserDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-account-plus" @click="submitCreateUser">Create User</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ── Create Company Dialog ───────────────────────────────────────────── -->
+  <v-dialog v-model="showCreateCompanyDialog" max-width="380" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-domain-plus" />
+        Create Company
+      </v-card-title>
+      <v-card-text>
+        <v-text-field
+          v-model="createCompanyForm.name"
+          label="Company Name"
+          prepend-inner-icon="mdi-domain"
+          variant="outlined"
+          density="comfortable"
+        />
+        <v-alert v-if="createCompanyError" type="error" variant="tonal" density="compact" class="mt-2">{{ createCompanyError }}</v-alert>
+        <v-alert v-if="createCompanySuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createCompanySuccess }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="showCreateCompanyDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-domain-plus" @click="submitCreateCompany">Create</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
 import QrcodeVue from 'qrcode.vue'
+import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, initAuth, logout, users } = useAuth()
+const { currentUser, isAdmin, initAuth, logout, users, createUser, companies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
 const { getRecords } = useRecords()
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
@@ -269,6 +400,76 @@ const siteFilter = ref('all')
 const selectedUserId = ref<number | null>(null)
 const checklistItemsByCode = ref<Record<string, string[]>>({})
 const newTaskByCode = ref<Record<string, string>>({})
+
+// ── Create User ──────────────────────────────────────────────────────────────
+const showCreateUserDialog = ref(false)
+const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' })
+const createUserError = ref('')
+const createUserSuccess = ref('')
+
+const roleOptions = [
+  { title: 'User', value: 'user' },
+  { title: 'Staff', value: 'staff' },
+  { title: 'Admin', value: 'admin' }
+]
+
+const submitCreateUser = () => {
+  createUserError.value = ''
+  createUserSuccess.value = ''
+  const result = createUser(createUserForm.name, createUserForm.username, createUserForm.password, createUserForm.role)
+  if (!result.ok) {
+    createUserError.value = result.message
+    return
+  }
+  createUserSuccess.value = result.message
+  createUserForm.name = ''
+  createUserForm.username = ''
+  createUserForm.password = ''
+  createUserForm.role = 'user'
+  setTimeout(() => {
+    showCreateUserDialog.value = false
+    createUserSuccess.value = ''
+  }, 1500)
+}
+
+// ── Companies ─────────────────────────────────────────────────────────────────
+const showCreateCompanyDialog = ref(false)
+const createCompanyForm = reactive({ name: '' })
+const createCompanyError = ref('')
+const createCompanySuccess = ref('')
+
+const submitCreateCompany = () => {
+  createCompanyError.value = ''
+  createCompanySuccess.value = ''
+  const result = createCompany(createCompanyForm.name)
+  if (!result.ok) {
+    createCompanyError.value = result.message
+    return
+  }
+  createCompanySuccess.value = result.message
+  createCompanyForm.name = ''
+  setTimeout(() => {
+    showCreateCompanyDialog.value = false
+    createCompanySuccess.value = ''
+  }, 1500)
+}
+
+const usersForCompanySelect = computed((): { title: string; value: number }[] =>
+  users.value.map((u: AppUser) => ({ title: u.profile?.displayName || u.name, value: u.id }))
+)
+
+const setCompanyUsers = (companyId: number, rawIds: unknown) => {
+  const selectedIds = (Array.isArray(rawIds) ? rawIds : []) as number[]
+  const company = companies.value.find((c: Company) => c.id === companyId)
+  if (!company) { return }
+  selectedIds.filter((id: number) => !company.linkedUserIds.includes(id)).forEach((id: number) => linkUserToCompany(companyId, id))
+  company.linkedUserIds.filter((id: number) => !selectedIds.includes(id)).forEach((id: number) => unlinkUserFromCompany(companyId, id))
+}
+
+const getUserNameById = (userId: number) => {
+  const user = users.value.find((u: AppUser) => u.id === userId)
+  return user ? (user.profile?.displayName || user.name) : `User #${userId}`
+}
 
 const quickActions = [
   {
