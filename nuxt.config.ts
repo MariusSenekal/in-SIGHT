@@ -6,6 +6,9 @@ export default defineNuxtConfig({
   build: {
     transpile: ['vuetify']
   },
+  experimental: {
+    inlineSSRStyles: false
+  },
   pwa: {
     registerType: 'autoUpdate',
     injectRegister: 'auto',
