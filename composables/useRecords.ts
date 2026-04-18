@@ -6,6 +6,7 @@ export interface Record {
   type: string
   location: string
   ownerUserId: number | null
+  ownerCompanyId: number | null
   createdAt: string
 }
 
@@ -60,6 +61,7 @@ export const useRecords = () => {
     return {
       ...record,
       ownerUserId: record.ownerUserId ?? null,
+      ownerCompanyId: (record as Record & { ownerCompanyId?: number | null }).ownerCompanyId ?? null,
       createdAt: record.createdAt || new Date().toISOString()
     }
   }
@@ -125,7 +127,7 @@ export const useRecords = () => {
     return records.value.find(record => record.code.toUpperCase() === normalized)
   }
 
-  const addRecord = (input: Omit<Record, 'id' | 'code' | 'ownerUserId' | 'createdAt'> & { ownerUserId?: number | null }) => {
+  const addRecord = (input: Omit<Record, 'id' | 'code' | 'ownerUserId' | 'ownerCompanyId' | 'createdAt'> & { ownerUserId?: number | null; ownerCompanyId?: number | null }) => {
     ensureHydrated()
 
     const maxId = records.value.reduce((max, record) => Math.max(max, record.id), 0)
@@ -137,6 +139,7 @@ export const useRecords = () => {
       type: input.type,
       location: input.location,
       ownerUserId: input.ownerUserId ?? null,
+      ownerCompanyId: input.ownerCompanyId ?? null,
       createdAt: new Date().toISOString()
     }
 
@@ -151,9 +154,15 @@ export const useRecords = () => {
     return records.value.filter(record => record.ownerUserId === ownerUserId)
   }
 
+  const getRecordsByCompany = (ownerCompanyId: number) => {
+    ensureHydrated()
+    return records.value.filter(record => record.ownerCompanyId === ownerCompanyId)
+  }
+
   return {
     getRecords,
     getRecordsByOwner,
+    getRecordsByCompany,
     getRecordById,
     getRecordByCode,
     addRecord

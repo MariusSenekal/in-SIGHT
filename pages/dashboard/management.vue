@@ -24,68 +24,189 @@
         </v-col>
       </v-row>
 
+      <!-- ── Two-pane layout: tabbed left sidebar + detail right ── -->
       <v-row>
+        <!-- LEFT: Tabbed pane — Users | Companies -->
         <v-col cols="12" lg="4">
           <v-card variant="outlined" rounded="lg">
-            <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-2">
-              <span>All Users</span>
-              <div class="d-flex align-center ga-2">
-                <v-chip size="small" color="primary" variant="tonal">{{ filteredUsers.length }} / {{ users.length }}</v-chip>
-                <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-account-plus" @click="showCreateUserDialog = true">
-                  Create User
-                </v-btn>
-              </div>
-            </v-card-title>
-            <v-card-text>
-              <v-text-field
-                v-model="userSearch"
-                label="Search users"
-                prepend-inner-icon="mdi-account-search"
-                density="comfortable"
-                variant="outlined"
-                hide-details
-                class="mb-3"
-              />
+            <v-tabs v-model="directoryTab" color="primary" density="comfortable" grow>
+              <v-tab value="users" prepend-icon="mdi-account-group">
+                Users
+                <v-chip size="x-small" color="primary" variant="tonal" class="ml-2">{{ users.length }}</v-chip>
+              </v-tab>
+              <v-tab value="companies" prepend-icon="mdi-domain">
+                Companies
+                <v-chip size="x-small" color="secondary" variant="tonal" class="ml-2">{{ companies.length }}</v-chip>
+              </v-tab>
+            </v-tabs>
 
-              <v-list lines="two" class="user-list-vuetify" nav>
-                <v-list-item
-                  v-for="user in filteredUsers"
-                  :key="user.id"
-                  :active="selectedUserId === user.id"
-                  rounded="lg"
-                  @click="selectedUserId = user.id"
-                >
-                  <template #prepend>
-                    <v-avatar color="primary" variant="tonal" size="34">
-                      {{ (user.profile?.displayName || user.name).charAt(0).toUpperCase() }}
-                    </v-avatar>
-                  </template>
+            <v-divider />
 
-                  <v-list-item-title>{{ user.profile?.displayName || user.name }}</v-list-item-title>
-                  <v-list-item-subtitle>@{{ user.username }} | {{ user.role }}</v-list-item-subtitle>
+            <v-tabs-window v-model="directoryTab">
+              <!-- Users tab -->
+              <v-tabs-window-item value="users">
+                <v-card-text class="pb-0">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <v-text-field
+                      v-model="userSearch"
+                      label="Search users"
+                      prepend-inner-icon="mdi-account-search"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      class="flex-grow-1 mr-2"
+                    />
+                    <v-btn size="small" color="primary" variant="flat" icon="mdi-account-plus" @click="showCreateUserDialog = true" />
+                  </div>
+                </v-card-text>
+                <v-list lines="two" class="directory-list" nav>
+                  <v-list-item
+                    v-for="user in filteredUsers"
+                    :key="user.id"
+                    :active="directoryTab === 'users' && selectedUserId === user.id"
+                    rounded="lg"
+                    @click="selectUser(user.id)"
+                  >
+                    <template #prepend>
+                      <v-avatar :color="roleColor(user.role)" variant="tonal" size="36">
+                        {{ (user.profile?.displayName || user.name).charAt(0).toUpperCase() }}
+                      </v-avatar>
+                    </template>
+                    <v-list-item-title class="font-weight-medium">{{ user.profile?.displayName || user.name }}</v-list-item-title>
+                    <v-list-item-subtitle>
+                      @{{ user.username }}
+                      <v-chip v-if="getUserCompany(user.id)" size="x-small" color="secondary" variant="tonal" class="ml-1">
+                        {{ getUserCompany(user.id)!.name }}
+                      </v-chip>
+                    </v-list-item-subtitle>
+                    <template #append>
+                      <div class="d-flex flex-column align-end ga-1">
+                        <v-chip size="x-small" :color="roleColor(user.role)" variant="tonal">{{ user.role }}</v-chip>
+                        <v-chip v-if="user.role === 'user'" size="x-small" color="info" variant="tonal">{{ getRecordCountForUser(user) }} QR</v-chip>
+                      </div>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-tabs-window-item>
 
-                  <template #append>
-                    <v-chip size="x-small" color="info" variant="tonal">{{ getRecordCountForUser(user) }} QR</v-chip>
-                  </template>
-                </v-list-item>
-              </v-list>
-            </v-card-text>
+              <!-- Companies tab -->
+              <v-tabs-window-item value="companies">
+                <v-card-text class="pb-0">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <v-text-field
+                      v-model="companySearch"
+                      label="Search companies"
+                      prepend-inner-icon="mdi-domain"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      class="flex-grow-1 mr-2"
+                    />
+                    <v-btn size="small" color="primary" variant="flat" icon="mdi-domain-plus" @click="showCreateCompanyDialog = true" />
+                  </div>
+                </v-card-text>
+                <v-alert v-if="companies.length === 0" type="info" variant="tonal" border="start" density="compact" class="mx-3 mb-3">
+                  No companies yet. Click <v-icon size="small">mdi-domain-plus</v-icon> to create one.
+                </v-alert>
+                <v-list lines="two" class="directory-list" nav>
+                  <v-list-item
+                    v-for="company in filteredCompanies"
+                    :key="company.id"
+                    :active="directoryTab === 'companies' && selectedCompanyId === company.id"
+                    rounded="lg"
+                    @click="selectCompany(company.id)"
+                  >
+                    <template #prepend>
+                      <v-avatar color="secondary" variant="tonal" size="36">
+                        {{ company.name.charAt(0).toUpperCase() }}
+                      </v-avatar>
+                    </template>
+                    <v-list-item-title class="font-weight-medium">{{ company.name }}</v-list-item-title>
+                    <v-list-item-subtitle>{{ company.linkedUserIds.length }} users linked</v-list-item-subtitle>
+                    <template #append>
+                      <v-chip size="x-small" color="success" variant="tonal">{{ getRecordsByCompany(company.id).length }} QR</v-chip>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-tabs-window-item>
+            </v-tabs-window>
           </v-card>
         </v-col>
 
+        <!-- RIGHT: Detail panel — changes based on what is selected -->
         <v-col cols="12" lg="8">
-          <v-card v-if="selectedUser" variant="outlined" rounded="lg">
+
+          <!-- ── User detail ── -->
+          <v-card v-if="directoryTab === 'users' && selectedUser" variant="outlined" rounded="lg">
             <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
-              <span>{{ selectedUser.profile?.displayName || selectedUser.name }}</span>
-              <v-chip size="small" color="secondary" variant="tonal">{{ selectedUser.role }}</v-chip>
+              <div class="d-flex align-center ga-2">
+                <v-avatar :color="roleColor(selectedUser.role)" variant="tonal" size="40">
+                  {{ (selectedUser.profile?.displayName || selectedUser.name).charAt(0).toUpperCase() }}
+                </v-avatar>
+                <span>{{ selectedUser.profile?.displayName || selectedUser.name }}</span>
+              </div>
+              <div class="d-flex align-center ga-2 flex-wrap">
+                <v-chip size="small" :color="roleColor(selectedUser.role)" variant="tonal">{{ selectedUser.role }}</v-chip>
+                <v-btn v-if="selectedUser.role === 'user'" size="small" color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="openCreateQrForUser(selectedUser.id)">
+                  Create QR Code
+                </v-btn>
+              </div>
             </v-card-title>
 
-            <v-card-subtitle>
-              Username: @{{ selectedUser.username }} | Default Site: {{ selectedUser.profile?.location || 'Not set' }}
+            <v-card-subtitle class="pb-0">
+              @{{ selectedUser.username }} &bull; {{ selectedUser.profile?.location || 'No default site' }}
             </v-card-subtitle>
 
-            <v-card-text>
-              <v-row dense class="mb-2">
+            <!-- Company assignment — right in context with the user -->
+            <v-card-text class="pb-2">
+              <v-card variant="tonal" color="secondary" rounded="lg" class="pa-3 mb-4">
+                <div class="d-flex align-center ga-2 mb-2">
+                  <v-icon icon="mdi-domain" color="secondary" />
+                  <span class="text-subtitle-2 font-weight-bold">Company Assignment</span>
+                  <v-chip v-if="getUserCompany(selectedUser.id)" size="x-small" color="secondary" variant="flat">
+                    {{ getUserCompany(selectedUser.id)!.name }}
+                  </v-chip>
+                  <v-chip v-else size="x-small" color="default" variant="outlined">Not assigned</v-chip>
+                </div>
+                <v-select
+                  :model-value="getUserCompanyId(selectedUser.id)"
+                  :items="companySelectItems"
+                  item-title="title"
+                  item-value="value"
+                  label="Assign to Company"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  clearable
+                  placeholder="No company assigned"
+                  @update:model-value="(id) => assignUserToCompany(selectedUser.id, id)"
+                />
+              </v-card>
+
+              <!-- Staff / Admin info panel — no QR codes for these roles -->
+              <v-alert
+                v-if="selectedUser.role === 'staff'"
+                type="info"
+                variant="tonal"
+                border="start"
+                class="mb-4"
+                icon="mdi-badge-account-outline"
+              >
+                <strong>Staff member</strong> — staff users scan QR codes on-site to update service records. They do not have QR codes assigned to them.
+              </v-alert>
+
+              <v-alert
+                v-if="selectedUser.role === 'admin'"
+                type="warning"
+                variant="tonal"
+                border="start"
+                class="mb-4"
+                icon="mdi-shield-account-outline"
+              >
+                <strong>Administrator</strong> — admin accounts manage the system and do not have site QR codes assigned to them.
+              </v-alert>
+
+              <v-row v-if="selectedUser.role === 'user'" dense class="mb-2">
                 <v-col cols="12" md="6">
                   <v-select
                     v-model="siteFilter"
@@ -111,16 +232,16 @@
               </v-row>
 
               <v-alert
-                v-if="filteredUserRecords.length === 0"
+                v-if="selectedUser.role === 'user' && filteredUserRecords.length === 0"
                 type="info"
                 variant="tonal"
                 border="start"
                 class="mb-2"
               >
-                No QR records match this filter for the selected user.
+                No QR records assigned to this user yet.
               </v-alert>
 
-              <v-row v-else dense>
+              <v-row v-if="selectedUser.role === 'user' && filteredUserRecords.length > 0" dense>
                 <v-col cols="12" v-for="record in filteredUserRecords" :key="record.id">
                   <v-card rounded="lg" variant="tonal" class="pa-2 pa-md-3">
                     <v-row>
@@ -201,11 +322,11 @@
                               >
                                 <v-expansion-panel-title>
                                   <div class="d-flex flex-wrap align-center ga-2 w-100">
-                                    <span class="text-body-2 font-weight-medium">{{ entry.startTime }} -> {{ entry.endTime }}</span>
+                                    <span class="text-body-2 font-weight-medium">{{ entry.startTime }} → {{ entry.endTime }}</span>
                                     <v-chip size="x-small" :color="statusColor(entry.status)" variant="tonal">{{ entry.status }}</v-chip>
                                     <v-spacer />
                                     <v-chip size="x-small" color="primary" variant="outlined">
-                                      {{ entry.checklist.filter(task => task.completed).length }} / {{ entry.checklist.length }} completed
+                                      {{ entry.checklist.filter(task => task.completed).length }} / {{ entry.checklist.length }} done
                                     </v-chip>
                                   </div>
                                 </v-expansion-panel-title>
@@ -254,51 +375,106 @@
               </v-row>
             </v-card-text>
           </v-card>
-        </v-col>
-      </v-row>
 
-      <!-- ── Companies ─────────────────────────────────────────────────────── -->
-      <v-row class="mt-4">
-        <v-col cols="12">
-          <v-card variant="outlined" rounded="lg">
-            <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-2">
-              <span>Companies</span>
-              <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-domain-plus" @click="showCreateCompanyDialog = true">
-                Create Company
+          <!-- ── Company detail ── -->
+          <v-card v-else-if="directoryTab === 'companies' && selectedCompany" variant="outlined" rounded="lg">
+            <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
+              <div class="d-flex align-center ga-2">
+                <v-avatar color="secondary" variant="tonal" size="40">
+                  {{ selectedCompany.name.charAt(0).toUpperCase() }}
+                </v-avatar>
+                <span>{{ selectedCompany.name }}</span>
+              </div>
+              <v-btn size="small" color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="openCreateQrForCompany(selectedCompany.id)">
+                Create QR Code
               </v-btn>
             </v-card-title>
+
             <v-card-text>
-              <v-alert v-if="companies.length === 0" type="info" variant="tonal" border="start">
-                No companies yet. Create one to link users to it.
+              <!-- Linked users — manage right here in context -->
+              <v-card variant="tonal" color="secondary" rounded="lg" class="pa-3 mb-4">
+                <div class="d-flex align-center ga-2 mb-3">
+                  <v-icon icon="mdi-account-group" color="secondary" />
+                  <span class="text-subtitle-2 font-weight-bold">Linked Users</span>
+                  <v-chip size="x-small" color="secondary" variant="flat">{{ selectedCompany.linkedUserIds.length }}</v-chip>
+                </div>
+
+                <!-- Current members listed with remove chips -->
+                <div v-if="selectedCompany.linkedUserIds.length > 0" class="d-flex flex-wrap ga-2 mb-3">
+                  <v-chip
+                    v-for="uid in selectedCompany.linkedUserIds"
+                    :key="uid"
+                    closable
+                    size="small"
+                    color="secondary"
+                    variant="tonal"
+                    @click:close="unlinkUserFromCompany(selectedCompany.id, uid)"
+                  >
+                    <v-avatar start color="secondary" size="20">
+                      {{ getUserNameById(uid).charAt(0).toUpperCase() }}
+                    </v-avatar>
+                    {{ getUserNameById(uid) }}
+                  </v-chip>
+                </div>
+                <p v-else class="text-medium-emphasis text-caption mb-3">No users linked yet.</p>
+
+                <!-- Add user dropdown — only shows unlinked users -->
+                <v-autocomplete
+                  v-model="addUserToCompanyId"
+                  :items="unlinkdUsersForCompany(selectedCompany.id)"
+                  item-title="title"
+                  item-value="value"
+                  label="Add a user to this company"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  clearable
+                  placeholder="Search and select a user…"
+                  prepend-inner-icon="mdi-account-plus"
+                  @update:model-value="(id) => { if (id) { linkUserToCompany(selectedCompany.id, id); addUserToCompanyId = null } }"
+                />
+              </v-card>
+
+              <!-- QR codes for this company -->
+              <div class="d-flex align-center justify-space-between mb-3">
+                <span class="text-subtitle-2 font-weight-bold">
+                  QR Codes
+                  <v-chip size="x-small" color="success" variant="tonal" class="ml-1">{{ getRecordsByCompany(selectedCompany.id).length }}</v-chip>
+                </span>
+              </div>
+
+              <v-alert v-if="getRecordsByCompany(selectedCompany.id).length === 0" type="info" variant="tonal" border="start" density="compact">
+                No QR codes yet. Click "Create QR Code" above to add one.
               </v-alert>
 
               <v-row v-else dense>
-                <v-col cols="12" md="6" lg="4" v-for="company in companies" :key="company.id">
+                <v-col cols="12" sm="6" v-for="rec in getRecordsByCompany(selectedCompany.id)" :key="rec.id">
                   <v-card variant="tonal" rounded="lg" class="pa-3">
-                    <div class="d-flex align-center justify-space-between mb-3">
-                      <h3 class="text-subtitle-1 font-weight-bold">{{ company.name }}</h3>
-                      <v-chip size="x-small" color="primary" variant="outlined">{{ company.linkedUserIds.length }} users</v-chip>
+                    <div class="d-flex align-center justify-space-between mb-2">
+                      <div>
+                        <div class="font-weight-bold">{{ rec.name }}</div>
+                        <div class="text-medium-emphasis text-caption">{{ rec.location }}</div>
+                        <v-chip size="x-small" color="primary" variant="flat" class="mt-1">{{ rec.code }}</v-chip>
+                      </div>
+                      <QrcodeVue :value="toScanUrl(rec.code)" :size="80" level="H" render-as="svg" />
                     </div>
-                    <v-autocomplete
-                      :model-value="company.linkedUserIds"
-                      :items="usersForCompanySelect"
-                      item-title="title"
-                      item-value="value"
-                      label="Linked Users"
-                      multiple
-                      chips
-                      closable-chips
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                      placeholder="Select users…"
-                      @update:model-value="(ids) => setCompanyUsers(company.id, ids)"
-                    />
+                    <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" block>
+                      Open Tracking Page
+                    </v-btn>
                   </v-card>
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
+
+          <!-- Empty state when nothing is selected -->
+          <v-card v-else variant="outlined" rounded="lg" class="pa-8 text-center">
+            <v-icon :icon="directoryTab === 'companies' ? 'mdi-domain' : 'mdi-account'" size="48" color="primary" class="mb-3 opacity-40" />
+            <p class="text-medium-emphasis">
+              {{ directoryTab === 'companies' ? 'Select a company from the list to view details.' : 'Select a user from the list to view details.' }}
+            </p>
+          </v-card>
+
         </v-col>
       </v-row>
     </v-card>
@@ -358,6 +534,45 @@
     </v-card>
   </v-dialog>
 
+  <!-- ── Create QR Code Dialog ─────────────────────────────────────────── -->
+  <v-dialog v-model="showCreateQrDialog" max-width="460" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-qrcode-plus" />
+        Create QR Code
+        <span v-if="createQrTarget.type === 'user'" class="text-body-2 text-medium-emphasis ml-1">for {{ getUserNameById(createQrTarget.id!) }}</span>
+        <span v-else-if="createQrTarget.type === 'company'" class="text-body-2 text-medium-emphasis ml-1">for {{ getCompanyNameById(createQrTarget.id!) }}</span>
+      </v-card-title>
+      <v-card-text>
+        <v-text-field
+          v-model="createQrForm.name"
+          label="QR Code Name / Label"
+          prepend-inner-icon="mdi-tag-outline"
+          variant="outlined"
+          density="comfortable"
+          placeholder="e.g. Ground Floor Kitchen"
+          class="mb-2"
+        />
+        <v-text-field
+          v-model="createQrForm.location"
+          label="Location / Room"
+          prepend-inner-icon="mdi-map-marker-outline"
+          variant="outlined"
+          density="comfortable"
+          placeholder="e.g. Building A - Room 3"
+          class="mb-2"
+        />
+        <v-alert v-if="createQrError" type="error" variant="tonal" density="compact" class="mt-2">{{ createQrError }}</v-alert>
+        <v-alert v-if="createQrSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createQrSuccess }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="showCreateQrDialog = false">Cancel</v-btn>
+        <v-btn color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="submitCreateQrCode">Create QR Code</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- ── Create Company Dialog ───────────────────────────────────────────── -->
   <v-dialog v-model="showCreateCompanyDialog" max-width="380" persistent>
     <v-card rounded="lg">
@@ -391,15 +606,89 @@ import type { AppUser, Company } from '~/composables/useAuth'
 
 const { currentUser, isAdmin, initAuth, logout, users, createUser, companies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRecords } = useRecords()
+const { getRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
 
 const userSearch = ref('')
+const companySearch = ref('')
 const recordSearch = ref('')
 const siteFilter = ref('all')
+const directoryTab = ref<'users' | 'companies'>('users')
 const selectedUserId = ref<number | null>(null)
+const selectedCompanyId = ref<number | null>(null)
+const addUserToCompanyId = ref<number | null>(null)
 const checklistItemsByCode = ref<Record<string, string[]>>({})
 const newTaskByCode = ref<Record<string, string>>({})
+
+// ── Create QR Code ───────────────────────────────────────────────────────────
+const showCreateQrDialog = ref(false)
+const createQrTarget = ref<{ type: 'user' | 'company'; id: number | null }>({ type: 'user', id: null })
+const createQrForm = reactive({ name: '', location: '' })
+const createQrError = ref('')
+const createQrSuccess = ref('')
+
+const getRecordsByCompany = (companyId: number) => {
+  return getRecordsByCompanyFn(companyId)
+}
+
+const getCompanyNameById = (companyId: number) => {
+  const company = companies.value.find((c: Company) => c.id === companyId)
+  return company ? company.name : `Company #${companyId}`
+}
+
+const openCreateQrForUser = (userId: number) => {
+  createQrTarget.value = { type: 'user', id: userId }
+  createQrForm.name = ''
+  createQrForm.location = ''
+  createQrError.value = ''
+  createQrSuccess.value = ''
+  showCreateQrDialog.value = true
+}
+
+const openCreateQrForCompany = (companyId: number) => {
+  createQrTarget.value = { type: 'company', id: companyId }
+  createQrForm.name = ''
+  createQrForm.location = ''
+  createQrError.value = ''
+  createQrSuccess.value = ''
+  showCreateQrDialog.value = true
+}
+
+const submitCreateQrCode = () => {
+  createQrError.value = ''
+  createQrSuccess.value = ''
+
+  const name = createQrForm.name.trim()
+  const location = createQrForm.location.trim()
+
+  if (!name) {
+    createQrError.value = 'Please enter a name for the QR code.'
+    return
+  }
+
+  if (!location) {
+    createQrError.value = 'Please enter a location or room.'
+    return
+  }
+
+  const rec = addRecord({
+    name,
+    location,
+    description: '',
+    type: 'Cleaning Station',
+    ownerUserId: createQrTarget.value.type === 'user' ? createQrTarget.value.id : null,
+    ownerCompanyId: createQrTarget.value.type === 'company' ? createQrTarget.value.id : null
+  })
+
+  createQrSuccess.value = `QR Code created: ${rec.code}`
+  createQrForm.name = ''
+  createQrForm.location = ''
+
+  setTimeout(() => {
+    showCreateQrDialog.value = false
+    createQrSuccess.value = ''
+  }, 1800)
+}
 
 // ── Create User ──────────────────────────────────────────────────────────────
 const showCreateUserDialog = ref(false)
@@ -457,6 +746,61 @@ const submitCreateCompany = () => {
 const usersForCompanySelect = computed((): { title: string; value: number }[] =>
   users.value.map((u: AppUser) => ({ title: u.profile?.displayName || u.name, value: u.id }))
 )
+
+const companySelectItems = computed(() => [
+  { title: 'No company', value: null },
+  ...companies.value.map((c: Company) => ({ title: c.name, value: c.id }))
+])
+
+const filteredCompanies = computed(() => {
+  const term = companySearch.value.trim().toLowerCase()
+  if (!term) { return companies.value }
+  return companies.value.filter((c: Company) => c.name.toLowerCase().includes(term))
+})
+
+const selectedCompany = computed(() => {
+  if (!selectedCompanyId.value) { return filteredCompanies.value[0] || null }
+  return filteredCompanies.value.find((c: Company) => c.id === selectedCompanyId.value) || filteredCompanies.value[0] || null
+})
+
+const getUserCompany = (userId: number) => {
+  return companies.value.find((c: Company) => c.linkedUserIds.includes(userId)) || null
+}
+
+const getUserCompanyId = (userId: number) => {
+  return getUserCompany(userId)?.id ?? null
+}
+
+const assignUserToCompany = (userId: number, companyId: number | null) => {
+  // Remove from all companies first
+  companies.value.forEach((c: Company) => {
+    if (c.linkedUserIds.includes(userId)) {
+      unlinkUserFromCompany(c.id, userId)
+    }
+  })
+  // Then add to the new one if set
+  if (companyId) {
+    linkUserToCompany(companyId, userId)
+  }
+}
+
+const unlinkdUsersForCompany = (companyId: number) => {
+  const company = companies.value.find((c: Company) => c.id === companyId)
+  return users.value
+    .filter((u: AppUser) => !company?.linkedUserIds.includes(u.id))
+    .map((u: AppUser) => ({ title: u.profile?.displayName || u.name, value: u.id }))
+}
+
+const selectUser = (userId: number) => {
+  selectedUserId.value = userId
+  siteFilter.value = 'all'
+  recordSearch.value = ''
+}
+
+const selectCompany = (companyId: number) => {
+  selectedCompanyId.value = companyId
+  addUserToCompanyId.value = null
+}
 
 const setCompanyUsers = (companyId: number, rawIds: unknown) => {
   const selectedIds = (Array.isArray(rawIds) ? rawIds : []) as number[]
@@ -527,12 +871,8 @@ const selectedUser = computed(() => {
 })
 
 const recordsForSelectedUser = computed(() => {
-  if (!selectedUser.value) {
+  if (!selectedUser.value || selectedUser.value.role !== 'user') {
     return []
-  }
-
-  if (selectedUser.value.role === 'admin') {
-    return allRecords.value.filter(record => record.ownerUserId === null)
   }
 
   return allRecords.value.filter(record => record.ownerUserId === selectedUser.value?.id)
@@ -659,15 +999,21 @@ const statusColor = (status: string) => {
 }
 
 const formatDateTime = (iso: string) => {
-  return new Date(iso).toLocaleString()
+  return new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
 }
 
 const getRecordCountForUser = (user: (typeof users.value)[number]) => {
-  if (user.role === 'admin') {
-    return allRecords.value.filter(record => record.ownerUserId === null).length
+  if (user.role !== 'user') {
+    return 0
   }
 
   return allRecords.value.filter(record => record.ownerUserId === user.id).length
+}
+
+const roleColor = (role: string) => {
+  if (role === 'admin') { return 'error' }
+  if (role === 'staff') { return 'warning' }
+  return 'primary'
 }
 
 watch(filteredUsers, (nextUsers) => {
@@ -678,6 +1024,17 @@ watch(filteredUsers, (nextUsers) => {
 
   if (!nextUsers.some(user => user.id === selectedUserId.value)) {
     selectedUserId.value = nextUsers[0].id
+  }
+}, { immediate: true })
+
+watch(filteredCompanies, (nextCompanies) => {
+  if (nextCompanies.length === 0) {
+    selectedCompanyId.value = null
+    return
+  }
+
+  if (!nextCompanies.some((c: Company) => c.id === selectedCompanyId.value)) {
+    selectedCompanyId.value = nextCompanies[0].id
   }
 }, { immediate: true })
 
@@ -713,14 +1070,14 @@ const toScanUrl = (code: string) => {
 </script>
 
 <style scoped>
-.user-list-vuetify {
-  max-height: 540px;
-  overflow: auto;
+.directory-list {
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 @media (max-width: 960px) {
-  .user-list-vuetify {
-    max-height: 360px;
+  .directory-list {
+    max-height: 320px;
   }
 }
 </style>

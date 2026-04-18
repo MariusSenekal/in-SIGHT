@@ -22,7 +22,10 @@ const {
   logoutFromPrompt
 } = useSessionGuard()
 
+const { initTheme } = useAppTheme()
+
 onMounted(() => {
   startSessionMonitor()
+  initTheme()
 })
 </script>

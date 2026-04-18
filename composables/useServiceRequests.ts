@@ -1,5 +1,6 @@
-export type ServiceRequestType = 'maintenance' | 'cleaning'
+export type ServiceRequestType = 'maintenance' | 'cleaning' | 'satisfaction'
 export type RequestTargetType = 'qr' | 'site-room'
+export type SatisfactionEmoji = 'happy' | 'sad'
 
 export interface ServiceRequest {
   id: number
@@ -12,6 +13,8 @@ export interface ServiceRequest {
   requestedByUserId: number | null
   createdAt: string
   status: 'open' | 'resolved'
+  satisfactionEmoji: SatisfactionEmoji | null
+  satisfactionEntryId: number | null
 }
 
 interface NewServiceRequestInput {
@@ -22,6 +25,8 @@ interface NewServiceRequestInput {
   message: string
   requestedBy: string
   requestedByUserId: number | null
+  satisfactionEmoji?: SatisfactionEmoji | null
+  satisfactionEntryId?: number | null
 }
 
 export const useServiceRequests = () => {
@@ -78,7 +83,9 @@ export const useServiceRequests = () => {
       requestedBy: input.requestedBy,
       requestedByUserId: input.requestedByUserId,
       createdAt: new Date().toISOString(),
-      status: 'open'
+      status: 'open',
+      satisfactionEmoji: input.satisfactionEmoji ?? null,
+      satisfactionEntryId: input.satisfactionEntryId ?? null
     }
 
     requests.value = [request, ...requests.value]

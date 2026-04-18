@@ -4,7 +4,7 @@
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
         <div>
           <h1 class="text-h4 text-md-h3 font-weight-bold">Service Requests</h1>
-          <p class="text-medium-emphasis">Review maintenance and cleaning requests from users.</p>
+          <p class="text-medium-emphasis">Review maintenance, cleaning and satisfaction feedback from users.</p>
         </div>
         <div class="d-flex ga-2">
           <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack({ adminFallback: '/' })">Back</v-btn>
@@ -12,23 +12,53 @@
         </div>
       </div>
 
-      <v-alert v-if="requests.length === 0" type="info" variant="tonal" border="start">
-        No requests have been submitted yet.
+      <!-- Filter tabs -->
+      <v-tabs v-model="filterTab" color="primary" class="mb-4">
+        <v-tab value="all">All</v-tab>
+        <v-tab value="maintenance">Maintenance</v-tab>
+        <v-tab value="cleaning">Cleaning</v-tab>
+        <v-tab value="satisfaction">Satisfaction</v-tab>
+        <v-tab value="open">Open</v-tab>
+      </v-tabs>
+
+      <v-alert v-if="filteredRequests.length === 0" type="info" variant="tonal" border="start">
+        No requests match the current filter.
       </v-alert>
 
       <v-row v-else dense>
-        <v-col cols="12" md="6" v-for="request in requests" :key="request.id">
+        <v-col cols="12" md="6" v-for="request in filteredRequests" :key="request.id">
           <v-card rounded="lg" variant="outlined" class="h-100">
-            <v-card-title class="d-flex align-center justify-space-between ga-2">
-              <span>{{ request.requestType === 'maintenance' ? 'Maintenance Request' : 'Cleaning Request' }}</span>
+            <v-card-title class="d-flex align-center justify-space-between ga-2 flex-wrap">
+              <div class="d-flex align-center ga-2">
+                <span v-if="request.requestType === 'satisfaction'" class="text-h6">
+                  {{ request.satisfactionEmoji === 'happy' ? '😊' : '😞' }}
+                </span>
+                <v-icon v-else-if="request.requestType === 'maintenance'" icon="mdi-wrench" color="error" size="20" />
+                <v-icon v-else icon="mdi-broom" color="success" size="20" />
+                <span>{{ requestTypeLabel(request.requestType) }}</span>
+              </div>
               <v-chip size="small" :color="request.status === 'open' ? 'warning' : 'success'" variant="tonal">{{ request.status }}</v-chip>
             </v-card-title>
+
             <v-card-text>
-              <p><strong>Requested By:</strong> {{ request.requestedBy }}</p>
+              <!-- Satisfaction highlight -->
+              <v-alert
+                v-if="request.requestType === 'satisfaction'"
+                :type="request.satisfactionEmoji === 'happy' ? 'success' : 'error'"
+                variant="tonal"
+                density="compact"
+                rounded="lg"
+                class="mb-2"
+              >
+                <strong>{{ request.satisfactionEmoji === 'happy' ? '😊 Happy' : '😞 Sad' }}</strong> — {{ request.requestedBy }} rated their latest service.
+              </v-alert>
+
+              <p><strong>From:</strong> {{ request.requestedBy }}</p>
               <p><strong>Target:</strong> {{ targetLabel(request) }}</p>
               <p><strong>Message:</strong> {{ request.message }}</p>
               <p class="text-medium-emphasis"><strong>Time:</strong> {{ formatDate(request.createdAt) }}</p>
             </v-card-text>
+
             <v-card-actions>
               <v-btn
                 v-if="request.status === 'open'"
@@ -56,11 +86,21 @@
 </template>
 
 <script setup lang="ts">
+import type { ServiceRequest } from '~/composables/useServiceRequests'
+
 const { currentUser, isAdmin, initAuth, logout } = useAuth()
 const { goBack } = useAppNavigation()
 const { getRequests, setRequestStatus } = useServiceRequests()
 
-const requests = computed(() => getRequests())
+const filterTab = ref('all')
+
+const allRequests = computed(() => getRequests())
+
+const filteredRequests = computed(() => {
+  if (filterTab.value === 'all') { return allRequests.value }
+  if (filterTab.value === 'open') { return allRequests.value.filter(r => r.status === 'open') }
+  return allRequests.value.filter(r => r.requestType === filterTab.value)
+})
 
 onMounted(() => {
   initAuth()
@@ -83,6 +123,12 @@ const markOpen = (id: number) => {
   setRequestStatus(id, 'open')
 }
 
+const requestTypeLabel = (type: ServiceRequest['requestType']) => {
+  if (type === 'maintenance') { return 'Maintenance Request' }
+  if (type === 'satisfaction') { return 'Satisfaction Feedback' }
+  return 'Cleaning Request'
+}
+
 const targetLabel = (request: { targetType: string; recordCode: string | null; siteRoom: string | null }) => {
   if (request.targetType === 'qr' && request.recordCode) {
     return `QR: ${request.recordCode}`
@@ -96,7 +142,7 @@ const targetLabel = (request: { targetType: string; recordCode: string | null; s
 }
 
 const formatDate = (iso: string) => {
-  return new Date(iso).toLocaleString()
+  return new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
 }
 </script>
 

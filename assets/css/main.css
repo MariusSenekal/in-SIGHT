@@ -118,6 +118,26 @@ h3 {
   place-items: center;
 }
 
+/* ── Logo theming ─────────────────────────────────────────────────────────── */
+/* On light themes: blend white PNG background away against the white card    */
+.v-theme--ocean .heading-search-icon,
+.v-theme--forest .heading-search-icon,
+.v-theme--sunset .heading-search-icon,
+.v-theme--arctic .heading-search-icon,
+.v-theme--rose .heading-search-icon,
+.v-theme--gold .heading-search-icon {
+  mix-blend-mode: multiply;
+}
+
+/* On dark themes: give the logo a clean white pill so it reads correctly     */
+.v-theme--midnight .heading-search-icon,
+.v-theme--darkForest .heading-search-icon,
+.v-theme--obsidian .heading-search-icon {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 16px;
+}
+
 .auth-panel,
 .dashboard-panel,
 .simple-panel,

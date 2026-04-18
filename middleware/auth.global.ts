@@ -15,7 +15,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
   const { initAuth, ensureValidSession, isAdmin } = useAuth()
   initAuth()
 
-  const isPublicRoute = to.path === '/'
+  const isPublicRoute = to.path === '/' || to.path.startsWith('/scan')
   if (isPublicRoute) {
     return
   }

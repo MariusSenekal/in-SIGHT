@@ -161,37 +161,68 @@
         </div>
       </transition>
 
-      <!-- Satisfaction Rating Section -->
-      <div class="simple-panel rating-panel">
+      <!-- Satisfaction Rating Section removed - replaced by simplified checklist in service history -->
+
+      <!-- Satisfaction Rating — shown to all visitors when there are service entries -->
+      <div v-if="serviceHistory.length > 0" class="simple-panel satisfaction-panel">
         <div class="panel-header">
-          <span class="material-symbols-outlined rating-icon">grade</span>
-          <h2>How satisfied are you with the cleanliness?</h2>
+          <span class="material-symbols-outlined satisfaction-icon">sentiment_satisfied</span>
+          <h2>How was your last service?</h2>
         </div>
-        
-        <div class="emoji-ratings">
+
+        <div class="satisfaction-latest">
+          <span class="satisfaction-latest-label">Latest service:</span>
+          <span class="satisfaction-latest-date">{{ serviceHistory[0].startTime }}</span>
+          <span class="status-badge" :class="serviceHistory[0].status">
+            {{ getStatusEmoji(serviceHistory[0].status) }} {{ serviceHistory[0].status }}
+          </span>
+        </div>
+
+        <div class="emoji-row">
           <button
-            v-for="emoji in emojis"
-            :key="emoji.value"
             type="button"
-            class="emoji-button"
-            :class="{ selected: selectedRating === emoji.value }"
-            @click="selectRating(emoji.value)"
+            class="emoji-btn"
+            :class="{ 'emoji-btn--selected': satisfactionChoice === 'happy' }"
+            @click="satisfactionChoice = 'happy'"
+            aria-label="Happy"
           >
-            <span class="emoji">{{ emoji.icon }}</span>
-            <span class="emoji-label">{{ emoji.label }}</span>
+            <span class="emoji-face">😊</span>
+            <span class="emoji-label">Happy</span>
+          </button>
+          <button
+            type="button"
+            class="emoji-btn"
+            :class="{ 'emoji-btn--selected emoji-btn--sad': satisfactionChoice === 'sad' }"
+            @click="satisfactionChoice = 'sad'"
+            aria-label="Sad"
+          >
+            <span class="emoji-face">😞</span>
+            <span class="emoji-label">Sad</span>
           </button>
         </div>
 
-        <transition name="fade">
-          <div v-if="ratingSubmitted" class="success-message">
-            <span class="material-symbols-outlined">check_circle</span>
-            Thank you for your feedback!
-          </div>
-        </transition>
+        <div class="satisfaction-save-row">
+          <button
+            type="button"
+            class="primary-btn"
+            :disabled="!satisfactionChoice || satisfactionSent"
+            @click="submitSatisfaction"
+          >
+            {{ satisfactionSent ? 'Feedback sent ✓' : 'Save Feedback' }}
+          </button>
+        </div>
       </div>
 
       <!-- Action Buttons Section -->
       <div class="simple-panel actions-panel">
+        <button
+          type="button"
+          class="action-button cleaning-button"
+          @click="requestCleaning"
+        >
+          <span class="material-symbols-outlined">cleaning_services</span>
+          Schedule Cleaning
+        </button>
         <button
           type="button"
           class="action-button maintenance-button"
@@ -199,15 +230,6 @@
         >
           <span class="material-symbols-outlined">build</span>
           Request Maintenance
-        </button>
-        
-        <button
-          type="button"
-          class="action-button cleaning-button"
-          @click="requestCleaning"
-        >
-          <span class="material-symbols-outlined">cleaning_services</span>
-          Request Cleaning
         </button>
       </div>
 
@@ -336,8 +358,6 @@ const record = computed(() => {
   return undefined
 })
 
-const selectedRating = ref<number | null>(null)
-const ratingSubmitted = ref(false)
 const selectedHistory = ref<ServiceEntry | null>(null)
 const allRecords = computed(() => getRecords())
 const requestType = ref<ServiceRequestType | null>(null)
@@ -348,6 +368,8 @@ const requestMessage = ref('')
 const requestFeedback = ref('')
 const staffMessageDraft = ref('')
 const staffMessageFeedback = ref('')
+const satisfactionChoice = ref<'happy' | 'sad' | null>(null)
+const satisfactionSent = ref(false)
 
 const canUpdateChecklist = computed(() => Boolean(currentUser.value))
 
@@ -364,6 +386,8 @@ watch(record, (current) => {
   selectedHistory.value = null
   staffMessageDraft.value = ''
   staffMessageFeedback.value = ''
+  satisfactionChoice.value = null
+  satisfactionSent.value = false
 }, { immediate: true })
 
 const closeRequestOnEscape = (event: KeyboardEvent) => {
@@ -389,14 +413,6 @@ onBeforeUnmount(() => {
 
   window.removeEventListener('keydown', closeRequestOnEscape)
 })
-
-const emojis = [
-  { value: 1, icon: '😞', label: 'Very Poor' },
-  { value: 2, icon: '😕', label: 'Poor' },
-  { value: 3, icon: '😐', label: 'Okay' },
-  { value: 4, icon: '😊', label: 'Good' },
-  { value: 5, icon: '😄', label: 'Excellent' }
-]
 
 const getStatusEmoji = (status: string) => {
   const statusEmojis: Record<string, string> = {
@@ -441,7 +457,7 @@ const onTaskCheckboxChange = (taskId: string, event: Event) => {
 }
 
 const formatDateTime = (iso: string) => {
-  return new Date(iso).toLocaleString()
+  return new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
 }
 
 const submitTaskMessage = () => {
@@ -468,16 +484,10 @@ const submitTaskMessage = () => {
   refreshSelectedHistory()
 }
 
-const selectRating = (value: number) => {
-  selectedRating.value = value
-  ratingSubmitted.value = true
-  
-  // Store rating (you can extend this to save to a backend)
-  console.log('Rating selected:', value, 'for record:', record.value?.code)
-  
-  setTimeout(() => {
-    ratingSubmitted.value = false
-  }, 3000)
+const requestCleaning = () => {
+  requestType.value = 'cleaning'
+  requestTargetType.value = 'qr'
+  requestFeedback.value = ''
 }
 
 const requestMaintenance = () => {
@@ -486,10 +496,30 @@ const requestMaintenance = () => {
   requestFeedback.value = ''
 }
 
-const requestCleaning = () => {
-  requestType.value = 'cleaning'
-  requestTargetType.value = 'qr'
-  requestFeedback.value = ''
+const submitSatisfaction = () => {
+  if (!satisfactionChoice.value || !record.value) {
+    return
+  }
+
+  const latest = serviceHistory.value[0]
+  const emojiLabel = satisfactionChoice.value === 'happy' ? '😊 Happy' : '😞 Sad'
+  const requester = currentUser.value
+    ? (currentUser.value.profile?.displayName || currentUser.value.name)
+    : 'Anonymous (QR scan)'
+
+  addRequest({
+    requestType: 'satisfaction',
+    targetType: 'qr',
+    recordCode: record.value.code,
+    siteRoom: null,
+    message: `${emojiLabel} — Satisfaction feedback for the latest service at ${record.value.name} (${record.value.location}). Service date: ${latest?.startTime ?? 'unknown'}.`,
+    requestedBy: requester,
+    requestedByUserId: currentUser.value?.id ?? null,
+    satisfactionEmoji: satisfactionChoice.value,
+    satisfactionEntryId: latest?.id ?? null
+  })
+
+  satisfactionSent.value = true
 }
 
 const cancelRequest = () => {
@@ -527,7 +557,9 @@ const submitServiceRequest = () => {
     recordCode: requestTargetType.value === 'qr' ? selectedRecordCode.value : null,
     siteRoom: requestTargetType.value === 'site-room' ? siteRoom : null,
     message,
-    requestedBy: currentUser.value?.name || 'Unknown User',
+    requestedBy: currentUser.value
+      ? (currentUser.value.profile?.displayName || currentUser.value.name)
+      : 'Anonymous (QR scan)',
     requestedByUserId: currentUser.value?.id ?? null
   })
 
@@ -625,112 +657,6 @@ const handleBackToWelcome = () => {
   font-size: 18px;
 }
 
-/* Rating Panel */
-.rating-panel {
-  margin-bottom: 24px;
-}
-
-.panel-header {
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-.rating-icon {
-  font-size: 42px !important;
-  color: var(--brand);
-  margin-bottom: 12px;
-  display: block;
-}
-
-.panel-header h2 {
-  font-size: 1.4rem;
-  color: var(--ink);
-}
-
-.emoji-ratings {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.emoji-button {
-  background: white;
-  border: 3px solid #bfd0f0;
-  border-radius: 16px;
-  padding: 20px 12px;
-  min-width: 110px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 12px  rgba(13, 27, 62, 0.08);
-}
-
-.emoji-button:hover {
-  transform: translateY(-5px) scale(1.05);
-  border-color: var(--brand);
-  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.2);
-}
-
-.emoji-button.selected {
-  background: linear-gradient(145deg, var(--brand), var(--accent));
-  border-color: var(--brand);
-  transform: translateY(-5px) scale(1.08);
-  box-shadow: 0 14px 28px rgba(29, 78, 216, 0.3);
-}
-
-.emoji {
-  font-size: 4rem;
-  line-height: 1;
-}
-
-.emoji-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-align: center;
-}
-
-.emoji-button.selected .emoji-label {
-  color: white;
-}
-
-.success-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 16px 24px;
-  background: #d1fae5;
-  border: 1px solid #6ee7b7;
-  border-radius: 12px;
-  color: #065f46;
-  font-weight: 600;
-  font-size: 1.05rem;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.success-message .material-symbols-outlined {
-  font-size: 24px;
-  color: #10b981;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
 /* Actions Panel */
 .actions-panel {
   display: flex;
@@ -776,14 +702,6 @@ const handleBackToWelcome = () => {
 
 .maintenance-button:hover {
   background: linear-gradient(145deg, #b91c1c, #991b1b);
-}
-
-.cleaning-button {
-  background: linear-gradient(145deg, var(--accent), #0284c7);
-}
-
-.cleaning-button:hover {
-  background: linear-gradient(145deg, #0284c7, #0369a1);
 }
 
 .request-modal-overlay {
@@ -1188,6 +1106,16 @@ textarea.request-input {
   transform: scale(0.9);
 }
 
+.panel-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.panel-header h2 {
+  font-size: 1.4rem;
+  color: var(--ink);
+}
+
 /* History Panel */
 .history-panel {
   margin-bottom: 24px;
@@ -1346,19 +1274,6 @@ textarea.request-input {
     font-size: 1.5rem;
   }
 
-  .emoji-button {
-    min-width: 90px;
-    padding: 16px 10px;
-  }
-
-  .emoji {
-    font-size: 3rem;
-  }
-
-  .emoji-label {
-    font-size: 0.75rem;
-  }
-
   .action-button {
     font-size: 1.05rem;
     padding: 16px 20px;
@@ -1395,23 +1310,6 @@ textarea.request-input {
     font-size: 36px;
   }
 
-  .emoji-button {
-    min-width: 75px;
-    padding: 14px 8px;
-  }
-
-  .emoji {
-    font-size: 2.5rem;
-  }
-
-  .emoji-label {
-    font-size: 0.7rem;
-  }
-
-  .emoji-ratings {
-    gap: 8px;
-  }
-
   .modal-overlay {
     padding: 8px;
   }
@@ -1439,5 +1337,108 @@ textarea.request-input {
   .request-form-wrap {
     padding: 12px;
   }
+}
+
+/* ── Satisfaction panel ───────────────────────────────────────────────────── */
+.satisfaction-panel {
+  margin-bottom: 24px;
+}
+
+.satisfaction-icon {
+  color: #f59e0b;
+}
+
+.satisfaction-latest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #f8fbff;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.satisfaction-latest-label {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.satisfaction-latest-date {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.emoji-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.emoji-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 32px;
+  border: 2.5px solid var(--border);
+  border-radius: 20px;
+  background: #f0f6ff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  flex: 1;
+  max-width: 160px;
+}
+
+.emoji-btn:hover {
+  border-color: var(--brand);
+  background: #e8efff;
+  transform: translateY(-3px);
+}
+
+.emoji-btn--selected {
+  border-color: #10b981;
+  background: #d1fae5;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+}
+
+.emoji-btn--sad.emoji-btn--selected {
+  border-color: #ef4444;
+  background: #fee2e2;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+}
+
+.emoji-face {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.emoji-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.satisfaction-save-row {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Cleaning button ──────────────────────────────────────────────────────── */
+.cleaning-button {
+  background: linear-gradient(145deg, #059669, #047857);
+}
+
+.cleaning-button:hover {
+  background: linear-gradient(145deg, #047857, #065f46);
+}
+
+/* ── Shared button states ─────────────────────────────────────────────────── */
+.primary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 </style>

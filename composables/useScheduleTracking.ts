@@ -40,14 +40,13 @@ interface PersistedScheduleState {
 const STORAGE_KEY = 'insight-schedule-tracking-v1'
 
 const defaultTemplateTasks = [
-  'Clean surfaces',
-  'Mop floors',
-  'Sanitize high-touch points',
-  'Empty bins'
+  'Cleaning check completed',
+  'Cleaning completed'
 ]
 
 const toClock = (iso: string) => {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString('en-ZA', {
+    timeZone: 'Africa/Johannesburg',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
