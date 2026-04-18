@@ -1061,12 +1061,10 @@ const handleLogout = () => {
 }
 
 const toScanUrl = (code: string) => {
+  const { siteUrl } = useRuntimeConfig().public
   const base = useRuntimeConfig().app.baseURL.replace(/\/$/, '')
-  if (import.meta.client) {
-    return `${window.location.origin}${base}/scan/${code}`
-  }
-
-  return `${base}/scan/${code}`
+  const origin = import.meta.client ? window.location.origin : siteUrl
+  return `${origin}${base}/scan/${code}`
 }
 </script>
 

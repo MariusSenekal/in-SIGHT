@@ -61,5 +61,10 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', href: '/login/icons/pwa-192x192.png' }
       ]
     }
+  },
+  runtimeConfig: {
+    public: {
+      siteUrl: 'https://in-sight.app'
+    }
   }
 })
