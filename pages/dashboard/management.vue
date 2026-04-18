@@ -363,7 +363,7 @@
 
                       <v-col cols="12" md="4" class="d-flex flex-column align-center justify-center ga-3">
                         <v-card variant="outlined" rounded="lg" class="pa-2">
-                          <QrcodeVue :value="toScanUrl(record.code)" :size="130" level="H" render-as="svg" />
+                          <QrcodeVue :value="toScanUrl(record)" :size="130" level="H" render-as="svg" />
                         </v-card>
                         <v-btn :to="`/scan/${record.code}`" color="primary" variant="flat" prepend-icon="mdi-open-in-new">
                           Open QR Site
@@ -456,7 +456,7 @@
                         <div class="text-medium-emphasis text-caption">{{ rec.location }}</div>
                         <v-chip size="x-small" color="primary" variant="flat" class="mt-1">{{ rec.code }}</v-chip>
                       </div>
-                      <QrcodeVue :value="toScanUrl(rec.code)" :size="80" level="H" render-as="svg" />
+                      <QrcodeVue :value="toScanUrl(rec)" :size="80" level="H" render-as="svg" />
                     </div>
                     <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" block>
                       Open Tracking Page
@@ -1060,11 +1060,12 @@ const handleLogout = () => {
   navigateTo('/')
 }
 
-const toScanUrl = (code: string) => {
+const toScanUrl = (record: { code: string; name: string; location: string }) => {
   const { siteUrl } = useRuntimeConfig().public
   const base = useRuntimeConfig().app.baseURL.replace(/\/$/, '')
   const origin = import.meta.client ? window.location.origin : siteUrl
-  return `${origin}${base}/scan/${code}`
+  const params = new URLSearchParams({ name: record.name, location: record.location })
+  return `${origin}${base}/scan/${record.code}?${params.toString()}`
 }
 </script>
 

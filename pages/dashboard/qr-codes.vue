@@ -202,7 +202,7 @@
                     >
                       <div class="qr-code-frame" :style="qrFrameStyle">
                         <QrcodeVue
-                          :value="toScanUrl(recordEntry.record.code)"
+                          :value="toScanUrl(recordEntry.record)"
                           :size="qrPixelSize"
                           level="H"
                           render-as="svg"
@@ -534,11 +534,12 @@ const qrCodeTextStyle = computed(() => {
   }
 })
 
-const toScanUrl = (recordCode: string) => {
+const toScanUrl = (record: { code: string; name: string; location: string }) => {
   const { siteUrl } = useRuntimeConfig().public
   const base = useRuntimeConfig().app.baseURL.replace(/\/$/, '')
   const origin = import.meta.client ? window.location.origin : siteUrl
-  return `${origin}${base}/scan/${recordCode}`
+  const params = new URLSearchParams({ name: record.name, location: record.location })
+  return `${origin}${base}/scan/${record.code}?${params.toString()}`
 }
 
 const printSheets = () => {

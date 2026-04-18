@@ -352,7 +352,26 @@ const record = computed(() => {
   }
 
   if (!Number.isNaN(numericId)) {
-    return getRecordById(numericId)
+    const byId = getRecordById(numericId)
+    if (byId) return byId
+  }
+
+  // Fallback: synthesise a record from URL query params embedded by toScanUrl.
+  // This allows outside users to view the tracking page without having the record in their localStorage.
+  const qName = String(route.query.name || '').trim()
+  const qLocation = String(route.query.location || '').trim()
+  if (qName) {
+    return {
+      id: 0,
+      code: recordParam,
+      name: qName,
+      description: '',
+      type: '',
+      location: qLocation,
+      ownerUserId: null,
+      ownerCompanyId: null,
+      createdAt: ''
+    }
   }
 
   return undefined
