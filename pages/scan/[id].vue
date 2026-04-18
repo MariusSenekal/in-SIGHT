@@ -356,15 +356,18 @@ const record = computed(() => {
     if (byId) return byId
   }
 
-  // Fallback: synthesise a record from URL query params embedded by toScanUrl.
-  // This allows outside users to view the tracking page without having the record in their localStorage.
+  // Build the best available name/location from URL query params (embedded by toScanUrl)
+  // or fall back to showing the bare code. This ensures any valid QR code works on any device,
+  // even if the record isn't in that device's localStorage.
   const qName = String(route.query.name || '').trim()
   const qLocation = String(route.query.location || '').trim()
-  if (qName) {
+  const isValidCode = /^REC-[A-Z0-9]{4,}$/i.test(recordParam) || /^\d+$/.test(recordParam)
+
+  if (isValidCode || qName) {
     return {
       id: 0,
-      code: recordParam,
-      name: qName,
+      code: recordParam.toUpperCase(),
+      name: qName || recordParam.toUpperCase(),
       description: '',
       type: '',
       location: qLocation,
