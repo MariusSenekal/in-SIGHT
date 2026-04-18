@@ -535,11 +535,12 @@ const qrCodeTextStyle = computed(() => {
 })
 
 const toScanUrl = (recordCode: string) => {
+  const base = useRuntimeConfig().app.baseURL.replace(/\/$/, '')
   if (import.meta.client) {
-    return `${window.location.origin}/scan/${recordCode}`
+    return `${window.location.origin}${base}/scan/${recordCode}`
   }
 
-  return `/scan/${recordCode}`
+  return `${base}/scan/${recordCode}`
 }
 
 const printSheets = () => {
