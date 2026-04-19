@@ -183,6 +183,7 @@
         <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
           <div class="welcome-hero">
             <div class="welcome-hero__content">
+              <img :src="logoUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
               <div class="welcome-hero__avatar">
                 <v-icon icon="mdi-account" size="28" color="white" />
               </div>
@@ -537,6 +538,14 @@ const goToProfilePage = () => {
   color: rgba(255,255,255,0.8);
   font-size: 0.9rem;
   margin-top: 2px;
+}
+
+.welcome-hero__logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
 }
 
 .welcome-hero__actions { display: flex; align-items: center; gap: 8px; }
