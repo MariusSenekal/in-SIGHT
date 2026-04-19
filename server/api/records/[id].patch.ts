@@ -24,15 +24,23 @@ export default defineEventHandler(async (event) => {
   if (ownerCompanyId !== undefined) patch.owner_company_id = ownerCompanyId
 
   if (Object.keys(patch).length === 0) {
+    console.warn('[records PATCH] id=%s — patch body was empty', id)
     throw createError({ statusCode: 400, message: 'Nothing to update.' })
   }
 
-  await pgrestAdmin('/records', {
-    method: 'PATCH',
-    query: { id: `eq.${id}` },
-    body: patch,
-    extraHeaders: { Prefer: 'return=minimal' }
-  })
+  try {
+    await pgrestAdmin('/records', {
+      method: 'PATCH',
+      query: { id: `eq.${id}` },
+      body: patch,
+      extraHeaders: { Prefer: 'return=minimal' }
+    })
+  } catch (err: any) {
+    const status = err?.response?.status ?? err?.statusCode ?? 500
+    const pgMsg = err?.data?.message ?? err?.data ?? err?.message ?? 'Unknown PostgREST error'
+    console.error('[records PATCH] id=%s patch=%j status=%s error=%s', id, patch, status, pgMsg)
+    throw createError({ statusCode: status, message: String(pgMsg) })
+  }
 
   return { ok: true }
 })
