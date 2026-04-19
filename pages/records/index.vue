@@ -129,7 +129,7 @@
                 </div>
               </div>
 
-              <!-- Requests summary for this record -->
+              <!-- Requests summary for this record (all users see counts; admin can click to open requests) -->
               <div>
                 <v-divider class="my-2" />
                 <div class="d-flex flex-wrap ga-1">
@@ -154,8 +154,18 @@
                     variant="tonal"
                     prepend-icon="mdi-emoticon"
                   >{{ satisfactionCount(record.code) }} feedback</v-chip>
+                  <!-- Admin: clickable open-request chip navigates to requests filtered by this record -->
                   <v-chip
-                    v-if="openRequestsForRecord(record.code)"
+                    v-if="isAdmin && openRequestsForRecord(record.code)"
+                    size="x-small"
+                    color="orange"
+                    variant="flat"
+                    style="cursor:pointer"
+                    append-icon="mdi-arrow-right"
+                    @click="navigateTo(`/dashboard/requests?code=${record.code}`)"
+                  >{{ openRequestsForRecord(record.code) }} open</v-chip>
+                  <v-chip
+                    v-else-if="!isAdmin && openRequestsForRecord(record.code)"
                     size="x-small"
                     color="orange"
                     variant="flat"
@@ -169,6 +179,14 @@
               <v-btn :to="`/scan/${record.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-qrcode-scan" class="flex-grow-1">
                 View QR Page
               </v-btn>
+              <v-btn
+                v-if="isAdmin"
+                :to="`/dashboard/requests?code=${record.code}`"
+                size="small"
+                color="warning"
+                variant="tonal"
+                prepend-icon="mdi-bell-outline"
+              >Requests</v-btn>
             </v-card-actions>
 
           </v-card>

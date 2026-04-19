@@ -55,6 +55,19 @@
         </v-col>
       </v-row>
 
+      <!-- Active record-code filter banner -->
+      <v-alert
+        v-if="filterCode"
+        type="info"
+        variant="tonal"
+        density="compact"
+        class="mb-3"
+        closable
+        @click:close="clearCodeFilter"
+      >
+        Showing requests for QR code <strong>{{ filterCode }}</strong>. Click × to see all.
+      </v-alert>
+
       <!-- Filter tabs -->
       <v-tabs v-model="filterTab" color="primary" class="mb-4">
         <v-tab value="all">All</v-tab>
@@ -167,8 +180,16 @@ const { currentUser, isAdmin, initAuth, logout } = useAuth()
 const { goBack } = useAppNavigation()
 const { getRequests, loadRequests, setRequestStatus, requests, deleteRequest } = useServiceRequests()
 const { connect, disconnect } = useSocket()
+const route = useRoute()
+const router = useRouter()
 
 const filterTab = ref('all')
+const filterCode = ref<string | null>((route.query.code as string) || null)
+
+const clearCodeFilter = () => {
+  filterCode.value = null
+  router.replace({ query: {} })
+}
 const newRequestSnack = ref(false)
 const latestNewRequest = ref<ServiceRequest | null>(null)
 const highlightedId = ref<number | null>(null)
@@ -181,9 +202,14 @@ const cleaningCount = computed(() => allRequests.value.filter(r => r.requestType
 const maintenanceCount = computed(() => allRequests.value.filter(r => r.requestType === 'maintenance').length)
 
 const filteredRequests = computed(() => {
-  if (filterTab.value === 'all') { return allRequests.value }
-  if (filterTab.value === 'open') { return allRequests.value.filter(r => r.status === 'open') }
-  return allRequests.value.filter(r => r.requestType === filterTab.value)
+  let list = allRequests.value
+  if (filterCode.value) {
+    const code = filterCode.value.toUpperCase()
+    list = list.filter(r => r.recordCode?.toUpperCase() === code)
+  }
+  if (filterTab.value === 'open') { return list.filter(r => r.status === 'open') }
+  if (filterTab.value !== 'all') { return list.filter(r => r.requestType === filterTab.value) }
+  return list
 })
 
 onMounted(async () => {
