@@ -18,8 +18,9 @@ export default defineEventHandler(async (event) => {
       method: 'POST',
       body: { in_username: username.trim().toLowerCase(), in_password: password }
     })
-  } catch {
-    throw createError({ statusCode: 401, message: 'Invalid username or password.' })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : JSON.stringify(err)
+    throw createError({ statusCode: 401, message: `Auth failed: ${msg}` })
   }
 
   if (!rows || rows.length === 0) {
