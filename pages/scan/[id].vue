@@ -358,49 +358,20 @@ import type { ServiceEntry } from '~/composables/useScheduleTracking'
 
 const route = useRoute()
 const { goBack } = useAppNavigation()
-const { getRecordByCode, getRecordById, getRecords } = useRecords()
-const { currentUser, isAdmin } = useAuth()
+const { currentUser, isAdmin, authToken } = useAuth()
+const { loadRecords, getRecords } = useRecords()
 const { addRequest } = useServiceRequests()
-const { getEntriesByRecordCode, toggleTask, addMessage } = useScheduleTracking()
+const { toggleTask, addMessage } = useScheduleTracking()
 
-const recordParam = String(route.params.id || '').trim()
-const numericId = Number.parseInt(recordParam, 10)
+const recordCode = computed(() => String(route.params.id || '').trim().toUpperCase())
 
-const record = computed(() => {
-  const byCode = getRecordByCode(recordParam)
+const record = ref<{ id: number; code: string; name: string; location: string; description: string; type: string; ownerUserId: number | null; ownerCompanyId: number | null; createdAt: string } | null>(null)
+const serviceHistory = ref<ServiceEntry[]>([])
+const pageLoading = ref(true)
 
-  if (byCode) {
-    return byCode
-  }
-
-  if (!Number.isNaN(numericId)) {
-    const byId = getRecordById(numericId)
-    if (byId) return byId
-  }
-
-  // Build the best available name/location from URL query params (embedded by toScanUrl)
-  // or fall back to showing the bare code. This ensures any valid QR code works on any device,
-  // even if the record isn't in that device's localStorage.
-  const qName = String(route.query.name || '').trim()
-  const qLocation = String(route.query.location || '').trim()
-  const isValidCode = /^REC-[A-Z0-9]{4,}$/i.test(recordParam) || /^\d+$/.test(recordParam)
-
-  if (isValidCode || qName) {
-    return {
-      id: 0,
-      code: recordParam.toUpperCase(),
-      name: qName || recordParam.toUpperCase(),
-      description: '',
-      type: '',
-      location: qLocation,
-      ownerUserId: null,
-      ownerCompanyId: null,
-      createdAt: ''
-    }
-  }
-
-  return undefined
-})
+const authHeaders = computed(() =>
+  authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+)
 
 const selectedHistory = ref<ServiceEntry | null>(null)
 const allRecords = computed(() => getRecords())
@@ -417,58 +388,49 @@ const satisfactionSent = ref(false)
 
 const canUpdateChecklist = computed(() => Boolean(currentUser.value))
 
-const serviceHistory = computed(() => {
-  if (!record.value) {
-    return []
-  }
-
-  return getEntriesByRecordCode(record.value.code)
-})
-
-watch(record, (current) => {
-  selectedRecordCode.value = current?.code || ''
-  selectedHistory.value = null
-  staffMessageDraft.value = ''
-  staffMessageFeedback.value = ''
-  satisfactionChoice.value = null
-  satisfactionSent.value = false
-}, { immediate: true })
-
 const closeRequestOnEscape = (event: KeyboardEvent) => {
-  if (event.key !== 'Escape' || !requestType.value) {
-    return
-  }
-
+  if (event.key !== 'Escape' || !requestType.value) return
   cancelRequest()
 }
 
-onMounted(() => {
-  if (!import.meta.client) {
-    return
+onMounted(async () => {
+  if (!import.meta.client) return
+  window.addEventListener('keydown', closeRequestOnEscape)
+
+  // Fetch record + service history from the public scan API
+  try {
+    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+      `/api/scan/${encodeURIComponent(recordCode.value)}`
+    )
+    record.value = data.record
+    serviceHistory.value = data.entries ?? []
+  } catch {
+    record.value = null
+    serviceHistory.value = []
+  } finally {
+    pageLoading.value = false
   }
 
-  window.addEventListener('keydown', closeRequestOnEscape)
+  selectedRecordCode.value = record.value?.code || ''
+
+  // Load all records for authenticated users (needed for the request form dropdown)
+  if (currentUser.value) {
+    await loadRecords()
+  }
 })
 
 onBeforeUnmount(() => {
-  if (!import.meta.client) {
-    return
-  }
-
+  if (!import.meta.client) return
   window.removeEventListener('keydown', closeRequestOnEscape)
 })
 
 const getStatusEmoji = (status: string) => {
-  const statusEmojis: Record<string, string> = {
-    'Done': '✅',
-    'Incomplete': '⚠️',
-    'Not Done': '❌'
-  }
-  return statusEmojis[status] || '❓'
+  const map: Record<string, string> = { 'Done': '✅', 'Incomplete': '⚠️', 'Not Done': '❌' }
+  return map[status] || '❓'
 }
 
 const openHistoryDetail = (entry: ServiceEntry) => {
-  selectedHistory.value = entry
+  selectedHistory.value = { ...entry }
   staffMessageFeedback.value = ''
 }
 
@@ -477,55 +439,40 @@ const closeHistoryDetail = () => {
   staffMessageFeedback.value = ''
 }
 
-const refreshSelectedHistory = () => {
-  if (!selectedHistory.value) {
-    return
-  }
-
-  const refreshed = serviceHistory.value.find(item => item.id === selectedHistory.value?.id)
-  selectedHistory.value = refreshed || null
+const syncSelectedFromHistory = () => {
+  if (!selectedHistory.value) return
+  const refreshed = serviceHistory.value.find(e => e.id === selectedHistory.value?.id)
+  selectedHistory.value = refreshed ? { ...refreshed } : null
 }
 
-const toggleHistoryTask = (taskId: string, completed: boolean) => {
-  if (!selectedHistory.value) {
-    return
-  }
-
-  toggleTask(selectedHistory.value.id, taskId, completed)
-  refreshSelectedHistory()
+const onTaskCheckboxChange = async (taskId: number, event: Event) => {
+  const completed = Boolean((event.target as HTMLInputElement)?.checked)
+  if (!selectedHistory.value) return
+  const entryId = selectedHistory.value.id
+  await toggleTask(entryId, taskId, completed)
+  // Sync the modal's copy from the updated local state
+  const updated = serviceHistory.value.find(e => e.id === entryId)
+  if (updated) serviceHistory.value = serviceHistory.value.map(e => e.id === entryId ? { ...updated } : e)
+  syncSelectedFromHistory()
 }
 
-const onTaskCheckboxChange = (taskId: string, event: Event) => {
-  const target = event.target as HTMLInputElement | null
-  toggleHistoryTask(taskId, Boolean(target?.checked))
-}
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
 
-const formatDateTime = (iso: string) => {
-  return new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
-}
+const submitTaskMessage = async () => {
+  if (!selectedHistory.value) return
+  const text = staffMessageDraft.value.trim()
+  if (!text) { staffMessageFeedback.value = 'Type a short update first.'; return }
 
-const submitTaskMessage = () => {
-  if (!selectedHistory.value) {
-    return
-  }
-
-  const message = staffMessageDraft.value.trim()
-
-  if (!message) {
-    staffMessageFeedback.value = 'Type a short update first.'
-    return
-  }
-
-  addMessage(
+  await addMessage(
     selectedHistory.value.id,
     isAdmin.value ? 'admin' : 'staff',
     currentUser.value?.profile?.displayName || currentUser.value?.name || 'Staff',
-    message
+    text
   )
-
   staffMessageDraft.value = ''
   staffMessageFeedback.value = 'Update sent. Admin and the site user can now see it.'
-  refreshSelectedHistory()
+  syncSelectedFromHistory()
 }
 
 const requestCleaning = () => {
@@ -542,18 +489,15 @@ const requestMaintenance = () => {
   requestFeedback.value = ''
 }
 
-const submitSatisfaction = () => {
-  if (!satisfactionChoice.value || !record.value) {
-    return
-  }
-
+const submitSatisfaction = async () => {
+  if (!satisfactionChoice.value || !record.value) return
   const latest = serviceHistory.value[0]
   const emojiLabel = satisfactionChoice.value === 'happy' ? '😊 Happy' : '😞 Sad'
   const requester = currentUser.value
     ? (currentUser.value.profile?.displayName || currentUser.value.name)
     : 'Anonymous (QR scan)'
 
-  addRequest({
+  await addRequest({
     requestType: 'satisfaction',
     targetType: 'qr',
     recordCode: record.value.code,
@@ -562,9 +506,9 @@ const submitSatisfaction = () => {
     requestedBy: requester,
     requestedByUserId: currentUser.value?.id ?? null,
     satisfactionEmoji: satisfactionChoice.value,
-    satisfactionEntryId: latest?.id ?? null
+    satisfactionEntryId: latest?.id ?? null,
+    isAnon: !currentUser.value
   })
-
   satisfactionSent.value = true
 }
 
@@ -575,29 +519,21 @@ const cancelRequest = () => {
   requestFeedback.value = ''
 }
 
-const submitServiceRequest = () => {
-  if (!requestType.value) {
-    return
-  }
-
+const submitServiceRequest = async () => {
+  if (!requestType.value) return
   const message = requestMessage.value.trim()
-  if (!message) {
-    requestFeedback.value = 'Please enter a short message before sending.'
-    return
-  }
-
+  if (!message) { requestFeedback.value = 'Please enter a short message before sending.'; return }
   if (requestTargetType.value === 'qr' && !selectedRecordCode.value) {
     requestFeedback.value = 'Please select a QR code target.'
     return
   }
-
   const siteRoom = siteRoomReference.value.trim()
   if (requestTargetType.value === 'site-room' && !siteRoom) {
     requestFeedback.value = 'Please provide a site or room reference.'
     return
   }
 
-  addRequest({
+  await addRequest({
     requestType: requestType.value,
     targetType: requestTargetType.value,
     recordCode: requestTargetType.value === 'qr' ? selectedRecordCode.value : null,
@@ -606,7 +542,8 @@ const submitServiceRequest = () => {
     requestedBy: currentUser.value
       ? (currentUser.value.profile?.displayName || currentUser.value.name)
       : 'Anonymous (QR scan)',
-    requestedByUserId: currentUser.value?.id ?? null
+    requestedByUserId: currentUser.value?.id ?? null,
+    isAnon: !currentUser.value
   })
 
   requestFeedback.value = 'Request sent successfully. The admin team can review it in Service Requests.'
@@ -619,7 +556,6 @@ const handleBackToWelcome = () => {
     navigateTo('/')
     return
   }
-
   goBack({ adminFallback: '/dashboard', userFallback: '/' })
 }
 </script>

@@ -87,10 +87,11 @@ GRANT EXECUTE ON FUNCTION insight.authenticate(TEXT, TEXT) TO insight_user;
 GRANT EXECUTE ON FUNCTION insight.change_password(BIGINT, TEXT) TO insight_user;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- anon – no table access; can only call the authenticate function
+-- anon – no table access; can only call the authenticate and register functions
 -- (QR scan endpoints are handled server-side with insight_staff credentials)
 -- ─────────────────────────────────────────────────────────────────────────────
-GRANT EXECUTE ON FUNCTION insight.authenticate(TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION insight.authenticate(TEXT, TEXT)            TO anon;
+GRANT EXECUTE ON FUNCTION insight.register(TEXT, TEXT, TEXT)          TO anon;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Future tables: ensure roles inherit grants automatically

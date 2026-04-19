@@ -140,3 +140,115 @@ AS $$
   )
   SELECT COUNT(*)::INT FROM deleted;
 $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- insight.revoke_token(jti, expires_at)
+-- Inserts a token JTI into the revocation list so PostgREST sessions cannot
+-- be replayed after logout. Called by the Nuxt server auth route.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION insight.revoke_token(
+  in_jti        TEXT,
+  in_expires_at TIMESTAMPTZ
+)
+RETURNS VOID
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = insight, public
+AS $$
+  INSERT INTO insight.revoked_tokens (jti, expires_at)
+  VALUES (in_jti, in_expires_at)
+  ON CONFLICT (jti) DO NOTHING;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- insight.register(name, username, password)
+-- Public self-registration — creates a 'user' role account only.
+-- Password is bcrypt-hashed server-side. Called via Nuxt server route.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION insight.register(
+  in_name     TEXT,
+  in_username TEXT,
+  in_password TEXT
+)
+RETURNS TABLE (
+  user_id   BIGINT,
+  username  TEXT,
+  name      TEXT,
+  role      insight.user_role
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = insight, public
+AS $$
+DECLARE
+  v_id BIGINT;
+BEGIN
+  IF length(trim(in_name)) = 0 OR length(trim(in_username)) = 0 THEN
+    RAISE EXCEPTION 'Name and username are required.' USING ERRCODE = 'invalid_parameter_value';
+  END IF;
+
+  IF length(in_password) < 8 THEN
+    RAISE EXCEPTION 'Password must be at least 8 characters.' USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM insight.users u WHERE u.username = lower(trim(in_username))) THEN
+    RAISE EXCEPTION 'Username already taken.' USING ERRCODE = 'unique_violation';
+  END IF;
+
+  INSERT INTO insight.users (name, username, password_hash, role)
+  VALUES (trim(in_name), lower(trim(in_username)), crypt(in_password, gen_salt('bf', 12)), 'user')
+  RETURNING id INTO v_id;
+
+  INSERT INTO insight.user_profiles (user_id, display_name)
+  VALUES (v_id, trim(in_name));
+
+  RETURN QUERY SELECT v_id, lower(trim(in_username)), trim(in_name), 'user'::insight.user_role;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- insight.admin_create_user(name, username, password, role)
+-- Admin-only user creation. Hashes the password and creates a profile row.
+-- Called by the Nuxt server route (uses admin JWT internally).
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION insight.admin_create_user(
+  in_name     TEXT,
+  in_username TEXT,
+  in_password TEXT,
+  in_role     insight.user_role DEFAULT 'user'
+)
+RETURNS TABLE (
+  user_id   BIGINT,
+  username  TEXT,
+  name      TEXT,
+  role      insight.user_role
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = insight, public
+AS $$
+DECLARE
+  v_id BIGINT;
+BEGIN
+  IF length(trim(in_name)) = 0 OR length(trim(in_username)) = 0 THEN
+    RAISE EXCEPTION 'Name and username are required.' USING ERRCODE = 'invalid_parameter_value';
+  END IF;
+
+  IF length(in_password) < 8 THEN
+    RAISE EXCEPTION 'Password must be at least 8 characters.' USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM insight.users u WHERE u.username = lower(trim(in_username))) THEN
+    RAISE EXCEPTION 'Username already taken.' USING ERRCODE = 'unique_violation';
+  END IF;
+
+  INSERT INTO insight.users (name, username, password_hash, role)
+  VALUES (trim(in_name), lower(trim(in_username)), crypt(in_password, gen_salt('bf', 12)), in_role)
+  RETURNING id INTO v_id;
+
+  INSERT INTO insight.user_profiles (user_id, display_name)
+  VALUES (v_id, trim(in_name));
+
+  RETURN QUERY SELECT v_id, lower(trim(in_username)), trim(in_name), in_role;
+END;
+$$;

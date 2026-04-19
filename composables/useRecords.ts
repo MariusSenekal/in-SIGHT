@@ -11,160 +11,77 @@ export interface Record {
 }
 
 export const useRecords = () => {
-  const storageKey = 'insight-records-v1'
+  const { authToken } = useAuth()
+  const records = useState<Record[]>('records', () => [])
+  const recordsLoading = useState<boolean>('records-loading', () => false)
 
-  const defaultRecords: Record[] = [
-    {
-      id: 1,
-      code: 'REC-1A7C9D',
-      name: 'Kitchen Cleaning Station',
-      description: 'Main kitchen area cleaning equipment and supplies storage. Includes mops, cleaning solutions, and sanitizers.',
-      type: 'Cleaning Station',
-      location: 'Ground Floor - Kitchen',
-      ownerUserId: null,
-      createdAt: '2026-04-01T08:00:00.000Z'
-    },
-    {
-      id: 2,
-      code: 'REC-2B8E4F',
-      name: 'Bathroom Supply Cabinet',
-      description: 'Dedicated storage for bathroom cleaning materials. Contains toilet cleaners, disinfectants, and paper products.',
-      type: 'Supply Cabinet',
-      location: '2nd Floor - Main Bathroom',
-      ownerUserId: null,
-      createdAt: '2026-04-02T08:00:00.000Z'
-    },
-    {
-      id: 3,
-      code: 'REC-3C5G7H',
-      name: 'Equipment Storage Room',
-      description: 'Central storage for all major cleaning equipment including vacuum cleaners, floor polishers, and specialized tools.',
-      type: 'Equipment Room',
-      location: 'Basement - Storage Area',
-      ownerUserId: null,
-      createdAt: '2026-04-03T08:00:00.000Z'
-    }
-  ]
+  const authHeaders = computed(() =>
+    authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+  )
 
-  const records = useState<Record[]>('records', () => [...defaultRecords])
-  const recordsHydrated = useState<boolean>('records-hydrated', () => false)
-
-  const saveRecords = () => {
-    if (!import.meta.client) {
-      return
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(records.value))
-  }
-
-  const normalizeRecord = (record: Record): Record => {
-    return {
-      ...record,
-      ownerUserId: record.ownerUserId ?? null,
-      ownerCompanyId: (record as Record & { ownerCompanyId?: number | null }).ownerCompanyId ?? null,
-      createdAt: record.createdAt || new Date().toISOString()
+  const loadRecords = async () => {
+    recordsLoading.value = true
+    try {
+      records.value = await $fetch<Record[]>('/api/records', { headers: authHeaders.value })
+    } catch {
+      records.value = []
+    } finally {
+      recordsLoading.value = false
     }
   }
 
-  const ensureHydrated = () => {
-    if (!import.meta.client || recordsHydrated.value) {
-      return
-    }
+  const getRecords = () => records.value
 
-    const raw = localStorage.getItem(storageKey)
-
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as Record[]
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          records.value = parsed.map(item => normalizeRecord(item))
-          saveRecords()
-        }
-      } catch {
-        records.value = [...defaultRecords]
-      }
-    } else {
-      records.value = [...defaultRecords]
-      saveRecords()
-    }
-
-    recordsHydrated.value = true
-  }
-
-  const generateRecordCode = (): string => {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-    while (true) {
-      let suffix = ''
-
-      for (let i = 0; i < 6; i += 1) {
-        const index = Math.floor(Math.random() * alphabet.length)
-        suffix += alphabet[index]
-      }
-
-      const code = `REC-${suffix}`
-      const exists = records.value.some(record => record.code === code)
-
-      if (!exists) {
-        return code
-      }
-    }
-  }
-
-  const getRecords = () => {
-    ensureHydrated()
-    return records.value
-  }
-
-  const getRecordById = (id: number) => {
-    ensureHydrated()
-    return records.value.find(record => record.id === id)
-  }
+  const getRecordById = (id: number) => records.value.find(r => r.id === id) ?? null
 
   const getRecordByCode = (code: string) => {
-    ensureHydrated()
     const normalized = code.trim().toUpperCase()
-    return records.value.find(record => record.code.toUpperCase() === normalized)
+    return records.value.find(r => r.code.toUpperCase() === normalized) ?? null
   }
 
-  const addRecord = (input: Omit<Record, 'id' | 'code' | 'ownerUserId' | 'ownerCompanyId' | 'createdAt'> & { ownerUserId?: number | null; ownerCompanyId?: number | null }) => {
-    ensureHydrated()
-
-    const maxId = records.value.reduce((max, record) => Math.max(max, record.id), 0)
-    const newRecord: Record = {
-      id: maxId + 1,
-      code: generateRecordCode(),
-      name: input.name,
-      description: input.description,
-      type: input.type,
-      location: input.location,
-      ownerUserId: input.ownerUserId ?? null,
-      ownerCompanyId: input.ownerCompanyId ?? null,
-      createdAt: new Date().toISOString()
+  const fetchRecordByCode = async (code: string): Promise<Record | null> => {
+    try {
+      return await $fetch<Record>(`/api/records/${code.trim().toUpperCase()}`, {
+        headers: authHeaders.value
+      })
+    } catch {
+      return null
     }
-
-    records.value = [newRecord, ...records.value]
-    saveRecords()
-
-    return newRecord
   }
 
-  const getRecordsByOwner = (ownerUserId: number) => {
-    ensureHydrated()
-    return records.value.filter(record => record.ownerUserId === ownerUserId)
-  }
+  const getRecordsByOwner = (ownerUserId: number) =>
+    records.value.filter(r => r.ownerUserId === ownerUserId)
 
-  const getRecordsByCompany = (ownerCompanyId: number) => {
-    ensureHydrated()
-    return records.value.filter(record => record.ownerCompanyId === ownerCompanyId)
+  const getRecordsByCompany = (ownerCompanyId: number) =>
+    records.value.filter(r => r.ownerCompanyId === ownerCompanyId)
+
+  const addRecord = async (input: {
+    name: string
+    description?: string
+    type?: string
+    location?: string
+    ownerUserId?: number | null
+    ownerCompanyId?: number | null
+  }): Promise<Record> => {
+    const created = await $fetch<Record>('/api/records', {
+      method: 'POST',
+      headers: authHeaders.value,
+      body: input
+    })
+    records.value = [created, ...records.value]
+    return created
   }
 
   return {
+    records,
+    recordsLoading,
+    loadRecords,
     getRecords,
-    getRecordsByOwner,
-    getRecordsByCompany,
     getRecordById,
     getRecordByCode,
+    fetchRecordByCode,
+    getRecordsByOwner,
+    getRecordsByCompany,
     addRecord
   }
 }

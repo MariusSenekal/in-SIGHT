@@ -67,6 +67,9 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    // Server-only secrets — set via NUXT_JWT_SECRET and NUXT_PGREST_URL env vars
+    jwtSecret: '',
+    pgrestUrl: '',
     public: {
       siteUrl: 'https://in-sight.app'
     }
