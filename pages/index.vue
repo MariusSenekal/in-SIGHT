@@ -545,7 +545,6 @@ const goToProfilePage = () => {
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
-  filter: brightness(0) invert(1);
 }
 
 .welcome-hero__actions { display: flex; align-items: center; gap: 8px; }
