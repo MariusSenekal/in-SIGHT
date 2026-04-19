@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS insight.service_requests (
   requested_by_user_id  BIGINT                  REFERENCES insight.users (id) ON DELETE SET NULL,
   status                insight.request_status  NOT NULL DEFAULT 'open',
   satisfaction_emoji    insight.satisfaction_val,
-  satisfaction_entry_id BIGINT                  REFERENCES insight.service_entries (id) ON DELETE SET NULL,
+  satisfaction_entry_id BIGINT,                         -- FK added after service_entries is created (see ALTER TABLE below)
   created_at            TIMESTAMPTZ             NOT NULL DEFAULT NOW(),
   updated_at            TIMESTAMPTZ             NOT NULL DEFAULT NOW()
 );
