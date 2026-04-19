@@ -4,9 +4,9 @@ import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin'])
-  const rawId = getRouterParam(event, 'id')
-  const id = Number(rawId)
-  if (!rawId || !Number.isInteger(id) || id <= 0) {
+  const rawId = getRouterParam(event, 'code')
+  const id = parseInt(rawId ?? '', 10)
+  if (!rawId || isNaN(id) || id <= 0) {
     throw createError({ statusCode: 400, message: 'Invalid record ID.' })
   }
 
