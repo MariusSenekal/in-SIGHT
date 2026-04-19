@@ -1,6 +1,24 @@
 <template>
   <div class="container">
 
+    <!-- Live service request notification snackbar -->
+    <v-snackbar
+      v-model="liveRequestSnack"
+      location="top right"
+      color="warning"
+      timeout="8000"
+      multi-line
+    >
+      <v-icon icon="mdi-bell-ring" class="mr-2" />
+      {{ liveRequestMsg }}
+      <template #actions>
+        <v-btn color="white" variant="text" @click="navigateTo('/dashboard/requests'); liveRequestSnack = false">
+          View
+        </v-btn>
+        <v-btn variant="text" @click="liveRequestSnack = false">Dismiss</v-btn>
+      </template>
+    </v-snackbar>
+
     <!-- Hero header -->
     <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
       <div class="mgmt-hero">
@@ -23,7 +41,27 @@
     <!-- Quick action cards -->
     <v-row dense class="mb-5">
       <v-col cols="12" sm="6" lg="3" v-for="item in quickActions" :key="item.to">
-        <v-card :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100">
+        <v-badge
+          v-if="item.to === '/dashboard/requests' && liveRequestCount > 0"
+          :content="liveRequestCount"
+          color="error"
+          floating
+          class="w-100"
+        >
+          <v-card :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100 w-100" @click="liveRequestCount = 0">
+            <div class="mgmt-action-card__strip" :style="`background: linear-gradient(90deg, ${item.color1} 0%, ${item.color2} 100%)`" />
+            <v-card-text class="pa-4">
+              <div class="d-flex align-center ga-3 mb-2">
+                <div class="mgmt-action-card__icon" :style="`background: linear-gradient(135deg, ${item.color1} 0%, ${item.color2} 100%)`">
+                  <v-icon :icon="item.icon" color="white" size="20" />
+                </div>
+                <h3 class="text-subtitle-2 font-weight-bold">{{ item.title }}</h3>
+              </div>
+              <p class="text-body-2 text-medium-emphasis">{{ item.description }}</p>
+            </v-card-text>
+          </v-card>
+        </v-badge>
+        <v-card v-else :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100">
           <div class="mgmt-action-card__strip" :style="`background: linear-gradient(90deg, ${item.color1} 0%, ${item.color2} 100%)`" />
           <v-card-text class="pa-4">
             <div class="d-flex align-center ga-3 mb-2">
@@ -624,6 +662,12 @@ const { currentUser, isAdmin, initAuth, logout, users, createUser, companies, cr
 const { goBack } = useAppNavigation()
 const { getRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
+const { connect, disconnect } = useSocket()
+
+// ── Live request notifications ────────────────────────────────────────────────
+const liveRequestSnack = ref(false)
+const liveRequestMsg = ref('')
+const liveRequestCount = ref(0)
 
 const userSearch = ref('')
 const companySearch = ref('')
@@ -1088,7 +1132,22 @@ onMounted(() => {
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
+    return
   }
+
+  // Connect and listen for incoming service requests.
+  const socket = connect()
+  socket.on('new-service-request', (req: { requestType: string; requestedBy: string }) => {
+    liveRequestCount.value++
+    const icon = req.requestType === 'maintenance' ? '🔧' : req.requestType === 'satisfaction' ? '⭐' : '🧹'
+    const label = req.requestType === 'maintenance' ? 'Maintenance' : req.requestType === 'satisfaction' ? 'Satisfaction' : 'Cleaning'
+    liveRequestMsg.value = `${icon} New ${label} request from ${req.requestedBy}`
+    liveRequestSnack.value = true
+  })
+})
+
+onUnmounted(() => {
+  disconnect()
 })
 
 const handleLogout = () => {

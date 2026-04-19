@@ -1,5 +1,20 @@
 <template>
   <v-container class="py-6">
+    <!-- Live new-request snackbar -->
+    <v-snackbar
+      v-model="newRequestSnack"
+      location="top right"
+      color="primary"
+      timeout="6000"
+      multi-line
+    >
+      <v-icon icon="mdi-bell-ring" class="mr-2" />
+      {{ newRequestLabel }}
+      <template #actions>
+        <v-btn variant="text" @click="newRequestSnack = false">Dismiss</v-btn>
+      </template>
+    </v-snackbar>
+
     <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
         <div>
@@ -55,7 +70,12 @@
 
       <v-row v-else dense>
         <v-col cols="12" md="6" v-for="request in filteredRequests" :key="request.id">
-          <v-card rounded="lg" variant="outlined" class="h-100">
+          <v-card
+            rounded="lg"
+            variant="outlined"
+            class="h-100"
+            :class="{ 'request-card--new': highlightedId === request.id }"
+          >
             <v-card-title class="d-flex align-center justify-space-between ga-2 flex-wrap">
               <div class="d-flex align-center ga-2">
                 <span v-if="request.requestType === 'satisfaction'" class="text-h6">
@@ -118,9 +138,13 @@ import type { ServiceRequest } from '~/composables/useServiceRequests'
 
 const { currentUser, isAdmin, initAuth, logout } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRequests, setRequestStatus } = useServiceRequests()
+const { getRequests, loadRequests, setRequestStatus, requests } = useServiceRequests()
+const { connect, disconnect } = useSocket()
 
 const filterTab = ref('all')
+const newRequestSnack = ref(false)
+const latestNewRequest = ref<ServiceRequest | null>(null)
+const highlightedId = ref<number | null>(null)
 
 const allRequests = computed(() => getRequests())
 
@@ -135,12 +159,36 @@ const filteredRequests = computed(() => {
   return allRequests.value.filter(r => r.requestType === filterTab.value)
 })
 
-onMounted(() => {
+onMounted(async () => {
   initAuth()
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
+    return
   }
+
+  // Always fetch fresh data when visiting this page.
+  await loadRequests()
+
+  // Connect to Socket.io and listen for new service requests in real-time.
+  const socket = connect()
+
+  socket.on('new-service-request', (req: ServiceRequest) => {
+    // Prepend to shared state so it appears immediately at the top.
+    requests.value = [req, ...requests.value]
+
+    // Flash the card briefly.
+    highlightedId.value = req.id
+    setTimeout(() => { highlightedId.value = null }, 2500)
+
+    // Show a snackbar notification.
+    latestNewRequest.value = req
+    newRequestSnack.value = true
+  })
+})
+
+onUnmounted(() => {
+  disconnect()
 })
 
 const handleLogout = () => {
@@ -177,5 +225,23 @@ const targetLabel = (request: { targetType: string; recordCode: string | null; s
 const formatDate = (iso: string) => {
   return new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
 }
+
+const newRequestLabel = computed(() => {
+  if (!latestNewRequest.value) return ''
+  const r = latestNewRequest.value
+  const icon = r.requestType === 'maintenance' ? '🔧' : r.requestType === 'satisfaction' ? (r.satisfactionEmoji === 'happy' ? '😊' : '😞') : '🧹'
+  return `${icon} New ${requestTypeLabel(r.requestType)} from ${r.requestedBy}`
+})
 </script>
+
+<style scoped>
+@keyframes highlightPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.5); background-color: rgba(var(--v-theme-primary), 0.08); }
+  70%  { box-shadow: 0 0 0 8px rgba(var(--v-theme-primary), 0); background-color: transparent; }
+  100% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0); background-color: transparent; }
+}
+.request-card--new {
+  animation: highlightPulse 2.5s ease-out forwards;
+}
+</style>
 
