@@ -1,6 +1,6 @@
 // POST /api/entries/[id]/messages
 // Add a message to a service entry.
-import { requireAuth, pgrest, pgrestAdmin, getBearerToken } from '../../../../utils/pgrest'
+import { requireAuth, pgrest, pgrestAdmin, getBearerToken } from '../../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   const entryId = getRouterParam(event, 'id')!

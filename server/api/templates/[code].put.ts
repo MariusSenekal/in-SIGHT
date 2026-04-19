@@ -1,6 +1,6 @@
 // PUT /api/templates/[code]
 // Upserts a checklist template for a record code. Admin/staff only.
-import { requireAuth, pgrest, getBearerToken } from '../../../utils/pgrest'
+import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   const payload = requireAuth(event, ['admin', 'staff'])

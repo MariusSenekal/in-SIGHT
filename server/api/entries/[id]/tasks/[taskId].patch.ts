@@ -1,6 +1,6 @@
 // PATCH /api/entries/[id]/tasks/[taskId]
 // Toggle a task's completed state. Staff/admin or authenticated user.
-import { requireAuth, pgrest, getBearerToken } from '../../../../../utils/pgrest'
+import { requireAuth, pgrest, getBearerToken } from '../../../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event)

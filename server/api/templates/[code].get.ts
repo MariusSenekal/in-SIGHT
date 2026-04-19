@@ -1,6 +1,6 @@
 // GET /api/templates/[code]
 // Returns the checklist template for a record code (creates default if none exists).
-import { requireAuth, pgrest, getBearerToken } from '../../../utils/pgrest'
+import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 const DEFAULT_TASKS = ['Cleaning check completed', 'Cleaning completed']
 

@@ -1,6 +1,6 @@
 // GET /api/scan/[code]
 // PUBLIC endpoint — no auth required. Returns record + service history for QR scan page.
-import { pgrestAdmin } from '../../../utils/pgrest'
+import { pgrestAdmin } from '../../utils/pgrest'
 
 const formatTime = (iso: string | null): string => {
   if (!iso) return 'Pending completion'

@@ -1,6 +1,6 @@
 // POST /api/scan/request
 // PUBLIC endpoint — anonymous service request submission from scan page.
-import { pgrestAdmin } from '../../../utils/pgrest'
+import { pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   const { requestType, targetType, recordCode, siteRoom, message, requestedBy, satisfactionEmoji } =

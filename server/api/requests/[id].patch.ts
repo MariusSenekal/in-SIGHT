@@ -1,6 +1,6 @@
 // PATCH /api/requests/[id]
 // Update a service request's status. Admin and staff only.
-import { requireAuth, pgrest, getBearerToken } from '../../../utils/pgrest'
+import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin', 'staff'])
