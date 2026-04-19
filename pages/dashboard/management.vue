@@ -544,8 +544,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="showCreateUserDialog = false">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" prepend-icon="mdi-account-plus" @click="submitCreateUser">Create User</v-btn>
+        <v-btn variant="text" :disabled="createUserLoading" @click="showCreateUserDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-account-plus" :loading="createUserLoading" @click="submitCreateUser">Create User</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -609,8 +609,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="showCreateCompanyDialog = false">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" prepend-icon="mdi-domain-plus" @click="submitCreateCompany">Create</v-btn>
+        <v-btn variant="text" :disabled="createCompanyLoading" @click="showCreateCompanyDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-domain-plus" :loading="createCompanyLoading" @click="submitCreateCompany">Create</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -711,6 +711,7 @@ const showCreateUserDialog = ref(false)
 const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' })
 const createUserError = ref('')
 const createUserSuccess = ref('')
+const createUserLoading = ref(false)
 
 const roleOptions = [
   { title: 'User', value: 'user' },
@@ -718,23 +719,28 @@ const roleOptions = [
   { title: 'Admin', value: 'admin' }
 ]
 
-const submitCreateUser = () => {
+const submitCreateUser = async () => {
   createUserError.value = ''
   createUserSuccess.value = ''
-  const result = createUser(createUserForm.name, createUserForm.username, createUserForm.password, createUserForm.role)
-  if (!result.ok) {
-    createUserError.value = result.message
-    return
+  createUserLoading.value = true
+  try {
+    const result = await createUser(createUserForm.name, createUserForm.username, createUserForm.password, createUserForm.role)
+    if (!result.ok) {
+      createUserError.value = result.message
+      return
+    }
+    createUserSuccess.value = result.message
+    createUserForm.name = ''
+    createUserForm.username = ''
+    createUserForm.password = ''
+    createUserForm.role = 'user'
+    setTimeout(() => {
+      showCreateUserDialog.value = false
+      createUserSuccess.value = ''
+    }, 1500)
+  } finally {
+    createUserLoading.value = false
   }
-  createUserSuccess.value = result.message
-  createUserForm.name = ''
-  createUserForm.username = ''
-  createUserForm.password = ''
-  createUserForm.role = 'user'
-  setTimeout(() => {
-    showCreateUserDialog.value = false
-    createUserSuccess.value = ''
-  }, 1500)
 }
 
 // ── Companies ─────────────────────────────────────────────────────────────────
@@ -742,21 +748,27 @@ const showCreateCompanyDialog = ref(false)
 const createCompanyForm = reactive({ name: '' })
 const createCompanyError = ref('')
 const createCompanySuccess = ref('')
+const createCompanyLoading = ref(false)
 
-const submitCreateCompany = () => {
+const submitCreateCompany = async () => {
   createCompanyError.value = ''
   createCompanySuccess.value = ''
-  const result = createCompany(createCompanyForm.name)
-  if (!result.ok) {
-    createCompanyError.value = result.message
-    return
+  createCompanyLoading.value = true
+  try {
+    const result = await createCompany(createCompanyForm.name)
+    if (!result.ok) {
+      createCompanyError.value = result.message
+      return
+    }
+    createCompanySuccess.value = result.message
+    createCompanyForm.name = ''
+    setTimeout(() => {
+      showCreateCompanyDialog.value = false
+      createCompanySuccess.value = ''
+    }, 1500)
+  } finally {
+    createCompanyLoading.value = false
   }
-  createCompanySuccess.value = result.message
-  createCompanyForm.name = ''
-  setTimeout(() => {
-    showCreateCompanyDialog.value = false
-    createCompanySuccess.value = ''
-  }, 1500)
 }
 
 const usersForCompanySelect = computed((): { title: string; value: number }[] =>
