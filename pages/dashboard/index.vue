@@ -1,59 +1,76 @@
 <template>
   <div class="container">
-    <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
-      <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
-        <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">Dashboards and Management</h1>
-          <p class="text-medium-emphasis">Use quick cards and checklist tools to manage daily operations faster.</p>
+    <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
+      <div class="dash-hero">
+        <div class="d-flex align-center ga-3">
+          <div class="dash-hero__icon">
+            <v-icon icon="mdi-view-dashboard-outline" size="28" color="white" />
+          </div>
+          <div>
+            <h1 class="text-h5 text-md-h4 font-weight-bold text-white">Dashboards & Management</h1>
+            <p class="text-caption text-white" style="opacity:0.8">Quick cards and checklist tools to manage daily operations.</p>
+          </div>
         </div>
         <div class="d-flex ga-2 flex-wrap">
-          <v-btn prepend-icon="mdi-arrow-left" variant="tonal" @click="goBack({ adminFallback: '/' })">Back</v-btn>
-          <v-btn prepend-icon="mdi-logout" color="error" variant="flat" @click="handleLogout">Log Out</v-btn>
+          <v-btn color="white" variant="tonal" prepend-icon="mdi-arrow-left" size="small" @click="navigateTo('/')">Back</v-btn>
+          <v-btn color="white" variant="outlined" prepend-icon="mdi-logout" size="small" @click="handleLogout">Log Out</v-btn>
         </div>
       </div>
+    </v-card>
 
-      <v-row dense class="mb-4">
-        <v-col cols="12" md="6" lg="3" v-for="item in quickActions" :key="item.to">
-          <v-card :to="item.to" rounded="lg" variant="tonal" class="h-100">
-            <v-card-title class="d-flex align-center ga-2">
-              <v-icon :icon="item.icon" />
-              {{ item.title }}
-            </v-card-title>
-            <v-card-text class="text-medium-emphasis">{{ item.description }}</v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+    <!-- Quick action cards -->
+    <v-row dense class="mb-5">
+      <v-col cols="12" sm="6" lg="3" v-for="item in quickActions" :key="item.to">
+        <v-card :to="item.to" rounded="xl" elevation="2" class="dash-action-card cursor-pointer h-100">
+          <div class="dash-action-card__strip" />
+          <v-card-text class="pa-4">
+            <div class="d-flex align-center ga-3 mb-2">
+              <div class="dash-action-card__icon">
+                <v-icon :icon="item.icon" color="primary" size="22" />
+              </div>
+              <h3 class="text-subtitle-2 font-weight-bold">{{ item.title }}</h3>
+            </div>
+            <p class="text-body-2 text-medium-emphasis">{{ item.description }}</p>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
-      <v-card variant="outlined" rounded="lg">
-        <v-card-title class="text-h6 font-weight-bold">Quick To-Do List Builder</v-card-title>
-        <v-card-subtitle>Create checklist tasks using an easy add/edit/remove workflow.</v-card-subtitle>
-        <v-card-text>
-          <v-row dense>
-            <v-col cols="12" md="7">
-              <v-select
-                v-model="selectedRecordCode"
-                :items="recordSelectItems"
-                item-title="label"
-                item-value="value"
-                label="Select Record / Site"
-                prepend-inner-icon="mdi-map-marker-outline"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                @update:model-value="loadChecklistForRecord"
-              />
-            </v-col>
-          </v-row>
+    <v-card rounded="xl" elevation="2">
+      <div class="card-accent-top" />
+      <v-card-text class="pa-5">
+        <div class="d-flex align-center ga-2 mb-1">
+          <v-icon icon="mdi-format-list-checks" color="primary" size="22" />
+          <h2 class="text-subtitle-1 text-md-h6 font-weight-bold">Quick To-Do List Builder</h2>
+        </div>
+        <p class="text-body-2 text-medium-emphasis mb-4">Create checklist tasks using an easy add/edit/remove workflow.</p>
 
-          <v-alert
-            v-if="!selectedRecordCode"
-            type="info"
-            variant="tonal"
-            border="start"
-            class="mt-3"
-          >
-            Select a record to begin creating its checklist.
-          </v-alert>
+        <v-row dense>
+          <v-col cols="12" md="7">
+            <v-select
+              v-model="selectedRecordCode"
+              :items="recordSelectItems"
+              item-title="label"
+              item-value="value"
+              label="Select Record / Site"
+              prepend-inner-icon="mdi-map-marker-outline"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              @update:model-value="loadChecklistForRecord"
+            />
+          </v-col>
+        </v-row>
+
+        <v-alert
+          v-if="!selectedRecordCode"
+          type="info"
+          variant="tonal"
+          border="start"
+          class="mt-3"
+        >
+          Select a record to begin creating its checklist.
+        </v-alert>
 
           <div v-else class="mt-4 d-grid ga-2">
             <div v-for="(task, taskIndex) in quickTasks" :key="`${selectedRecordCode}-${taskIndex}`" class="d-flex flex-wrap ga-2">
@@ -99,8 +116,7 @@
               {{ quickChecklistFeedback }}
             </v-alert>
           </div>
-        </v-card-text>
-      </v-card>
+      </v-card-text>
     </v-card>
   </div>
 </template>
@@ -218,3 +234,64 @@ const handleLogout = () => {
   navigateTo('/')
 }
 </script>
+
+<style scoped>
+.dash-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+}
+
+.dash-hero__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.dash-action-card {
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  overflow: hidden;
+}
+
+.dash-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.1) !important;
+}
+
+.dash-action-card__strip {
+  height: 3px;
+  background: linear-gradient(90deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+}
+
+.dash-action-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-accent-top {
+  height: 3px;
+  background: linear-gradient(90deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+@media (max-width: 599px) {
+  .dash-hero { padding: 16px; }
+}
+</style>

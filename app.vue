@@ -4,12 +4,14 @@
       <NuxtPage />
     </v-main>
 
-    <SessionTimeoutModal
-      :open="showSessionModal"
-      :countdown-label="countdownLabel"
-      @stay="stayLoggedIn"
-      @logout="logoutFromPrompt"
-    />
+    <ClientOnly>
+      <SessionTimeoutModal
+        :open="showSessionModal"
+        :countdown-label="countdownLabel"
+        @stay="stayLoggedIn"
+        @logout="logoutFromPrompt"
+      />
+    </ClientOnly>
   </v-app>
 </template>
 

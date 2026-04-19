@@ -1,29 +1,45 @@
 <template>
   <div class="container">
-    <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
-      <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
-        <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">Management Tools</h1>
-          <p class="text-medium-emphasis">Admin directory, QR records, checklist setup, and staff message visibility.</p>
+
+    <!-- Hero header -->
+    <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
+      <div class="mgmt-hero">
+        <div class="d-flex align-center ga-3">
+          <div class="mgmt-hero__icon">
+            <v-icon icon="mdi-cog-outline" size="28" color="white" />
+          </div>
+          <div>
+            <h1 class="text-h5 text-md-h4 font-weight-bold text-white">Management Tools</h1>
+            <p class="text-caption text-white" style="opacity:0.8">Admin directory, QR records, checklists and service request management.</p>
+          </div>
         </div>
         <div class="d-flex ga-2 flex-wrap">
-          <v-btn prepend-icon="mdi-arrow-left" variant="tonal" @click="goBack({ adminFallback: '/' })">Back</v-btn>
-          <v-btn prepend-icon="mdi-logout" color="error" variant="flat" @click="handleLogout">Log Out</v-btn>
+          <v-btn color="white" variant="tonal" prepend-icon="mdi-arrow-left" size="small" @click="navigateTo('/')">Back</v-btn>
+          <v-btn color="white" variant="outlined" prepend-icon="mdi-logout" size="small" @click="handleLogout">Log Out</v-btn>
         </div>
       </div>
+    </v-card>
 
-      <v-row class="mb-4" dense>
-        <v-col cols="12" md="3" v-for="item in quickActions" :key="item.to">
-          <v-card :to="item.to" class="h-100" variant="tonal" rounded="lg">
-            <v-card-title class="d-flex align-center ga-2">
-              <v-icon :icon="item.icon" />
-              {{ item.title }}
-            </v-card-title>
-            <v-card-text class="text-medium-emphasis">{{ item.description }}</v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+    <!-- Quick action cards -->
+    <v-row dense class="mb-5">
+      <v-col cols="12" sm="6" lg="3" v-for="item in quickActions" :key="item.to">
+        <v-card :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100">
+          <div class="mgmt-action-card__strip" :style="`background: linear-gradient(90deg, ${item.color1} 0%, ${item.color2} 100%)`" />
+          <v-card-text class="pa-4">
+            <div class="d-flex align-center ga-3 mb-2">
+              <div class="mgmt-action-card__icon" :style="`background: linear-gradient(135deg, ${item.color1} 0%, ${item.color2} 100%)`">
+                <v-icon :icon="item.icon" color="white" size="20" />
+              </div>
+              <h3 class="text-subtitle-2 font-weight-bold">{{ item.title }}</h3>
+            </div>
+            <p class="text-body-2 text-medium-emphasis">{{ item.description }}</p>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
+    <!-- Main content card -->
+    <v-card rounded="xl" elevation="2" class="pa-2 pa-md-3">
       <!-- ── Two-pane layout: tabbed left sidebar + detail right ── -->
       <v-row>
         <!-- LEFT: Tabbed pane — Users | Companies -->
@@ -820,25 +836,33 @@ const quickActions = [
     to: '/dashboard',
     title: 'Dashboard Home',
     description: 'Return to the admin dashboard overview.',
-    icon: 'mdi-view-dashboard-outline'
+    icon: 'mdi-view-dashboard-outline',
+    color1: 'rgb(var(--v-theme-primary))',
+    color2: 'rgb(var(--v-theme-secondary))'
   },
   {
     to: '/records',
     title: 'Record Access',
     description: 'Manage records and identifiers.',
-    icon: 'mdi-folder-multiple-outline'
+    icon: 'mdi-folder-multiple-outline',
+    color1: '#0d9488',
+    color2: '#0891b2'
   },
   {
     to: '/dashboard/qr-codes',
     title: 'QR Code Section',
     description: 'Generate printable QR pages.',
-    icon: 'mdi-qrcode'
+    icon: 'mdi-qrcode',
+    color1: '#7c3aed',
+    color2: '#6d28d9'
   },
   {
     to: '/dashboard/requests',
     title: 'Service Requests',
     description: 'Review and resolve requests.',
-    icon: 'mdi-clipboard-list-outline'
+    icon: 'mdi-clipboard-list-outline',
+    color1: '#ea580c',
+    color2: '#c2410c'
   }
 ]
 
@@ -1070,14 +1094,62 @@ const toScanUrl = (record: { code: string; name: string; location: string }) => 
 </script>
 
 <style scoped>
+/* Hero */
+.mgmt-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+  min-height: 90px;
+}
+
+.mgmt-hero__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  backdrop-filter: blur(4px);
+}
+
+/* Action cards */
+.mgmt-action-card {
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s cubic-bezier(0.4,0,0.2,1) !important;
+  overflow: hidden;
+}
+
+.mgmt-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.1) !important;
+}
+
+.mgmt-action-card__strip { height: 4px; }
+
+.mgmt-action-card__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Directory list */
 .directory-list {
   max-height: 480px;
   overflow-y: auto;
 }
 
 @media (max-width: 960px) {
-  .directory-list {
-    max-height: 320px;
-  }
+  .mgmt-hero { padding: 18px 16px; }
+  .mgmt-hero__icon { width: 42px; height: 42px; }
+  .directory-list { max-height: 320px; }
 }
 </style>

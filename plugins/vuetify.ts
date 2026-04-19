@@ -8,77 +8,232 @@ export default defineNuxtPlugin((nuxtApp) => {
   const vuetify = createVuetify({
     components,
     directives,
+    defaults: {
+      VBtn: { style: 'letter-spacing: 0.02em; font-weight: 600;' },
+      VTextField: { variant: 'outlined' },
+      VSelect: { variant: 'outlined' },
+      VTextarea: { variant: 'outlined' },
+    },
     theme: {
       defaultTheme: 'ocean',
       themes: {
-        // ── Light themes ─────────────────────────────────────────────────
+        // ── Light themes ──────────────────────────────────────────────────
         ocean: {
           dark: false,
           colors: {
-            primary: '#667eea', secondary: '#764ba2', accent: '#4facfe',
-            error: '#f5576c', info: '#00c8ff', success: '#27ae60', warning: '#f093fb'
+            background: '#eef2ff',
+            surface: '#ffffff',
+            primary: '#4f46e5',
+            secondary: '#7c3aed',
+            accent: '#06b6d4',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            'on-surface': '#1e1b4b',
+          }
+        },
+        teal: {
+          dark: false,
+          colors: {
+            background: '#f0fdfa',
+            surface: '#ffffff',
+            primary: '#0d9488',
+            secondary: '#0891b2',
+            accent: '#34d399',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            'on-surface': '#134e4a',
+          }
+        },
+        slate: {
+          dark: false,
+          colors: {
+            background: '#f8fafc',
+            surface: '#ffffff',
+            primary: '#475569',
+            secondary: '#334155',
+            accent: '#6366f1',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            'on-surface': '#0f172a',
           }
         },
         forest: {
           dark: false,
           colors: {
-            primary: '#2ecc71', secondary: '#1a7a49', accent: '#a3d977',
-            error: '#e74c3c', info: '#3498db', success: '#1abc9c', warning: '#f39c12'
+            background: '#f0fdf4',
+            surface: '#ffffff',
+            primary: '#16a34a',
+            secondary: '#15803d',
+            accent: '#84cc16',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#22c55e',
+            warning: '#f59e0b',
+            'on-surface': '#14532d',
           }
         },
         sunset: {
           dark: false,
           colors: {
-            primary: '#ff6b6b', secondary: '#feca57', accent: '#fda085',
-            error: '#c0392b', info: '#00f2fe', success: '#6ab04c', warning: '#f39c12'
+            background: '#fff7ed',
+            surface: '#ffffff',
+            primary: '#ea580c',
+            secondary: '#dc2626',
+            accent: '#f59e0b',
+            error: '#991b1b',
+            info: '#0ea5e9',
+            success: '#16a34a',
+            warning: '#d97706',
+            'on-surface': '#431407',
           }
         },
         arctic: {
           dark: false,
           colors: {
-            primary: '#0099f7', secondary: '#005bea', accent: '#a8edea',
-            error: '#f5576c', info: '#00cfff', success: '#00b894', warning: '#fdcb6e'
+            background: '#f0f9ff',
+            surface: '#ffffff',
+            primary: '#0284c7',
+            secondary: '#0369a1',
+            accent: '#67e8f9',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            'on-surface': '#0c4a6e',
           }
         },
         rose: {
           dark: false,
           colors: {
-            primary: '#e91e8c', secondary: '#c2185b', accent: '#ff80ab',
-            error: '#b71c1c', info: '#1565c0', success: '#2e7d32', warning: '#e65100'
+            background: '#fff1f2',
+            surface: '#ffffff',
+            primary: '#e11d48',
+            secondary: '#be185d',
+            accent: '#f43f5e',
+            error: '#9f1239',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            'on-surface': '#4c0519',
+          }
+        },
+        amber: {
+          dark: false,
+          colors: {
+            background: '#fffbeb',
+            surface: '#ffffff',
+            primary: '#d97706',
+            secondary: '#b45309',
+            accent: '#fbbf24',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#92400e',
+            'on-surface': '#451a03',
           }
         },
         gold: {
           dark: false,
           colors: {
-            primary: '#f0930a', secondary: '#e67e22', accent: '#ffd32a',
-            error: '#c0392b', info: '#2980b9', success: '#27ae60', warning: '#d35400'
+            background: '#fefce8',
+            surface: '#ffffff',
+            primary: '#ca8a04',
+            secondary: '#a16207',
+            accent: '#facc15',
+            error: '#ef4444',
+            info: '#0ea5e9',
+            success: '#10b981',
+            warning: '#854d0e',
+            'on-surface': '#422006',
           }
         },
         // ── Dark themes ───────────────────────────────────────────────────
         midnight: {
           dark: true,
           colors: {
-            background: '#0f0f1a', surface: '#1a1a2e',
-            primary: '#7c3aed', secondary: '#4f46e5', accent: '#818cf8',
-            error: '#f87171', info: '#38bdf8', success: '#4ade80', warning: '#fb923c'
+            background: '#09090f',
+            surface: '#13131f',
+            'surface-variant': '#1e1e30',
+            primary: '#818cf8',
+            secondary: '#a78bfa',
+            accent: '#38bdf8',
+            error: '#f87171',
+            info: '#38bdf8',
+            success: '#4ade80',
+            warning: '#fb923c',
+            'on-surface': '#e2e8f0',
+          }
+        },
+        carbon: {
+          dark: true,
+          colors: {
+            background: '#0a0a0a',
+            surface: '#111111',
+            'surface-variant': '#1a1a1a',
+            primary: '#60a5fa',
+            secondary: '#3b82f6',
+            accent: '#93c5fd',
+            error: '#f87171',
+            info: '#38bdf8',
+            success: '#4ade80',
+            warning: '#fbbf24',
+            'on-surface': '#f1f5f9',
           }
         },
         darkForest: {
           dark: true,
           colors: {
-            background: '#0a1a10', surface: '#12261a',
-            primary: '#4ade80', secondary: '#22c55e', accent: '#86efac',
-            error: '#f87171', info: '#38bdf8', success: '#34d399', warning: '#fbbf24'
+            background: '#071309',
+            surface: '#0f2112',
+            'surface-variant': '#162e1a',
+            primary: '#4ade80',
+            secondary: '#22d3ee',
+            accent: '#86efac',
+            error: '#f87171',
+            info: '#38bdf8',
+            success: '#34d399',
+            warning: '#fbbf24',
+            'on-surface': '#dcfce7',
           }
         },
         obsidian: {
           dark: true,
           colors: {
-            background: '#0f172a', surface: '#1e293b',
-            primary: '#94a3b8', secondary: '#64748b', accent: '#cbd5e1',
-            error: '#f87171', info: '#60a5fa', success: '#4ade80', warning: '#fbbf24'
+            background: '#0b0f1a',
+            surface: '#141928',
+            'surface-variant': '#1c2235',
+            primary: '#94a3b8',
+            secondary: '#7c8fa8',
+            accent: '#6366f1',
+            error: '#f87171',
+            info: '#60a5fa',
+            success: '#4ade80',
+            warning: '#fbbf24',
+            'on-surface': '#e2e8f0',
           }
-        }
+        },
+        crimson: {
+          dark: true,
+          colors: {
+            background: '#0f0306',
+            surface: '#1a0509',
+            'surface-variant': '#240810',
+            primary: '#fb7185',
+            secondary: '#f43f5e',
+            accent: '#fda4af',
+            error: '#f87171',
+            info: '#38bdf8',
+            success: '#4ade80',
+            warning: '#fbbf24',
+            'on-surface': '#ffe4e6',
+          }
+        },
       }
     }
   })
