@@ -4,7 +4,11 @@ import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin', 'staff'])
-  const id = getRouterParam(event, 'id')!
+  const rawId = getRouterParam(event, 'id')
+  const id = Number(rawId)
+  if (!rawId || !Number.isInteger(id) || id <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid record ID.' })
+  }
 
   const { name, description, type, location, ownerUserId, ownerCompanyId } = await readBody<{
     name?: string
@@ -16,12 +20,13 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   const patch: Record<string, unknown> = {}
-  if (name        !== undefined) patch.name             = name.trim()
-  if (description !== undefined) patch.description      = description.trim()
-  if (type        !== undefined) patch.type             = type.trim()
-  if (location    !== undefined) patch.location         = location.trim()
-  if (ownerUserId !== undefined) patch.owner_user_id    = ownerUserId
-  if (ownerCompanyId !== undefined) patch.owner_company_id = ownerCompanyId
+  if (name        !== undefined) patch.name             = String(name ?? '').trim()
+  if (description !== undefined) patch.description      = String(description ?? '').trim()
+  if (type        !== undefined) patch.type             = String(type ?? '').trim()
+  if (location    !== undefined) patch.location         = String(location ?? '').trim()
+  // Coerce any stray "undefined" strings or JS undefined to null for bigint columns
+  if (ownerUserId    !== undefined) patch.owner_user_id    = (ownerUserId    == null || ownerUserId    === ('undefined' as any)) ? null : Number(ownerUserId)
+  if (ownerCompanyId !== undefined) patch.owner_company_id = (ownerCompanyId == null || ownerCompanyId === ('undefined' as any)) ? null : Number(ownerCompanyId)
 
   if (Object.keys(patch).length === 0) {
     console.warn('[records PATCH] id=%s — patch body was empty', id)

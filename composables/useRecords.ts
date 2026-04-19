@@ -83,6 +83,7 @@ export const useRecords = () => {
       ownerCompanyId?: number | null
     }
   ): Promise<void> => {
+    if (!id || !Number.isFinite(id)) throw new Error(`updateRecord called with invalid id: ${id}`)
     await $fetch(`/api/records/${id}`, {
       method: 'PATCH' as 'POST',
       headers: authHeaders.value,
@@ -102,6 +103,7 @@ export const useRecords = () => {
   }
 
   const deleteRecord = async (id: number): Promise<void> => {
+    if (!id || !Number.isFinite(id)) throw new Error(`deleteRecord called with invalid id: ${id}`)
     await $fetch(`/api/records/${id}`, {
       method: 'DELETE' as 'POST',
       headers: authHeaders.value
