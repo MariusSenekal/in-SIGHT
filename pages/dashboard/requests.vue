@@ -12,6 +12,34 @@
         </div>
       </div>
 
+      <!-- Stats summary -->
+      <v-row dense class="mb-4">
+        <v-col cols="6" sm="3">
+          <v-card rounded="lg" color="success" variant="tonal" class="pa-3 text-center">
+            <div class="text-h4 font-weight-bold">{{ happyCount }}</div>
+            <div class="text-body-2 mt-1">😊 Happy</div>
+          </v-card>
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-card rounded="lg" color="error" variant="tonal" class="pa-3 text-center">
+            <div class="text-h4 font-weight-bold">{{ sadCount }}</div>
+            <div class="text-body-2 mt-1">😞 Sad</div>
+          </v-card>
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-card rounded="lg" color="primary" variant="tonal" class="pa-3 text-center">
+            <div class="text-h4 font-weight-bold">{{ cleaningCount }}</div>
+            <div class="text-body-2 mt-1">🧹 Cleaning</div>
+          </v-card>
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-card rounded="lg" color="warning" variant="tonal" class="pa-3 text-center">
+            <div class="text-h4 font-weight-bold">{{ maintenanceCount }}</div>
+            <div class="text-body-2 mt-1">🔧 Maintenance</div>
+          </v-card>
+        </v-col>
+      </v-row>
+
       <!-- Filter tabs -->
       <v-tabs v-model="filterTab" color="primary" class="mb-4">
         <v-tab value="all">All</v-tab>
@@ -95,6 +123,11 @@ const { getRequests, setRequestStatus } = useServiceRequests()
 const filterTab = ref('all')
 
 const allRequests = computed(() => getRequests())
+
+const happyCount = computed(() => allRequests.value.filter(r => r.requestType === 'satisfaction' && r.satisfactionEmoji === 'happy').length)
+const sadCount = computed(() => allRequests.value.filter(r => r.requestType === 'satisfaction' && r.satisfactionEmoji === 'sad').length)
+const cleaningCount = computed(() => allRequests.value.filter(r => r.requestType === 'cleaning').length)
+const maintenanceCount = computed(() => allRequests.value.filter(r => r.requestType === 'maintenance').length)
 
 const filteredRequests = computed(() => {
   if (filterTab.value === 'all') { return allRequests.value }

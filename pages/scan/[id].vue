@@ -221,7 +221,7 @@
           @click="requestCleaning"
         >
           <span class="material-symbols-outlined">cleaning_services</span>
-          Schedule Cleaning
+          Request Cleaning
         </button>
         <button
           type="button"
@@ -253,47 +253,69 @@
             </div>
 
             <div class="request-form-wrap">
-              <label>
-                Request Target
-                <select v-model="requestTargetType" class="request-input" required>
-                  <option value="qr">Specified QR Code</option>
-                  <option value="site-room">Site / Room</option>
-                </select>
-              </label>
+              <!-- Anonymous users: simplified form — target auto-set to this QR code -->
+              <template v-if="!currentUser">
+                <div class="anon-request-info">
+                  <span class="material-symbols-outlined">qr_code_2</span>
+                  <span>Request for: <strong>{{ record?.name }}</strong></span>
+                </div>
+                <label>
+                  Short Message
+                  <textarea
+                    v-model="requestMessage"
+                    class="request-input"
+                    rows="3"
+                    maxlength="160"
+                    placeholder="Briefly describe what you need..."
+                    required
+                  />
+                </label>
+              </template>
 
-              <label v-if="requestTargetType === 'qr'">
-                Select QR Code
-                <select v-model="selectedRecordCode" class="request-input" required>
-                  <option value="" disabled>Select a QR code</option>
-                  <option v-for="item in allRecords" :key="item.id" :value="item.code">
-                    {{ item.code }} - {{ item.name }}
-                  </option>
-                </select>
-              </label>
+              <!-- Logged-in users: full form with target selection -->
+              <template v-else>
+                <label>
+                  Request Target
+                  <select v-model="requestTargetType" class="request-input" required>
+                    <option value="qr">Specified QR Code</option>
+                    <option value="site-room">Site / Room</option>
+                  </select>
+                </label>
 
-              <label v-else>
-                Site / Room Reference
-                <input
-                  v-model="siteRoomReference"
-                  type="text"
-                  class="request-input"
-                  placeholder="e.g. Ground Floor Kitchen or Room 204"
-                  maxlength="80"
-                  required
-                />
-              </label>
+                <label v-if="requestTargetType === 'qr'">
+                  Select QR Code
+                  <select v-model="selectedRecordCode" class="request-input" required>
+                    <option value="" disabled>Select a QR code</option>
+                    <option v-for="item in allRecords" :key="item.id" :value="item.code">
+                      {{ item.code }} - {{ item.name }}
+                    </option>
+                  </select>
+                </label>
 
-              <label>
-                Short Request Message
-                <textarea
-                  v-model="requestMessage"
-                  class="request-input"
-                  rows="3"
-                  maxlength="160"
-                  placeholder="Type a short message for the admin team"
-                  required
-                />
-              </label>
+                <label v-else>
+                  Site / Room Reference
+                  <input
+                    v-model="siteRoomReference"
+                    type="text"
+                    class="request-input"
+                    placeholder="e.g. Ground Floor Kitchen or Room 204"
+                    maxlength="80"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Short Request Message
+                  <textarea
+                    v-model="requestMessage"
+                    class="request-input"
+                    rows="3"
+                    maxlength="160"
+                    placeholder="Type a short message for the admin team"
+                    required
+                  />
+                </label>
+              </template>
 
               <div class="request-form-actions">
                 <button type="button" class="ghost-btn" @click="cancelRequest">Cancel</button>
@@ -306,8 +328,8 @@
         </div>
       </transition>
 
-      <!-- Back Link -->
-      <div class="back-link-container">
+      <!-- Back Link — only shown to authenticated users, anonymous users stay on this page -->
+      <div v-if="currentUser" class="back-link-container">
         <button type="button" class="back-button" @click="handleBackToWelcome()">
           <span class="material-symbols-outlined">arrow_back</span>
           Back to Welcome Page
@@ -509,12 +531,14 @@ const submitTaskMessage = () => {
 const requestCleaning = () => {
   requestType.value = 'cleaning'
   requestTargetType.value = 'qr'
+  selectedRecordCode.value = record.value?.code || ''
   requestFeedback.value = ''
 }
 
 const requestMaintenance = () => {
   requestType.value = 'maintenance'
   requestTargetType.value = 'qr'
+  selectedRecordCode.value = record.value?.code || ''
   requestFeedback.value = ''
 }
 
@@ -1447,6 +1471,25 @@ textarea.request-input {
 .satisfaction-save-row {
   display: flex;
   justify-content: center;
+}
+
+/* ── Anonymous request info banner ──────────────────────────────────────── */
+.anon-request-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #e8efff;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  color: var(--brand-dark);
+}
+
+.anon-request-info .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--brand);
+  flex-shrink: 0;
 }
 
 /* ── Cleaning button ──────────────────────────────────────────────────────── */
