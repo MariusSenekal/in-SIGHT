@@ -1,0 +1,92 @@
+version: '3.8'
+
+# in-SIGHT – PostgreSQL + PostgREST stack
+# Every service restarts automatically and data is persisted in a named volume.
+# Deploy ONLY to the designated database server: ubuntu@129.151.169.238
+# Do NOT modify containers on any other server.
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PostgreSQL 16 – primary database
+  # ─────────────────────────────────────────────────────────────────────────────
+  insight-postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    image: insight-postgres:16-pgcron
+    container_name: insight-postgres
+    restart: always
+    # pg_cron must be loaded at server start via shared_preload_libraries.
+    # cron.database_name pins it to insight_db so scheduled jobs survive restarts.
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_cron
+      -c cron.database_name=insight_db
+    environment:
+      POSTGRES_DB: insight_db
+      POSTGRES_USER: insight_owner
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD}
+    volumes:
+      - insight_pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Chosen to avoid conflicts with existing containers:
+      #   5432=BDdatabase 5433=LabourCrew 5434=rapidcollect 5435=bestdeck-hr
+      - "5436:5432"
+    networks:
+      - insight_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U insight_owner -d insight_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PostgREST – auto-generated REST API over the insight schema
+  # ─────────────────────────────────────────────────────────────────────────────
+  insight-postgrest:
+    image: postgrest/postgrest:v12.2.3
+    container_name: insight-postgrest
+    restart: always
+    depends_on:
+      insight-postgres:
+        condition: service_healthy
+    environment:
+      # Authenticator connects as a low-privilege login role; PostgREST then
+      # switches to the JWT-claimed role for each request.
+      PGRST_DB_URI: postgres://insight_authenticator:${AUTHENTICATOR_PASSWORD}@insight-postgres:5432/insight_db
+      PGRST_DB_SCHEMA: insight
+      PGRST_DB_ANON_ROLE: anon
+      # Must be ≥32 chars and match JWT_SECRET used by the Nuxt API routes.
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_JWT_AUD: insight
+      PGRST_DB_POOL: 10
+      PGRST_DB_POOL_ACQUISITION_TIMEOUT: 10
+      PGRST_LOG_LEVEL: info
+      PGRST_SERVER_HOST: "0.0.0.0"
+      PGRST_SERVER_PORT: "3000"
+      # Expose schemas for RPC functions used internally
+      PGRST_DB_EXTRA_SEARCH_PATH: insight,public
+    ports:
+      # PostgREST listens on 3008 on the host.
+      # Chosen to avoid conflicts with existing containers: 3001–3004 in use.
+      - "3008:3000"
+    networks:
+      - insight_backend
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  insight_backend:
+    name: insight_backend
+    driver: bridge
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volumes – data persists even after `docker compose down`
+# Use `docker compose down -v` ONLY if you intentionally want to wipe data.
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  insight_pg_data:
+    name: insight_pg_data
