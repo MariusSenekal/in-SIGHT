@@ -66,6 +66,14 @@ export default defineNuxtConfig({
       ]
     }
   },
+  nitro: {
+    // Ensure socket.io (and its dependencies) are copied into .output/server/node_modules
+    // rather than inlined, since it uses dynamic requires that don't bundle cleanly.
+    externals: {
+      inline: [],
+      external: ['socket.io', 'engine.io', 'socket.io-adapter', 'ws']
+    }
+  },
   runtimeConfig: {
     // Server-only secrets — set via NUXT_JWT_SECRET and NUXT_PGREST_URL env vars
     jwtSecret: '',
