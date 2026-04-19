@@ -658,7 +658,7 @@
 import QrcodeVue from 'qrcode.vue'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, initAuth, logout, users, createUser, companies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
+const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
 const { records: managementRecords, loadRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
@@ -1130,7 +1130,7 @@ watch(filteredUserRecords, (records) => {
 
 onMounted(async () => {
   await initAuth()
-  await loadRecords()
+  await Promise.all([loadRecords(), loadUsers(), loadCompanies()])
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
