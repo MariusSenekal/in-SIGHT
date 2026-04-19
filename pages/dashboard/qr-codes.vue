@@ -227,14 +227,13 @@ import QrcodeVue from 'qrcode.vue'
 
 const { currentUser, isAdmin, initAuth, logout, users } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRecords } = useRecords()
-const records = getRecords()
+const { records, loadRecords } = useRecords()
 
-const selectedIds = ref<number[]>(records.map(record => record.id))
+const selectedIds = ref<number[]>(records.value.map(record => record.id))
 const recordSearch = ref('')
 const selectedOwnerFilter = ref('all')
 const quantityById = ref<Record<number, number>>(
-  Object.fromEntries(records.map(record => [record.id, 1]))
+  Object.fromEntries(records.value.map(record => [record.id, 1]))
 )
 const selectedPagePreset = ref<'A4' | 'Letter' | 'A3' | 'Custom'>('A4')
 const orientation = ref<'portrait' | 'landscape'>('portrait')
@@ -291,8 +290,9 @@ const ownerFilterItems = computed(() => {
   ]
 })
 
-onMounted(() => {
-  initAuth()
+onMounted(async () => {
+  await initAuth()
+  await loadRecords()
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
@@ -306,20 +306,20 @@ const handleLogout = () => {
 
 const recordsByOwnerFilter = computed(() => {
   if (selectedOwnerFilter.value === 'all') {
-    return records
+    return records.value
   }
 
   if (selectedOwnerFilter.value === 'unassigned') {
-    return records.filter(record => record.ownerUserId === null)
+    return records.value.filter(record => record.ownerUserId === null)
   }
 
   const userId = Number.parseInt(selectedOwnerFilter.value.replace('user-', ''), 10)
 
   if (Number.isNaN(userId)) {
-    return records
+    return records.value
   }
 
-  return records.filter(record => record.ownerUserId === userId)
+  return records.value.filter(record => record.ownerUserId === userId)
 })
 
 const filteredRecords = computed(() => {
@@ -446,11 +446,11 @@ const perPage = computed(() => {
 })
 
 const selectedRecords = computed(() => {
-  return records.filter(record => selectedIds.value.includes(record.id))
+  return records.value.filter(record => selectedIds.value.includes(record.id))
 })
 
 const expandedRecords = computed(() => {
-  const output: Array<{ record: (typeof records)[number]; copyIndex: number }> = []
+  const output: Array<{ record: (typeof records.value)[number]; copyIndex: number }> = []
 
   selectedRecords.value.forEach(record => {
     const copies = normalizeQuantity(quantityById.value[record.id] || 1)

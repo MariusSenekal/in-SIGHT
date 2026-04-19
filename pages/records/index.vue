@@ -46,8 +46,7 @@
 <script setup lang="ts">
 const { isAdmin, initAuth } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRecords, addRecord } = useRecords()
-const records = getRecords()
+const { records, loadRecords, addRecord } = useRecords()
 const formMessage = ref('')
 
 const recordForm = reactive({
@@ -57,12 +56,13 @@ const recordForm = reactive({
   description: ''
 })
 
-onMounted(() => {
-  initAuth()
+onMounted(async () => {
+  await initAuth()
+  await loadRecords()
 })
 
-const submitRecord = () => {
-  const created = addRecord({
+const submitRecord = async () => {
+  const created = await addRecord({
     name: recordForm.name.trim(),
     type: recordForm.type.trim(),
     location: recordForm.location.trim(),

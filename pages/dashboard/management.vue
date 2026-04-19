@@ -660,7 +660,8 @@ import type { AppUser, Company } from '~/composables/useAuth'
 
 const { currentUser, isAdmin, initAuth, logout, users, createUser, companies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
+const { records: managementRecords, loadRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
+const getRecords = () => managementRecords.value
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
 const { connect, disconnect } = useSocket()
 
@@ -714,7 +715,7 @@ const openCreateQrForCompany = (companyId: number) => {
   showCreateQrDialog.value = true
 }
 
-const submitCreateQrCode = () => {
+const submitCreateQrCode = async () => {
   createQrError.value = ''
   createQrSuccess.value = ''
 
@@ -731,7 +732,7 @@ const submitCreateQrCode = () => {
     return
   }
 
-  const rec = addRecord({
+  const rec = await addRecord({
     name,
     location,
     description: '',
@@ -989,12 +990,12 @@ const filteredUserRecords = computed(() => {
   })
 })
 
-const seedChecklistItems = (recordCode: string) => {
+const seedChecklistItems = async (recordCode: string) => {
   if (checklistItemsByCode.value[recordCode] !== undefined) {
     return
   }
 
-  const template = getChecklistTemplate(recordCode)
+  const template = await getChecklistTemplate(recordCode)
   checklistItemsByCode.value = {
     ...checklistItemsByCode.value,
     [recordCode]: [...template.tasks]
@@ -1049,7 +1050,7 @@ const addChecklistTask = (recordCode: string) => {
   }
 }
 
-const saveChecklistForRecord = (recordCode: string) => {
+const saveChecklistForRecord = async (recordCode: string) => {
   const tasks = getChecklistItems(recordCode)
     .map(task => task.trim())
     .filter(task => Boolean(task))
@@ -1058,7 +1059,7 @@ const saveChecklistForRecord = (recordCode: string) => {
 
   checklistItemsByCode.value = {
     ...checklistItemsByCode.value,
-    [recordCode]: [...getChecklistTemplate(recordCode).tasks]
+    [recordCode]: [...(await getChecklistTemplate(recordCode)).tasks]
   }
 }
 
@@ -1127,8 +1128,9 @@ watch(filteredUserRecords, (records) => {
   records.forEach(record => seedChecklistItems(record.code))
 }, { immediate: true })
 
-onMounted(() => {
-  initAuth()
+onMounted(async () => {
+  await initAuth()
+  await loadRecords()
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')

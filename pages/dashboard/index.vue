@@ -124,10 +124,8 @@
 <script setup lang="ts">
 const { currentUser, isAdmin, initAuth, logout } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRecords } = useRecords()
+const { records: allRecords, loadRecords } = useRecords()
 const { getChecklistTemplate, setChecklistTemplate } = useScheduleTracking()
-
-const allRecords = computed(() => getRecords())
 const selectedRecordCode = ref('')
 const quickTasks = ref<string[]>([])
 const quickTaskInput = ref('')
@@ -167,12 +165,12 @@ const recordSelectItems = computed(() => {
   }))
 })
 
-const loadChecklistForRecord = () => {
+const loadChecklistForRecord = async () => {
   if (!selectedRecordCode.value) {
     return
   }
 
-  quickTasks.value = [...getChecklistTemplate(selectedRecordCode.value).tasks]
+  quickTasks.value = [...(await getChecklistTemplate(selectedRecordCode.value)).tasks]
   quickChecklistFeedback.value = ''
 }
 
@@ -199,7 +197,7 @@ const removeQuickTask = (index: number) => {
   quickTasks.value = next
 }
 
-const saveQuickChecklist = () => {
+const saveQuickChecklist = async () => {
   if (!selectedRecordCode.value) {
     quickChecklistFeedback.value = 'Please choose a record first.'
     return
@@ -210,12 +208,13 @@ const saveQuickChecklist = () => {
     .filter(task => Boolean(task))
 
   setChecklistTemplate(selectedRecordCode.value, cleanedTasks, currentUser.value?.name || 'Admin')
-  quickTasks.value = [...getChecklistTemplate(selectedRecordCode.value).tasks]
+  quickTasks.value = [...(await getChecklistTemplate(selectedRecordCode.value)).tasks]
   quickChecklistFeedback.value = 'Checklist saved. Staff will now see this task list in Service Details.'
 }
 
-onMounted(() => {
-  initAuth()
+onMounted(async () => {
+  await initAuth()
+  await loadRecords()
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
