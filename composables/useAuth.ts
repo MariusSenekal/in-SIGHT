@@ -291,6 +291,70 @@ export const useAuth = () => {
     } catch { /* ignore */ }
   }
 
+  const updateUser = async (
+    userId: number,
+    input: {
+      name?: string
+      username?: string
+      role?: AppUser['role']
+      isActive?: boolean
+      displayName?: string
+      phone?: string
+      location?: string
+      bio?: string
+      newPassword?: string
+    }
+  ): Promise<AuthResult> => {
+    try {
+      await $fetch(`/api/users/${userId}`, {
+        method: 'PATCH' as 'POST',
+        headers: { Authorization: `Bearer ${authToken.value}` },
+        body: input
+      })
+      // Update local state
+      users.value = users.value.map(u => {
+        if (u.id !== userId) return u
+        return {
+          ...u,
+          name:     input.name     ?? u.name,
+          username: input.username ?? u.username,
+          role:     input.role     ?? u.role,
+          isActive: input.isActive ?? u.isActive,
+          profile: {
+            ...u.profile,
+            displayName: input.displayName ?? u.profile?.displayName ?? u.name,
+            phone:       input.phone       ?? u.profile?.phone       ?? '',
+            location:    input.location    ?? u.profile?.location    ?? '',
+            bio:         input.bio         ?? u.profile?.bio         ?? ''
+          }
+        }
+      })
+      return { ok: true, message: 'User updated successfully.' }
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Update failed.'
+      return { ok: false, message: msg }
+    }
+  }
+
+  const deleteUser = async (userId: number): Promise<AuthResult> => {
+    try {
+      await $fetch(`/api/users/${userId}`, {
+        method: 'DELETE' as 'POST',
+        headers: { Authorization: `Bearer ${authToken.value}` }
+      })
+      users.value = users.value.filter(u => u.id !== userId)
+      // Remove from companies
+      companies.value = companies.value.map(c => ({
+        ...c,
+        linkedUserIds: c.linkedUserIds.filter(id => id !== userId)
+      }))
+      return { ok: true, message: 'User deleted.' }
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Delete failed.'
+      return { ok: false, message: msg }
+    }
+  }
+
   const isAdmin = computed(() => currentUser.value?.role === 'admin')
   const isAuthenticated = computed(() => Boolean(currentUser.value && authToken.value))
 
@@ -309,6 +373,8 @@ export const useAuth = () => {
     logout,
     loadUsers,
     createUser,
+    updateUser,
+    deleteUser,
     companies,
     getCompanies,
     loadCompanies,

@@ -204,6 +204,12 @@
                 <v-btn v-if="selectedUser.role === 'user'" size="small" color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="openCreateQrForUser(selectedUser.id)">
                   Create QR Code
                 </v-btn>
+                <v-btn size="small" color="primary" variant="tonal" prepend-icon="mdi-account-edit" @click="openEditUser(selectedUser)">
+                  Edit
+                </v-btn>
+                <v-btn size="small" color="error" variant="tonal" prepend-icon="mdi-account-remove" @click="openDeleteUser(selectedUser)">
+                  Delete
+                </v-btn>
               </div>
             </v-card-title>
 
@@ -627,6 +633,129 @@
     </v-card>
   </v-dialog>
 
+  <!-- ── Edit User Dialog ──────────────────────────────────────────────── -->
+  <v-dialog v-model="showEditUserDialog" max-width="520" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-account-edit" />
+        Edit User
+      </v-card-title>
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="editUserForm.name"
+              label="Full Name"
+              prepend-inner-icon="mdi-badge-account"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="editUserForm.username"
+              label="Username"
+              prepend-inner-icon="mdi-account"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="editUserForm.displayName"
+              label="Display Name"
+              prepend-inner-icon="mdi-card-account-details"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="editUserForm.phone"
+              label="Phone"
+              prepend-inner-icon="mdi-phone"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="editUserForm.location"
+              label="Default Site / Location"
+              prepend-inner-icon="mdi-map-marker"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="editUserForm.role"
+              :items="roleOptions"
+              item-title="title"
+              item-value="value"
+              label="Role"
+              prepend-inner-icon="mdi-shield-account"
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-textarea
+              v-model="editUserForm.bio"
+              label="Bio"
+              prepend-inner-icon="mdi-text"
+              variant="outlined"
+              density="comfortable"
+              rows="2"
+              auto-grow
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-divider class="mb-3" />
+            <p class="text-caption text-medium-emphasis mb-2">Leave password blank to keep unchanged.</p>
+            <v-text-field
+              v-model="editUserForm.newPassword"
+              label="New Password"
+              type="password"
+              prepend-inner-icon="mdi-lock-reset"
+              variant="outlined"
+              density="comfortable"
+              hint="Minimum 8 characters"
+              persistent-hint
+            />
+          </v-col>
+        </v-row>
+        <v-alert v-if="editUserError" type="error" variant="tonal" density="compact" class="mt-2">{{ editUserError }}</v-alert>
+        <v-alert v-if="editUserSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ editUserSuccess }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="editUserLoading" @click="showEditUserDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-content-save" :loading="editUserLoading" @click="submitEditUser">Save Changes</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ── Delete User Confirm Dialog ───────────────────────────────────────── -->
+  <v-dialog v-model="showDeleteUserDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-account-remove" />
+        Delete User
+      </v-card-title>
+      <v-card-text>
+        <p>Are you sure you want to permanently delete <strong>{{ deleteUserTarget?.profile?.displayName || deleteUserTarget?.name }}</strong> (@{{ deleteUserTarget?.username }})?</p>
+        <p class="text-medium-emphasis text-caption mt-2">This will remove their account, profile, and all associated records. This cannot be undone.</p>
+        <v-alert v-if="deleteUserError" type="error" variant="tonal" density="compact" class="mt-3">{{ deleteUserError }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleteUserLoading" @click="showDeleteUserDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" :loading="deleteUserLoading" @click="submitDeleteUser">Delete Permanently</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- ── Create Company Dialog ───────────────────────────────────────────── -->
   <v-dialog v-model="showCreateCompanyDialog" max-width="380" persistent>
     <v-card rounded="lg">
@@ -658,7 +787,7 @@
 import QrcodeVue from 'qrcode.vue'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
+const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
 const { records: managementRecords, loadRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
@@ -785,6 +914,100 @@ const submitCreateUser = async () => {
     }, 1500)
   } finally {
     createUserLoading.value = false
+  }
+}
+
+// ── Edit User ─────────────────────────────────────────────────────────────────
+const showEditUserDialog = ref(false)
+const editUserTarget = ref<AppUser | null>(null)
+const editUserForm = reactive({
+  name: '',
+  username: '',
+  displayName: '',
+  phone: '',
+  location: '',
+  bio: '',
+  role: 'user' as AppUser['role'],
+  newPassword: ''
+})
+const editUserError = ref('')
+const editUserSuccess = ref('')
+const editUserLoading = ref(false)
+
+const openEditUser = (user: AppUser) => {
+  editUserTarget.value = user
+  editUserForm.name        = user.name
+  editUserForm.username    = user.username
+  editUserForm.displayName = user.profile?.displayName || user.name
+  editUserForm.phone       = user.profile?.phone       || ''
+  editUserForm.location    = user.profile?.location    || ''
+  editUserForm.bio         = user.profile?.bio         || ''
+  editUserForm.role        = user.role
+  editUserForm.newPassword = ''
+  editUserError.value      = ''
+  editUserSuccess.value    = ''
+  showEditUserDialog.value = true
+}
+
+const submitEditUser = async () => {
+  if (!editUserTarget.value) return
+  editUserError.value   = ''
+  editUserSuccess.value = ''
+  editUserLoading.value = true
+  try {
+    const payload: Parameters<typeof updateUser>[1] = {
+      name:        editUserForm.name.trim()        || undefined,
+      username:    editUserForm.username.trim()    || undefined,
+      displayName: editUserForm.displayName.trim() || undefined,
+      phone:       editUserForm.phone.trim(),
+      location:    editUserForm.location.trim(),
+      bio:         editUserForm.bio.trim(),
+      role:        editUserForm.role
+    }
+    if (editUserForm.newPassword.trim()) {
+      payload.newPassword = editUserForm.newPassword
+    }
+    const result = await updateUser(editUserTarget.value.id, payload)
+    if (!result.ok) {
+      editUserError.value = result.message
+      return
+    }
+    editUserSuccess.value = result.message
+    setTimeout(() => {
+      showEditUserDialog.value = false
+      editUserSuccess.value    = ''
+    }, 1200)
+  } finally {
+    editUserLoading.value = false
+  }
+}
+
+// ── Delete User ───────────────────────────────────────────────────────────────
+const showDeleteUserDialog = ref(false)
+const deleteUserTarget = ref<AppUser | null>(null)
+const deleteUserError = ref('')
+const deleteUserLoading = ref(false)
+
+const openDeleteUser = (user: AppUser) => {
+  deleteUserTarget.value  = user
+  deleteUserError.value   = ''
+  showDeleteUserDialog.value = true
+}
+
+const submitDeleteUser = async () => {
+  if (!deleteUserTarget.value) return
+  deleteUserError.value   = ''
+  deleteUserLoading.value = true
+  try {
+    const result = await deleteUser(deleteUserTarget.value.id)
+    if (!result.ok) {
+      deleteUserError.value = result.message
+      return
+    }
+    showDeleteUserDialog.value = false
+    selectedUserId.value = null
+  } finally {
+    deleteUserLoading.value = false
   }
 }
 
