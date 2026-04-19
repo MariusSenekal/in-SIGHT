@@ -53,7 +53,7 @@ const isTokenExpired = (token: string): boolean => {
 }
 
 const buildUserFromPayload = (payload: Record<string, unknown>): AppUser => ({
-  id: payload.sub as number,
+  id: Number(payload.sub),
   name: payload.name as string,
   username: payload.username as string,
   role: payload.app_role as AppUser['role'],

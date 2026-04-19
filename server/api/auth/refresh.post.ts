@@ -6,6 +6,6 @@ import { signJwt } from '../../utils/jwt'
 export default defineEventHandler(async (event) => {
   const payload = requireAuth(event)
   const config = useRuntimeConfig()
-  const token = signJwt(payload.sub, payload.name, payload.username, payload.app_role, config.jwtSecret as string)
+  const token = signJwt(Number(payload.sub), payload.name, payload.username, payload.app_role, config.jwtSecret as string)
   return { token }
 })

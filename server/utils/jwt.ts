@@ -1,7 +1,7 @@
 import { createHmac, randomUUID } from 'node:crypto'
 
 export interface JwtPayload {
-  sub: number
+  sub: string
   role: string      // DB role for PostgREST: insight_admin | insight_staff | insight_user
   app_role: string  // app role: admin | staff | user
   username: string
@@ -34,7 +34,7 @@ export const signJwt = (
 ): string => {
   const iat = Math.floor(Date.now() / 1000)
   const payload: JwtPayload = {
-    sub: userId,
+    sub: String(userId),
     role: dbRole(appRole),
     app_role: appRole,
     username,
