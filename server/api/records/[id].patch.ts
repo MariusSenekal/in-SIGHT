@@ -1,10 +1,9 @@
 // PATCH /api/records/:id
 // Admin/staff updates a QR record's details.
-import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
+import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin', 'staff'])
-  const token = getBearerToken(event)!
   const id = getRouterParam(event, 'id')!
 
   const { name, description, type, location, ownerUserId, ownerCompanyId } = await readBody<{
@@ -28,9 +27,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Nothing to update.' })
   }
 
-  await pgrest('/records', {
+  await pgrestAdmin('/records', {
     method: 'PATCH',
-    token,
     query: { id: `eq.${id}` },
     body: patch,
     extraHeaders: { Prefer: 'return=minimal' }

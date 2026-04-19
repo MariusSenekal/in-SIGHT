@@ -1,9 +1,9 @@
 // GET /api/requests
-// Returns all service requests. Admin and staff only.
+// Returns service requests. Admin/staff see all; regular users see their own via RLS.
 import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff'])
+  requireAuth(event, ['admin', 'staff', 'user'])
   const token = getBearerToken(event)!
 
   const rows = await pgrest<any[]>('/service_requests', {

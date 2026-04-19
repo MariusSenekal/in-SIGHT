@@ -130,7 +130,7 @@
               </div>
 
               <!-- Requests summary for this record -->
-              <div v-if="isAdmin">
+              <div>
                 <v-divider class="my-2" />
                 <div class="d-flex flex-wrap ga-1">
                   <v-chip
@@ -461,7 +461,8 @@ onMounted(async () => {
   await initAuth()
   await Promise.all([
     loadRecords(),
-    ...(isAdmin.value ? [loadUsers(), loadCompanies(), loadRequests()] : [])
+    loadRequests(),
+    ...(isAdmin.value ? [loadUsers(), loadCompanies()] : [])
   ])
 })
 </script>
