@@ -125,12 +125,39 @@
               >
                 Reopen
               </v-btn>
+              <v-spacer />
+              <v-btn
+                color="error"
+                variant="text"
+                icon="mdi-delete-outline"
+                size="small"
+                @click="confirmDelete(request)"
+              />
             </v-card-actions>
           </v-card>
         </v-col>
       </v-row>
     </v-card>
   </v-container>
+
+  <!-- ── Delete Request Confirm Dialog ──────────────────────────────────── -->
+  <v-dialog v-model="showDeleteDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-delete-outline" />
+        Delete Request
+      </v-card-title>
+      <v-card-text>
+        <p>Delete this <strong>{{ deleteTarget ? requestTypeLabel(deleteTarget.requestType) : '' }}</strong> from <strong>{{ deleteTarget?.requestedBy }}</strong>?</p>
+        <p class="text-medium-emphasis text-caption mt-2">This cannot be undone.</p>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" @click="doDelete">Delete</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -138,7 +165,7 @@ import type { ServiceRequest } from '~/composables/useServiceRequests'
 
 const { currentUser, isAdmin, initAuth, logout } = useAuth()
 const { goBack } = useAppNavigation()
-const { getRequests, loadRequests, setRequestStatus, requests } = useServiceRequests()
+const { getRequests, loadRequests, setRequestStatus, requests, deleteRequest } = useServiceRequests()
 const { connect, disconnect } = useSocket()
 
 const filterTab = ref('all')
@@ -202,6 +229,21 @@ const markResolved = (id: number) => {
 
 const markOpen = (id: number) => {
   setRequestStatus(id, 'open')
+}
+
+const showDeleteDialog = ref(false)
+const deleteTarget = ref<ServiceRequest | null>(null)
+
+const confirmDelete = (req: ServiceRequest) => {
+  deleteTarget.value = req
+  showDeleteDialog.value = true
+}
+
+const doDelete = async () => {
+  if (!deleteTarget.value) return
+  await deleteRequest(deleteTarget.value.id)
+  showDeleteDialog.value = false
+  deleteTarget.value = null
 }
 
 const requestTypeLabel = (type: ServiceRequest['requestType']) => {

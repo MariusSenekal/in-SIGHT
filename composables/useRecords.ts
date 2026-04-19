@@ -72,6 +72,43 @@ export const useRecords = () => {
     return created
   }
 
+  const updateRecord = async (
+    id: number,
+    input: {
+      name?: string
+      description?: string
+      type?: string
+      location?: string
+      ownerUserId?: number | null
+      ownerCompanyId?: number | null
+    }
+  ): Promise<void> => {
+    await $fetch(`/api/records/${id}`, {
+      method: 'PATCH' as 'POST',
+      headers: authHeaders.value,
+      body: input
+    })
+    records.value = records.value.map(r =>
+      r.id !== id ? r : {
+        ...r,
+        name:          input.name          ?? r.name,
+        description:   input.description   ?? r.description,
+        type:          input.type          ?? r.type,
+        location:      input.location      ?? r.location,
+        ownerUserId:   'ownerUserId'   in input ? input.ownerUserId   ?? null : r.ownerUserId,
+        ownerCompanyId:'ownerCompanyId' in input ? input.ownerCompanyId ?? null : r.ownerCompanyId
+      }
+    )
+  }
+
+  const deleteRecord = async (id: number): Promise<void> => {
+    await $fetch(`/api/records/${id}`, {
+      method: 'DELETE' as 'POST',
+      headers: authHeaders.value
+    })
+    records.value = records.value.filter(r => r.id !== id)
+  }
+
   return {
     records,
     recordsLoading,
@@ -82,6 +119,8 @@ export const useRecords = () => {
     fetchRecordByCode,
     getRecordsByOwner,
     getRecordsByCompany,
-    addRecord
+    addRecord,
+    updateRecord,
+    deleteRecord
   }
 }

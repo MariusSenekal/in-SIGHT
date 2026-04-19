@@ -101,12 +101,23 @@ export const useServiceRequests = () => {
     } catch { /* ignore */ }
   }
 
+  const deleteRequest = async (id: number) => {
+    try {
+      await $fetch<void>(`/api/requests/${id}`, {
+        method: 'DELETE' as 'PATCH',
+        headers: authHeaders.value
+      })
+      requests.value = requests.value.filter(r => r.id !== id)
+    } catch { /* ignore */ }
+  }
+
   return {
     requests,
     requestsLoading,
     loadRequests,
     getRequests,
     addRequest,
-    setRequestStatus
+    setRequestStatus,
+    deleteRequest
   }
 }

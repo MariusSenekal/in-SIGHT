@@ -310,6 +310,9 @@
                           <h3 class="text-h6 font-weight-bold">{{ record.name }}</h3>
                           <v-chip size="x-small" color="primary" variant="flat">{{ record.code }}</v-chip>
                           <v-chip size="x-small" color="info" variant="tonal">{{ record.type }}</v-chip>
+                          <v-spacer />
+                          <v-btn size="x-small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(record)" />
+                          <v-btn size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(record)" />
                         </div>
                         <p class="text-medium-emphasis mb-3">Site / Room: {{ record.location }}</p>
 
@@ -518,9 +521,13 @@
                       </div>
                       <QrcodeVue :value="toScanUrl(rec)" :size="80" level="H" render-as="svg" />
                     </div>
-                    <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" block>
-                      Open Tracking Page
-                    </v-btn>
+                    <div class="d-flex ga-2 mt-2">
+                      <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" class="flex-grow-1">
+                        Open Tracking Page
+                      </v-btn>
+                      <v-btn size="small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(rec)" />
+                      <v-btn size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(rec)" />
+                    </div>
                   </v-card>
                 </v-col>
               </v-row>
@@ -756,6 +763,60 @@
     </v-card>
   </v-dialog>
 
+  <!-- ── Edit QR Record Dialog ─────────────────────────────────────────── -->
+  <v-dialog v-model="showEditRecordDialog" max-width="480" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2">
+        <v-icon icon="mdi-qrcode-edit" />
+        Edit QR Code
+        <v-chip v-if="editRecordTarget" size="x-small" color="primary" variant="flat" class="ml-1">{{ editRecordTarget.code }}</v-chip>
+      </v-card-title>
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-text-field v-model="editRecordForm.name" label="Name / Label" prepend-inner-icon="mdi-tag-outline" variant="outlined" density="comfortable" />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field v-model="editRecordForm.type" label="Type" prepend-inner-icon="mdi-shape-outline" variant="outlined" density="comfortable" />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field v-model="editRecordForm.location" label="Location / Room" prepend-inner-icon="mdi-map-marker-outline" variant="outlined" density="comfortable" />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field v-model="editRecordForm.description" label="Description" prepend-inner-icon="mdi-text" variant="outlined" density="comfortable" />
+          </v-col>
+        </v-row>
+        <v-alert v-if="editRecordError" type="error" variant="tonal" density="compact" class="mt-2">{{ editRecordError }}</v-alert>
+        <v-alert v-if="editRecordSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ editRecordSuccess }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="editRecordLoading" @click="showEditRecordDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-content-save" :loading="editRecordLoading" @click="submitEditRecord">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ── Delete QR Record Confirm Dialog ──────────────────────────────────── -->
+  <v-dialog v-model="showDeleteRecordDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-qrcode-remove" />
+        Delete QR Code
+      </v-card-title>
+      <v-card-text>
+        <p>Delete QR code <strong>{{ deleteRecordTarget?.code }}</strong> (<em>{{ deleteRecordTarget?.name }}</em>)?</p>
+        <p class="text-medium-emphasis text-caption mt-2">All service entries and checklist templates for this record will also be deleted. This cannot be undone.</p>
+        <v-alert v-if="deleteRecordError" type="error" variant="tonal" density="compact" class="mt-3">{{ deleteRecordError }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleteRecordLoading" @click="showDeleteRecordDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" :loading="deleteRecordLoading" @click="submitDeleteRecord">Delete Permanently</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- ── Create Company Dialog ───────────────────────────────────────────── -->
   <v-dialog v-model="showCreateCompanyDialog" max-width="380" persistent>
     <v-card rounded="lg">
@@ -789,7 +850,7 @@ import type { AppUser, Company } from '~/composables/useAuth'
 
 const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
 const { goBack } = useAppNavigation()
-const { records: managementRecords, loadRecords, addRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
+const { records: managementRecords, loadRecords, addRecord, updateRecord, deleteRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
 const { connect, disconnect } = useSocket()
@@ -1008,6 +1069,78 @@ const submitDeleteUser = async () => {
     selectedUserId.value = null
   } finally {
     deleteUserLoading.value = false
+  }
+}
+
+// ── Edit QR Record ────────────────────────────────────────────────────────────
+import type { Record as QrRecord } from '~/composables/useRecords'
+
+const showEditRecordDialog  = ref(false)
+const editRecordTarget      = ref<QrRecord | null>(null)
+const editRecordForm        = reactive({ name: '', type: '', location: '', description: '' })
+const editRecordError       = ref('')
+const editRecordSuccess     = ref('')
+const editRecordLoading     = ref(false)
+
+const openEditRecord = (rec: QrRecord) => {
+  editRecordTarget.value       = rec
+  editRecordForm.name          = rec.name
+  editRecordForm.type          = rec.type
+  editRecordForm.location      = rec.location
+  editRecordForm.description   = rec.description
+  editRecordError.value        = ''
+  editRecordSuccess.value      = ''
+  showEditRecordDialog.value   = true
+}
+
+const submitEditRecord = async () => {
+  if (!editRecordTarget.value) return
+  editRecordError.value   = ''
+  editRecordSuccess.value = ''
+  editRecordLoading.value = true
+  try {
+    await updateRecord(editRecordTarget.value.id, {
+      name:        editRecordForm.name.trim(),
+      type:        editRecordForm.type.trim(),
+      location:    editRecordForm.location.trim(),
+      description: editRecordForm.description.trim()
+    })
+    editRecordSuccess.value = 'QR code updated.'
+    setTimeout(() => {
+      showEditRecordDialog.value = false
+      editRecordSuccess.value    = ''
+    }, 1000)
+  } catch {
+    editRecordError.value = 'Update failed.'
+  } finally {
+    editRecordLoading.value = false
+  }
+}
+
+// ── Delete QR Record ──────────────────────────────────────────────────────────
+const showDeleteRecordDialog = ref(false)
+const deleteRecordTarget     = ref<QrRecord | null>(null)
+const deleteRecordError      = ref('')
+const deleteRecordLoading    = ref(false)
+
+const openDeleteRecord = (rec: QrRecord) => {
+  deleteRecordTarget.value     = rec
+  deleteRecordError.value      = ''
+  showDeleteRecordDialog.value = true
+}
+
+const submitDeleteRecord = async () => {
+  if (!deleteRecordTarget.value) return
+  deleteRecordError.value   = ''
+  deleteRecordLoading.value = true
+  try {
+    await deleteRecord(deleteRecordTarget.value.id)
+    showDeleteRecordDialog.value = false
+    deleteRecordTarget.value     = null
+  } catch {
+    deleteRecordError.value = 'Delete failed.'
+  } finally {
+    deleteRecordLoading.value = false
   }
 }
 

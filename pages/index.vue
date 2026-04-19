@@ -76,9 +76,6 @@
               </div>
 
               <v-alert v-if="formMessage" type="error" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
-              <v-alert type="info" variant="tonal" border="start" density="compact" class="mt-2">
-                <span class="text-caption">Demo: <strong>admin</strong> / <strong>admin123</strong></span>
-              </v-alert>
             </v-card>
           </v-col>
         </v-row>
@@ -172,9 +169,6 @@
           </div>
 
           <v-alert v-if="formMessage" type="error" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
-          <v-alert type="info" variant="tonal" border="start" density="compact" class="mt-2">
-            <span class="text-caption">Demo: <strong>admin</strong> / <strong>admin123</strong></span>
-          </v-alert>
         </div>
       </div>
     </div>
