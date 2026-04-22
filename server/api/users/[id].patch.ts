@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     newPassword?: string
   }>(event)
 
-  const allowedRoles = ['user', 'staff', 'admin']
+  const allowedRoles = ['user', 'staff', 'admin', 'cleaner']
 
   // ── Update users table ────────────────────────────────────────────────────
   const userPatch: Record<string, unknown> = {}

@@ -13,12 +13,13 @@ GRANT USAGE ON SCHEMA insight TO anon;
 GRANT USAGE ON SCHEMA insight TO insight_user;
 GRANT USAGE ON SCHEMA insight TO insight_staff;
 GRANT USAGE ON SCHEMA insight TO insight_admin;
+-- insight_cleaner shares the insight_staff DB role (same privileges)
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Enum-like domains (enforced at DB level)
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE TYPE insight.user_role        AS ENUM ('admin', 'staff', 'user');
+CREATE TYPE insight.user_role        AS ENUM ('admin', 'staff', 'user', 'cleaner');
 CREATE TYPE insight.request_type     AS ENUM ('maintenance', 'cleaning', 'satisfaction');
 CREATE TYPE insight.request_target   AS ENUM ('qr', 'site-room');
 CREATE TYPE insight.request_status   AS ENUM ('open', 'resolved');
@@ -172,10 +173,12 @@ CREATE TABLE IF NOT EXISTS insight.service_entries (
   start_time  TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
   end_time    TIMESTAMPTZ,
   status      insight.entry_status NOT NULL DEFAULT 'Not Done',
-  notes       TEXT                 NOT NULL DEFAULT '',
-  created_by  BIGINT               REFERENCES insight.users (id) ON DELETE SET NULL,
-  created_at  TIMESTAMPTZ          NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ          NOT NULL DEFAULT NOW()
+  notes                TEXT                 NOT NULL DEFAULT '',
+  check_completed_at   TIMESTAMPTZ,
+  cleaning_completed_at TIMESTAMPTZ,
+  created_by   BIGINT               REFERENCES insight.users (id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ          NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ          NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_service_entries_record_code ON insight.service_entries (record_code);

@@ -943,7 +943,7 @@ const submitCreateQrCode = async () => {
 
 // ── Create User ──────────────────────────────────────────────────────────────
 const showCreateUserDialog = ref(false)
-const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' })
+const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' })
 const createUserError = ref('')
 const createUserSuccess = ref('')
 const createUserLoading = ref(false)
@@ -951,6 +951,7 @@ const createUserLoading = ref(false)
 const roleOptions = [
   { title: 'User', value: 'user' },
   { title: 'Staff', value: 'staff' },
+  { title: 'Cleaner', value: 'cleaner' },
   { title: 'Admin', value: 'admin' }
 ]
 
@@ -1450,6 +1451,7 @@ const getRecordCountForUser = (user: (typeof users.value)[number]) => {
 const roleColor = (role: string) => {
   if (role === 'admin') { return 'error' }
   if (role === 'staff') { return 'warning' }
+  if (role === 'cleaner') { return 'teal' }
   return 'primary'
 }
 

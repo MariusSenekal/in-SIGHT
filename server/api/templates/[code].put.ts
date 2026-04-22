@@ -3,7 +3,7 @@
 import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  const payload = requireAuth(event, ['admin', 'staff'])
+  const payload = requireAuth(event, ['admin', 'staff', 'cleaner'])
   const token = getBearerToken(event)!
   const code = getRouterParam(event, 'code')!.trim().toUpperCase()
   const { tasks } = await readBody<{ tasks: string[] }>(event)

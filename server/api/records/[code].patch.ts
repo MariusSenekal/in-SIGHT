@@ -3,7 +3,7 @@
 import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff'])
+  requireAuth(event, ['admin', 'staff', 'cleaner'])
   // Segment is keyed 'code' since this file is [code].patch.ts
   const rawId = getRouterParam(event, 'code')
   const id = parseInt(rawId ?? '', 10)

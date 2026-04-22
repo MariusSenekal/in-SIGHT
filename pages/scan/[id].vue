@@ -34,14 +34,16 @@
                 <th>Start Time</th>
                 <th>End Time</th>
                 <th>Status</th>
+                <th v-if="isStaffOrCleaner">Check Done</th>
+                <th v-if="isStaffOrCleaner">Cleaning Done</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="entry in serviceHistory"
                 :key="entry.id"
-                class="clickable-row"
-                @click="openHistoryDetail(entry)"
+                :class="isCleaner ? 'static-row' : 'clickable-row'"
+                @click="isCleaner ? undefined : openHistoryDetail(entry)"
               >
                 <td class="time-cell">{{ entry.startTime }}</td>
                 <td class="time-cell">{{ entry.endTime }}</td>
@@ -49,6 +51,14 @@
                   <span class="status-badge" :class="entry.status">
                     {{ getStatusEmoji(entry.status) }} {{ entry.status }}
                   </span>
+                </td>
+                <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
+                  <span v-if="entry.checkCompletedAt" class="completion-stamp">✅ {{ entry.checkCompletedAt }}</span>
+                  <span v-else class="completion-none">—</span>
+                </td>
+                <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
+                  <span v-if="entry.cleaningCompletedAt" class="completion-stamp">✅ {{ entry.cleaningCompletedAt }}</span>
+                  <span v-else class="completion-none">—</span>
                 </td>
               </tr>
             </tbody>
@@ -161,10 +171,9 @@
         </div>
       </transition>
 
-      <!-- Satisfaction Rating Section removed - replaced by simplified checklist in service history -->
-
-      <!-- Satisfaction Rating — shown to all visitors when there are service entries -->
-      <div v-if="serviceHistory.length > 0" class="simple-panel satisfaction-panel">
+      <!-- Satisfaction Rating — shown to all visitors when there are service entries,
+           but hidden from cleaner users (they see completion buttons instead) -->
+      <div v-if="serviceHistory.length > 0 && !isCleaner" class="simple-panel satisfaction-panel">
         <div class="panel-header">
           <span class="material-symbols-outlined satisfaction-icon">sentiment_satisfied</span>
           <h2>How was your last service?</h2>
@@ -231,6 +240,28 @@
           <span class="material-symbols-outlined">build</span>
           Request Maintenance
         </button>
+
+        <!-- Staff / Cleaner only: record physical completion of check and cleaning -->
+        <template v-if="isStaffOrCleaner">
+          <button
+            type="button"
+            class="action-button check-completed-button"
+            :disabled="completionLoading"
+            @click="markCheckCompleted"
+          >
+            <span class="material-symbols-outlined">fact_check</span>
+            {{ checkCompletedFeedback || 'Check Completed' }}
+          </button>
+          <button
+            type="button"
+            class="action-button cleaning-done-button"
+            :disabled="completionLoading"
+            @click="markCleaningCompleted"
+          >
+            <span class="material-symbols-outlined">verified</span>
+            {{ cleaningCompletedFeedback || 'Cleaning Completed' }}
+          </button>
+        </template>
       </div>
 
       <transition name="request-modal">
@@ -358,10 +389,10 @@ import type { ServiceEntry } from '~/composables/useScheduleTracking'
 
 const route = useRoute()
 const { goBack } = useAppNavigation()
-const { currentUser, isAdmin, authToken } = useAuth()
+const { currentUser, isAdmin, isCleaner, isStaffOrCleaner, authToken } = useAuth()
 const { loadRecords, getRecords } = useRecords()
 const { addRequest } = useServiceRequests()
-const { toggleTask, addMessage } = useScheduleTracking()
+const { toggleTask, addMessage, markCompletion } = useScheduleTracking()
 
 const recordCode = computed(() => String(route.params.id || '').trim().toUpperCase())
 
@@ -369,7 +400,7 @@ const record = ref<{ id: number; code: string; name: string; location: string; d
 const serviceHistory = ref<ServiceEntry[]>([])
 const pageLoading = ref(true)
 
-const authHeaders = computed(() =>
+const authHeaders = computed((): Record<string, string> =>
   authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
 )
 
@@ -386,7 +417,46 @@ const staffMessageFeedback = ref('')
 const satisfactionChoice = ref<'happy' | 'sad' | null>(null)
 const satisfactionSent = ref(false)
 
-const canUpdateChecklist = computed(() => Boolean(currentUser.value))
+const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isCleaner.value)
+
+// ── Completion buttons (staff + cleaner) ──────────────────────────────────
+const completionLoading = ref(false)
+const checkCompletedFeedback = ref('')
+const cleaningCompletedFeedback = ref('')
+
+const markCheckCompleted = async () => {
+  if (!record.value || completionLoading.value) return
+  completionLoading.value = true
+  try {
+    const result = await markCompletion(record.value.code, 'check')
+    checkCompletedFeedback.value = `✅ ${result.timestamp}`
+    serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
+      e.id === result.entryId ? { ...e, checkCompletedAt: result.timestamp } : e
+    )
+  } catch {
+    checkCompletedFeedback.value = 'Failed — try again'
+    setTimeout(() => { checkCompletedFeedback.value = '' }, 3000)
+  } finally {
+    completionLoading.value = false
+  }
+}
+
+const markCleaningCompleted = async () => {
+  if (!record.value || completionLoading.value) return
+  completionLoading.value = true
+  try {
+    const result = await markCompletion(record.value.code, 'cleaning')
+    cleaningCompletedFeedback.value = `✅ ${result.timestamp}`
+    serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
+      e.id === result.entryId ? { ...e, cleaningCompletedAt: result.timestamp } : e
+    )
+  } catch {
+    cleaningCompletedFeedback.value = 'Failed — try again'
+    setTimeout(() => { cleaningCompletedFeedback.value = '' }, 3000)
+  } finally {
+    completionLoading.value = false
+  }
+}
 
 const closeRequestOnEscape = (event: KeyboardEvent) => {
   if (event.key !== 'Escape' || !requestType.value) return
@@ -1435,6 +1505,58 @@ textarea.request-input {
 
 .cleaning-button:hover {
   background: linear-gradient(145deg, #047857, #065f46);
+}
+
+/* ── Check Completed button (staff / cleaner) ─────────────────────────────── */
+.check-completed-button {
+  background: linear-gradient(145deg, #0284c7, #0369a1);
+}
+
+.check-completed-button:hover {
+  background: linear-gradient(145deg, #0369a1, #075985);
+}
+
+.check-completed-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── Cleaning Completed button (staff / cleaner) ──────────────────────────── */
+.cleaning-done-button {
+  background: linear-gradient(145deg, #7c3aed, #6d28d9);
+}
+
+.cleaning-done-button:hover {
+  background: linear-gradient(145deg, #6d28d9, #5b21b6);
+}
+
+.cleaning-done-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── Static (non-clickable) table row for cleaner view ───────────────────── */
+.static-row {
+  cursor: default;
+}
+
+.static-row:hover {
+  background: transparent !important;
+}
+
+/* ── Completion timestamp cells ───────────────────────────────────────────── */
+.completion-cell {
+  white-space: nowrap;
+}
+
+.completion-stamp {
+  font-size: 0.8rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.completion-none {
+  color: var(--text-muted, #9ca3af);
 }
 
 /* ── Shared button states ─────────────────────────────────────────────────── */

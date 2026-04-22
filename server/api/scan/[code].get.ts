@@ -11,6 +11,15 @@ const formatTime = (iso: string | null): string => {
   })
 }
 
+const formatTimeOrNull = (iso: string | null): string | null => {
+  if (!iso) return null
+  return new Date(iso).toLocaleString('en-ZA', {
+    timeZone: 'Africa/Johannesburg',
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  })
+}
+
 export default defineEventHandler(async (event) => {
   const code = getRouterParam(event, 'code')!.trim().toUpperCase()
 
@@ -47,6 +56,8 @@ export default defineEventHandler(async (event) => {
       endTime: formatTime(e.end_time),
       status: e.status,
       notes: e.notes ?? '',
+      checkCompletedAt: formatTimeOrNull(e.check_completed_at),
+      cleaningCompletedAt: formatTimeOrNull(e.cleaning_completed_at),
       checklist: (e.service_tasks ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),

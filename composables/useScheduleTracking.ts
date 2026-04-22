@@ -22,6 +22,8 @@ export interface ServiceEntry {
   endTime: string
   status: ScheduleStatus
   notes: string
+  checkCompletedAt: string | null
+  cleaningCompletedAt: string | null
   checklist: ServiceTask[]
   messages: ServiceMessage[]
 }
@@ -151,6 +153,32 @@ export const useScheduleTracking = () => {
     return message
   }
 
+  /**
+   * Record a "Check Completed" or "Cleaning Completed" button press for the
+   * most recent service entry of a record. Returns the formatted timestamp.
+   */
+  const markCompletion = async (
+    recordCode: string,
+    action: 'check' | 'cleaning'
+  ): Promise<{ entryId: number; timestamp: string }> => {
+    const result = await $fetch<{ ok: boolean; entryId: number; timestamp: string }>(
+      '/api/scan/complete',
+      {
+        method: 'POST',
+        headers: authHeaders.value as Record<string, string>,
+        body: { recordCode, action }
+      }
+    )
+    // Update cached entries
+    entries.value = entries.value.map(entry => {
+      if (entry.id !== result.entryId) return entry
+      return action === 'check'
+        ? { ...entry, checkCompletedAt: result.timestamp }
+        : { ...entry, cleaningCompletedAt: result.timestamp }
+    })
+    return { entryId: result.entryId, timestamp: result.timestamp }
+  }
+
   return {
     entries,
     entriesLoading,
@@ -160,6 +188,7 @@ export const useScheduleTracking = () => {
     getChecklistTemplate,
     setChecklistTemplate,
     toggleTask,
-    addMessage
+    addMessage,
+    markCompletion
   }
 }

@@ -11,8 +11,17 @@ const fmt = (iso: string | null) =>
       })
     : 'Pending completion'
 
+const fmtOrNull = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleString('en-ZA', {
+        timeZone: 'Africa/Johannesburg',
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      })
+    : null
+
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff'])
+  requireAuth(event, ['admin', 'staff', 'cleaner'])
   const token = getBearerToken(event)!
   const code = getQuery(event).recordCode as string | undefined
 
@@ -31,6 +40,8 @@ export default defineEventHandler(async (event) => {
     endTime: fmt(e.end_time),
     status: e.status,
     notes: e.notes ?? '',
+    checkCompletedAt: fmtOrNull(e.check_completed_at),
+    cleaningCompletedAt: fmtOrNull(e.cleaning_completed_at),
     checklist: (e.service_tasks ?? [])
       .sort((a: any, b: any) => a.sort_order - b.sort_order)
       .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),
