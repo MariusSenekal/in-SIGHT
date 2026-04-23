@@ -159,7 +159,19 @@ export const useAuth = () => {
         })
       }
     } catch { /* non-fatal */ }
+    
+    // Clear all auth state
     clearAuthState()
+    
+    // Clear any cached data
+    users.value = []
+    companies.value = []
+    initialized.value = false
+    
+    // Clear session storage if on client
+    if (import.meta.client) {
+      sessionStorage.clear()
+    }
   }
 
   const refreshToken = async (): Promise<boolean> => {

@@ -84,9 +84,21 @@ export const useSessionGuard = () => {
           return
         }
 
-        logout()
-        stopSessionMonitor()
-        navigateTo('/')
+        // Automatic logout when countdown reaches zero
+        logout().then(() => {
+          stopSessionMonitor()
+          
+          // Clear session storage and navigate to login
+          if (import.meta.client) {
+            sessionStorage.clear()
+            navigateTo('/', { replace: true })
+            
+            // Reload after a short delay to ensure navigation completes
+            setTimeout(() => {
+              window.location.reload()
+            }, 100)
+          }
+        })
       }, 1000)
     }, WARNING_AFTER_MS)
   }
@@ -105,25 +117,46 @@ export const useSessionGuard = () => {
     scheduleWarning()
   }
 
-  const stayLoggedIn = () => {
+  const stayLoggedIn = async () => {
     if (!isAuthenticated.value) {
-      logout()
+      await logout()
       stopSessionMonitor()
-      navigateTo('/')
+      
+      if (import.meta.client) {
+        sessionStorage.clear()
+        navigateTo('/', { replace: true })
+        
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+      }
       return
     }
 
-    refreshToken()
+    await refreshToken()
     lastTokenRefreshMs.value = Date.now()
     hidePrompt()
     clearTimers()
     scheduleWarning()
   }
 
-  const logoutFromPrompt = () => {
-    logout()
+  const logoutFromPrompt = async () => {
+    await logout()
     stopSessionMonitor()
-    navigateTo('/')
+    
+    // Force navigation to login page with reload to ensure clean state
+    if (import.meta.client) {
+      // Clear any remaining state
+      sessionStorage.clear()
+      
+      // Navigate to login page
+      navigateTo('/', { replace: true })
+      
+      // Force a reload to ensure completely clean state
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
+    }
   }
 
   const startSessionMonitor = () => {
