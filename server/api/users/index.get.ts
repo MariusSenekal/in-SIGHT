@@ -4,7 +4,7 @@ import { requireAuth, pgrest } from '../../utils/pgrest'
 import { getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  const payload = requireAuth(event, ['admin', 'staff', 'cleaner'])
+  const payload = requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
   const token = getBearerToken(event)!
 
   const rows = await pgrest<any[]>('/users', {

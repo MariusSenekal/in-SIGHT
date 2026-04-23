@@ -12,7 +12,7 @@ export interface AppUser {
   id: number
   name: string
   username: string
-  role: 'user' | 'admin' | 'staff' | 'cleaner'
+  role: 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero'
   isActive?: boolean
   profile: UserProfile
   createdAt?: string
@@ -369,9 +369,15 @@ export const useAuth = () => {
 
   const isAdmin = computed(() => currentUser.value?.role === 'admin')
   const isCleaner = computed(() => currentUser.value?.role === 'cleaner')
+  const isUvHero = computed(() => currentUser.value?.role === 'uv-hero')
   const isStaff = computed(() => currentUser.value?.role === 'staff')
   const isStaffOrCleaner = computed(() =>
     currentUser.value?.role === 'staff' || currentUser.value?.role === 'cleaner'
+  )
+  const isStaffOrCleanerOrUvHero = computed(() =>
+    currentUser.value?.role === 'staff' || 
+    currentUser.value?.role === 'cleaner' || 
+    currentUser.value?.role === 'uv-hero'
   )
   const isAuthenticated = computed(() => Boolean(currentUser.value && authToken.value))
 
@@ -381,8 +387,10 @@ export const useAuth = () => {
     authToken,
     isAdmin,
     isCleaner,
+    isUvHero,
     isStaff,
     isStaffOrCleaner,
+    isStaffOrCleanerOrUvHero,
     isAuthenticated,
     initAuth,
     ensureValidSession,

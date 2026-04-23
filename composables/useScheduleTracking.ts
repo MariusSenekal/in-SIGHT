@@ -24,6 +24,9 @@ export interface ServiceEntry {
   notes: string
   checkCompletedAt: string | null
   cleaningCompletedAt: string | null
+  uvCheckCompletedAt?: string | null
+  jobStartedAt?: string | null
+  jobCompletedAt?: string | null
   checklist: ServiceTask[]
   messages: ServiceMessage[]
 }
@@ -154,12 +157,12 @@ export const useScheduleTracking = () => {
   }
 
   /**
-   * Record a "Check Completed" or "Cleaning Completed" button press for the
+   * Record a "Check Completed", "Cleaning Completed", or UV Hero action button press for the
    * most recent service entry of a record. Returns the formatted timestamp.
    */
   const markCompletion = async (
     recordCode: string,
-    action: 'check' | 'cleaning'
+    action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
   ): Promise<{ entryId: number; timestamp: string; endTimeSet?: boolean }> => {
     const result = await $fetch<{ ok: boolean; entryId: number; timestamp: string; endTimeSet?: boolean }>(
       '/api/scan/complete',
@@ -172,9 +175,18 @@ export const useScheduleTracking = () => {
     // Update cached entries
     entries.value = entries.value.map(entry => {
       if (entry.id !== result.entryId) return entry
-      return action === 'check'
-        ? { ...entry, checkCompletedAt: result.timestamp }
-        : { ...entry, cleaningCompletedAt: result.timestamp }
+      if (action === 'check') {
+        return { ...entry, checkCompletedAt: result.timestamp }
+      } else if (action === 'cleaning') {
+        return { ...entry, cleaningCompletedAt: result.timestamp }
+      } else if (action === 'uv-check') {
+        return { ...entry, uvCheckCompletedAt: result.timestamp }
+      } else if (action === 'job-started') {
+        return { ...entry, jobStartedAt: result.timestamp }
+      } else if (action === 'job-completed') {
+        return { ...entry, jobCompletedAt: result.timestamp }
+      }
+      return entry
     })
     return { entryId: result.entryId, timestamp: result.timestamp, endTimeSet: result.endTimeSet }
   }

@@ -201,8 +201,8 @@
       </transition>
 
       <!-- Satisfaction Rating — shown to all visitors when there are service entries,
-           but hidden from cleaner users (they see completion buttons instead) -->
-      <div v-if="serviceHistory.length > 0 && !isCleaner" class="simple-panel satisfaction-panel">
+           but hidden from cleaner and UV Hero users (they see completion buttons instead) -->
+      <div v-if="serviceHistory.length > 0 && !isCleaner && !isUvHero" class="simple-panel satisfaction-panel">
         <div class="panel-header">
           <span class="material-symbols-outlined satisfaction-icon">sentiment_satisfied</span>
           <h2>How was your last service?</h2>
@@ -253,8 +253,55 @@
 
       <!-- Action Buttons Section -->
       <div class="simple-panel actions-panel">
+        <!-- UV Hero users: specialized UV workflow buttons -->
+        <template v-if="isUvHero">
+          <button
+            type="button"
+            class="action-button uv-check-button"
+            :disabled="completionLoading"
+            @click="markUvCheckCompleted"
+          >
+            <span class="material-symbols-outlined">verified</span>
+            {{ uvCheckCompletedFeedback || 'Check Completed' }}
+          </button>
+          <button
+            type="button"
+            class="action-button job-started-button"
+            :disabled="completionLoading"
+            @click="markJobStarted"
+          >
+            <span class="material-symbols-outlined">play_circle</span>
+            {{ jobStartedFeedback || 'Job Started' }}
+          </button>
+          <button
+            type="button"
+            class="action-button job-completed-button"
+            :disabled="completionLoading"
+            @click="markJobCompleted"
+          >
+            <span class="material-symbols-outlined">task_alt</span>
+            {{ jobCompletedFeedback || 'Job Completed' }}
+          </button>
+          <button
+            type="button"
+            class="action-button upload-photo-button"
+            @click="requestMaintenance"
+          >
+            <span class="material-symbols-outlined">photo_camera</span>
+            Upload Photo
+          </button>
+          <button
+            type="button"
+            class="action-button maintenance-button"
+            @click="requestMaintenance"
+          >
+            <span class="material-symbols-outlined">build</span>
+            Request Maintenance
+          </button>
+        </template>
+
         <!-- Staff / Cleaner users: specialized workflow buttons -->
-        <template v-if="isStaffOrCleaner">
+        <template v-else-if="isStaffOrCleaner">
           <button
             type="button"
             class="action-button check-completed-button"
@@ -462,7 +509,7 @@ import type { ServiceEntry } from '~/composables/useScheduleTracking'
 
 const route = useRoute()
 const { goBack } = useAppNavigation()
-const { currentUser, isAdmin, isCleaner, isStaffOrCleaner, authToken } = useAuth()
+const { currentUser, isAdmin, isCleaner, isUvHero, isStaffOrCleaner, authToken } = useAuth()
 const { loadRecords, getRecords } = useRecords()
 const { addRequest } = useServiceRequests()
 const { toggleTask, addMessage, markCompletion } = useScheduleTracking()
@@ -490,7 +537,7 @@ const staffMessageFeedback = ref('')
 const satisfactionChoice = ref<'happy' | 'sad' | null>(null)
 const satisfactionSent = ref(false)
 
-const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isCleaner.value)
+const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isCleaner.value && !isUvHero.value)
 
 // ── Completion buttons (staff + cleaner) ──────────────────────────────────
 const completionLoading = ref(false)
@@ -499,6 +546,11 @@ const cleaningCompletedFeedback = ref('')
 const showCompletionConfirmModal = ref(false)
 const pendingCompletionAction = ref<'check' | 'cleaning' | null>(null)
 const pendingCompletionExistingTime = ref('')
+
+// ── UV Hero completion buttons ────────────────────────────────────────────
+const uvCheckCompletedFeedback = ref('')
+const jobStartedFeedback = ref('')
+const jobCompletedFeedback = ref('')
 
 const cancelCompletionUpdate = () => {
   showCompletionConfirmModal.value = false
@@ -652,6 +704,89 @@ const performCleaningCompletion = async (isUpdate: boolean) => {
     const errorMsg = error?.data?.message || error?.message || 'Failed to mark cleaning completed'
     cleaningCompletedFeedback.value = errorMsg
     setTimeout(() => { cleaningCompletedFeedback.value = '' }, 5000)
+  } finally {
+    completionLoading.value = false
+  }
+}
+
+// ── UV Hero completion handlers ───────────────────────────────────────────
+
+const markUvCheckCompleted = async () => {
+  if (!record.value || completionLoading.value) return
+  if (!currentUser.value || !isUvHero.value) {
+    uvCheckCompletedFeedback.value = 'Requires UV Hero role'
+    setTimeout(() => { uvCheckCompletedFeedback.value = '' }, 3000)
+    return
+  }
+  
+  completionLoading.value = true
+  uvCheckCompletedFeedback.value = ''
+  
+  try {
+    const result = await markCompletion(record.value.code, 'uv-check')
+    uvCheckCompletedFeedback.value = `✅ ${result.timestamp}`
+    
+    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+      `/api/scan/${encodeURIComponent(recordCode.value)}`
+    )
+    serviceHistory.value = data.entries ?? []
+  } catch (error: any) {
+    uvCheckCompletedFeedback.value = error?.data?.message || 'Failed to mark UV check completed'
+    setTimeout(() => { uvCheckCompletedFeedback.value = '' }, 5000)
+  } finally {
+    completionLoading.value = false
+  }
+}
+
+const markJobStarted = async () => {
+  if (!record.value || completionLoading.value) return
+  if (!currentUser.value || !isUvHero.value) {
+    jobStartedFeedback.value = 'Requires UV Hero role'
+    setTimeout(() => { jobStartedFeedback.value = '' }, 3000)
+    return
+  }
+  
+  completionLoading.value = true
+  jobStartedFeedback.value = ''
+  
+  try {
+    const result = await markCompletion(record.value.code, 'job-started')
+    jobStartedFeedback.value = `✅ ${result.timestamp}`
+    
+    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+      `/api/scan/${encodeURIComponent(recordCode.value)}`
+    )
+    serviceHistory.value = data.entries ?? []
+  } catch (error: any) {
+    jobStartedFeedback.value = error?.data?.message || 'Failed to mark job started'
+    setTimeout(() => { jobStartedFeedback.value = '' }, 5000)
+  } finally {
+    completionLoading.value = false
+  }
+}
+
+const markJobCompleted = async () => {
+  if (!record.value || completionLoading.value) return
+  if (!currentUser.value || !isUvHero.value) {
+    jobCompletedFeedback.value = 'Requires UV Hero role'
+    setTimeout(() => { jobCompletedFeedback.value = '' }, 3000)
+    return
+  }
+  
+  completionLoading.value = true
+  jobCompletedFeedback.value = ''
+  
+  try {
+    const result = await markCompletion(record.value.code, 'job-completed')
+    jobCompletedFeedback.value = `✅ ${result.timestamp}`
+    
+    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+      `/api/scan/${encodeURIComponent(recordCode.value)}`
+    )
+    serviceHistory.value = data.entries ?? []
+  } catch (error: any) {
+    jobCompletedFeedback.value = error?.data?.message || 'Failed to mark job completed'
+    setTimeout(() => { jobCompletedFeedback.value = '' }, 5000)
   } finally {
     completionLoading.value = false
   }
@@ -982,6 +1117,27 @@ const handleBackToWelcome = () => {
 
 .maintenance-button:hover {
   background: linear-gradient(145deg, #b91c1c, #991b1b);
+}
+
+/* UV Hero buttons */
+.uv-check-button,
+.job-started-button,
+.job-completed-button {
+  background: linear-gradient(145deg, #10b981, #059669);
+}
+
+.uv-check-button:hover,
+.job-started-button:hover,
+.job-completed-button:hover {
+  background: linear-gradient(145deg, #059669, #047857);
+}
+
+.upload-photo-button {
+  background: linear-gradient(145deg, #3b82f6, #2563eb);
+}
+
+.upload-photo-button:hover {
+  background: linear-gradient(145deg, #2563eb, #1d4ed8);
 }
 
 .request-modal-overlay {

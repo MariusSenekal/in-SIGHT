@@ -13,7 +13,7 @@ const generateCode = () => {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff', 'cleaner'])
+  requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
   const token = getBearerToken(event)!
 
   const { name, description, type, location, ownerUserId, ownerCompanyId } = await readBody<{

@@ -1,23 +1,24 @@
 // POST /api/scan/complete
-// Staff or Cleaner marks a "Check Completed" or "Cleaning Completed" action
+// Staff, Cleaner, or UV Hero marks completion actions
 // on the most recent service entry for a given record code.
 // Records the Africa/Johannesburg timestamp of the button press.
 import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  // Only staff and cleaner roles may use this endpoint
-  requireAuth(event, ['staff', 'cleaner', 'admin'])
+  // Only staff, cleaner, uv-hero roles may use this endpoint
+  requireAuth(event, ['staff', 'cleaner', 'uv-hero', 'admin'])
 
   const { recordCode, action } = await readBody<{
     recordCode: string
-    action: 'check' | 'cleaning'
+    action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
   }>(event)
 
   if (!recordCode?.trim()) {
     throw createError({ statusCode: 400, message: 'recordCode is required.' })
   }
-  if (action !== 'check' && action !== 'cleaning') {
-    throw createError({ statusCode: 400, message: 'action must be "check" or "cleaning".' })
+  const validActions = ['check', 'cleaning', 'uv-check', 'job-started', 'job-completed']
+  if (!validActions.includes(action)) {
+    throw createError({ statusCode: 400, message: `action must be one of: ${validActions.join(', ')}` })
   }
 
   const code = recordCode.trim().toUpperCase()
@@ -56,30 +57,45 @@ export default defineEventHandler(async (event) => {
 
   // Fetch current entry to check completion status
   const currentEntry = await pgrestAdmin<any[]>(`/service_entries?id=eq.${entryId}`, {
-    query: { select: 'check_completed_at,cleaning_completed_at,end_time' }
+    query: { select: 'check_completed_at,cleaning_completed_at,uv_check_completed_at,job_started_at,job_completed_at,end_time' }
   })
 
   const entry = currentEntry[0]
   const isCheckAlreadyDone = !!entry.check_completed_at
   const isCleaningAlreadyDone = !!entry.cleaning_completed_at
+  const isUvCheckAlreadyDone = !!entry.uv_check_completed_at
+  const isJobStartedAlreadyDone = !!entry.job_started_at
+  const isJobCompletedAlreadyDone = !!entry.job_completed_at
 
-  // Determine if this click completes both tasks
-  const willBothBeCompleted = action === 'check' 
-    ? isCleaningAlreadyDone // Check is being done now, cleaning already done
-    : isCheckAlreadyDone     // Cleaning is being done now, check already done
+  // Build patch object based on action
+  const patch: any = {}
+  let willBothBeCompleted = false
 
-  console.log(`[complete.post] Entry ${entryId} - Action: ${action}, Check done: ${isCheckAlreadyDone}, Cleaning done: ${isCleaningAlreadyDone}, Both will be complete: ${willBothBeCompleted}`)
+  if (action === 'check') {
+    patch.check_completed_at = nowUtc
+    willBothBeCompleted = isCleaningAlreadyDone
+  } else if (action === 'cleaning') {
+    patch.cleaning_completed_at = nowUtc
+    willBothBeCompleted = isCheckAlreadyDone
+  } else if (action === 'uv-check') {
+    patch.uv_check_completed_at = nowUtc
+    // UV Hero: all three tasks must be complete
+    willBothBeCompleted = isJobStartedAlreadyDone && isJobCompletedAlreadyDone
+  } else if (action === 'job-started') {
+    patch.job_started_at = nowUtc
+    willBothBeCompleted = isUvCheckAlreadyDone && isJobCompletedAlreadyDone
+  } else if (action === 'job-completed') {
+    patch.job_completed_at = nowUtc
+    willBothBeCompleted = isUvCheckAlreadyDone && isJobStartedAlreadyDone
+  }
 
-  // Build patch object
-  const patch: any = action === 'check'
-    ? { check_completed_at: nowUtc }
-    : { cleaning_completed_at: nowUtc }
+  console.log(`[complete.post] Entry ${entryId} - Action: ${action}, All complete: ${willBothBeCompleted}`)
 
-  // If this completes both tasks, always update end_time and status to Done
+  // If this completes all required tasks, update end_time and status to Done
   if (willBothBeCompleted) {
     patch.end_time = nowUtc
     patch.status = 'Done'
-    console.log('[complete.post] Both tasks complete - setting end_time to:', nowUtc, 'and status=Done')
+    console.log('[complete.post] All tasks complete - setting end_time to:', nowUtc, 'and status=Done')
   }
 
   await pgrestAdmin(`/service_entries?id=eq.${entryId}`, {

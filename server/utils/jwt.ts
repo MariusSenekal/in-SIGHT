@@ -20,7 +20,7 @@ const HEADER = toB64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
 
 const dbRole = (appRole: string) => {
   if (appRole === 'admin') return 'insight_admin'
-  if (appRole === 'staff' || appRole === 'cleaner') return 'insight_staff'
+  if (appRole === 'staff' || appRole === 'cleaner' || appRole === 'uv-hero') return 'insight_staff'
   return 'insight_user'
 }
 

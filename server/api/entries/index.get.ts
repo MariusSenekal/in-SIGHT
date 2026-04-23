@@ -21,7 +21,7 @@ const fmtOrNull = (iso: string | null) =>
     : null
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff', 'cleaner'])
+  requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
   const token = getBearerToken(event)!
   const code = getQuery(event).recordCode as string | undefined
 
