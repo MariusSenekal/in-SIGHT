@@ -224,24 +224,7 @@
 
       <!-- Action Buttons Section -->
       <div class="simple-panel actions-panel">
-        <button
-          type="button"
-          class="action-button cleaning-button"
-          @click="requestCleaning"
-        >
-          <span class="material-symbols-outlined">cleaning_services</span>
-          Request Cleaning
-        </button>
-        <button
-          type="button"
-          class="action-button maintenance-button"
-          @click="requestMaintenance"
-        >
-          <span class="material-symbols-outlined">build</span>
-          Request Maintenance
-        </button>
-
-        <!-- Staff / Cleaner only: record physical completion of check and cleaning -->
+        <!-- Staff / Cleaner users: specialized workflow buttons -->
         <template v-if="isStaffOrCleaner">
           <button
             type="button"
@@ -260,6 +243,34 @@
           >
             <span class="material-symbols-outlined">verified</span>
             {{ cleaningCompletedFeedback || 'Cleaning Completed' }}
+          </button>
+          <button
+            type="button"
+            class="action-button maintenance-button"
+            @click="requestMaintenance"
+          >
+            <span class="material-symbols-outlined">build</span>
+            Request Maintenance
+          </button>
+        </template>
+
+        <!-- Regular users: request buttons -->
+        <template v-else>
+          <button
+            type="button"
+            class="action-button cleaning-button"
+            @click="requestCleaning"
+          >
+            <span class="material-symbols-outlined">cleaning_services</span>
+            Request Cleaning
+          </button>
+          <button
+            type="button"
+            class="action-button maintenance-button"
+            @click="requestMaintenance"
+          >
+            <span class="material-symbols-outlined">build</span>
+            Request Maintenance
           </button>
         </template>
       </div>
