@@ -26,38 +26,67 @@
           <span class="material-symbols-outlined history-icon">history</span>
           <h2>Service History</h2>
         </div>
+        <p class="history-hint">Tap any row to view full details</p>
 
         <div class="table-wrapper">
           <table class="history-table">
             <thead>
               <tr>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Status</th>
-                <th v-if="isStaffOrCleaner">Check Done</th>
-                <th v-if="isStaffOrCleaner">Cleaning Done</th>
+                <th>
+                  <span class="material-symbols-outlined table-icon">schedule</span>
+                  <span class="header-text">Start Time</span>
+                </th>
+                <th>
+                  <span class="material-symbols-outlined table-icon">alarm_on</span>
+                  <span class="header-text">End Time</span>
+                </th>
+                <th>
+                  <span class="material-symbols-outlined table-icon">flag</span>
+                  <span class="header-text">Status</span>
+                </th>
+                <th v-if="isStaffOrCleaner">
+                  <span class="material-symbols-outlined table-icon">fact_check</span>
+                  <span class="header-text">Check</span>
+                </th>
+                <th v-if="isStaffOrCleaner">
+                  <span class="material-symbols-outlined table-icon">cleaning_services</span>
+                  <span class="header-text">Cleaning</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="entry in serviceHistory"
                 :key="entry.id"
-                :class="isCleaner ? 'static-row' : 'clickable-row'"
-                @click="isCleaner ? undefined : openHistoryDetail(entry)"
+                class="clickable-row"
+                @click="openHistoryDetail(entry)"
               >
-                <td class="time-cell">{{ entry.startTime }}</td>
-                <td class="time-cell">{{ entry.endTime }}</td>
+                <td class="time-cell">
+                  <span class="time-full">{{ entry.startTime }}</span>
+                  <span class="time-short">{{ formatTimeShort(entry.startTime) }}</span>
+                </td>
+                <td class="time-cell">
+                  <span class="time-full">{{ entry.endTime }}</span>
+                  <span class="time-short">{{ formatTimeShort(entry.endTime) }}</span>
+                </td>
                 <td class="status-cell">
                   <span class="status-badge" :class="entry.status">
-                    {{ getStatusEmoji(entry.status) }} {{ entry.status }}
+                    <span class="status-emoji">{{ getStatusEmoji(entry.status) }}</span>
+                    <span class="status-text">{{ entry.status }}</span>
                   </span>
                 </td>
                 <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <span v-if="entry.checkCompletedAt" class="completion-stamp">✅ {{ entry.checkCompletedAt }}</span>
+                  <span v-if="entry.checkCompletedAt" class="completion-stamp">
+                    <span class="completion-icon">✅</span>
+                    <span class="completion-time">{{ formatTimeShort(entry.checkCompletedAt) }}</span>
+                  </span>
                   <span v-else class="completion-none">—</span>
                 </td>
                 <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <span v-if="entry.cleaningCompletedAt" class="completion-stamp">✅ {{ entry.cleaningCompletedAt }}</span>
+                  <span v-if="entry.cleaningCompletedAt" class="completion-stamp">
+                    <span class="completion-icon">✅</span>
+                    <span class="completion-time">{{ formatTimeShort(entry.cleaningCompletedAt) }}</span>
+                  </span>
                   <span v-else class="completion-none">—</span>
                 </td>
               </tr>
@@ -241,7 +270,7 @@
             :disabled="completionLoading"
             @click="markCleaningCompleted"
           >
-            <span class="material-symbols-outlined">verified</span>
+            <span class="material-symbols-outlined">cleaning_services</span>
             {{ cleaningCompletedFeedback || 'Cleaning Completed' }}
           </button>
           <button
@@ -274,6 +303,39 @@
           </button>
         </template>
       </div>
+
+      <!-- Completion Confirmation Modal -->
+      <transition name="request-modal">
+        <div
+          v-if="showCompletionConfirmModal"
+          class="request-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          @click="cancelCompletionUpdate"
+        >
+          <div class="request-modal-card" @click.stop>
+            <div class="request-modal-header">
+              <h3>Update Completion Time?</h3>
+              <button type="button" class="close-btn" @click="cancelCompletionUpdate">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="request-form-wrap">
+              <p class="mb-3">
+                This {{ pendingCompletionAction === 'check' ? 'check' : 'cleaning' }} was already marked as completed 
+                at <strong>{{ pendingCompletionExistingTime }}</strong>.
+              </p>
+              <p class="mb-4">
+                Would you like to update the completion time to now?
+              </p>
+              <div class="request-form-actions">
+                <button type="button" class="ghost-btn" @click="cancelCompletionUpdate">Cancel</button>
+                <button type="button" class="primary-btn" @click="confirmCompletionUpdate">Update Time</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
 
       <transition name="request-modal">
         <div
@@ -434,19 +496,93 @@ const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isClean
 const completionLoading = ref(false)
 const checkCompletedFeedback = ref('')
 const cleaningCompletedFeedback = ref('')
+const showCompletionConfirmModal = ref(false)
+const pendingCompletionAction = ref<'check' | 'cleaning' | null>(null)
+const pendingCompletionExistingTime = ref('')
+
+const cancelCompletionUpdate = () => {
+  showCompletionConfirmModal.value = false
+  pendingCompletionAction.value = null
+  pendingCompletionExistingTime.value = ''
+}
+
+const confirmCompletionUpdate = async () => {
+  showCompletionConfirmModal.value = false
+  const action = pendingCompletionAction.value
+  pendingCompletionAction.value = null
+  pendingCompletionExistingTime.value = ''
+  
+  if (action === 'check') {
+    await performCheckCompletion(true)
+  } else if (action === 'cleaning') {
+    await performCleaningCompletion(true)
+  }
+}
 
 const markCheckCompleted = async () => {
   if (!record.value || completionLoading.value) return
-  completionLoading.value = true
-  try {
-    const result = await markCompletion(record.value.code, 'check')
-    checkCompletedFeedback.value = `✅ ${result.timestamp}`
-    serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
-      e.id === result.entryId ? { ...e, checkCompletedAt: result.timestamp } : e
-    )
-  } catch {
-    checkCompletedFeedback.value = 'Failed — try again'
+  
+  // Check authentication
+  if (!currentUser.value) {
+    checkCompletedFeedback.value = 'Please log in first'
     setTimeout(() => { checkCompletedFeedback.value = '' }, 3000)
+    return
+  }
+  
+  // Check if user has the right role
+  if (!isStaffOrCleaner.value) {
+    checkCompletedFeedback.value = 'Requires staff/cleaner role'
+    setTimeout(() => { checkCompletedFeedback.value = '' }, 3000)
+    return
+  }
+
+  // Check if already completed
+  const latestEntry = serviceHistory.value[0]
+  if (latestEntry && latestEntry.checkCompletedAt) {
+    pendingCompletionAction.value = 'check'
+    pendingCompletionExistingTime.value = latestEntry.checkCompletedAt
+    showCompletionConfirmModal.value = true
+    return
+  }
+
+  await performCheckCompletion(false)
+}
+
+const performCheckCompletion = async (isUpdate: boolean) => {
+  if (!record.value || completionLoading.value) return
+  
+  completionLoading.value = true
+  checkCompletedFeedback.value = ''
+  
+  try {
+    console.log('Marking check completed for:', record.value.code, '(Update:', isUpdate, ')')
+    console.log('Auth token present:', !!authToken.value)
+    console.log('User role:', currentUser.value?.role)
+    const result: { entryId: number; timestamp: string; endTimeSet?: boolean } = await markCompletion(record.value.code, 'check')
+    checkCompletedFeedback.value = `✅ ${result.timestamp}`
+    
+    // Always refresh full data to ensure status and end_time are current
+    try {
+      const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+        `/api/scan/${encodeURIComponent(recordCode.value)}`
+      )
+      serviceHistory.value = data.entries ?? []
+      console.log('Data refreshed. Latest entry status:', data.entries?.[0]?.status)
+    } catch (error) {
+      console.error('Failed to refresh data:', error)
+      // Fallback: manually update the completion timestamp
+      const existingIndex = serviceHistory.value.findIndex((e: ServiceEntry) => e.id === result.entryId)
+      if (existingIndex >= 0) {
+        serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
+          e.id === result.entryId ? { ...e, checkCompletedAt: result.timestamp } : e
+        )
+      }
+    }
+  } catch (error: any) {
+    console.error('Check completion error:', error)
+    const errorMsg = error?.data?.message || error?.message || 'Failed to mark check completed'
+    checkCompletedFeedback.value = errorMsg
+    setTimeout(() => { checkCompletedFeedback.value = '' }, 5000)
   } finally {
     completionLoading.value = false
   }
@@ -454,24 +590,82 @@ const markCheckCompleted = async () => {
 
 const markCleaningCompleted = async () => {
   if (!record.value || completionLoading.value) return
-  completionLoading.value = true
-  try {
-    const result = await markCompletion(record.value.code, 'cleaning')
-    cleaningCompletedFeedback.value = `✅ ${result.timestamp}`
-    serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
-      e.id === result.entryId ? { ...e, cleaningCompletedAt: result.timestamp } : e
-    )
-  } catch {
-    cleaningCompletedFeedback.value = 'Failed — try again'
+  
+  // Check authentication
+  if (!currentUser.value) {
+    cleaningCompletedFeedback.value = 'Please log in first'
     setTimeout(() => { cleaningCompletedFeedback.value = '' }, 3000)
+    return
+  }
+  
+  // Check if user has the right role
+  if (!isStaffOrCleaner.value) {
+    cleaningCompletedFeedback.value = 'Requires staff/cleaner role'
+    setTimeout(() => { cleaningCompletedFeedback.value = '' }, 3000)
+    return
+  }
+
+  // Check if already completed
+  const latestEntry = serviceHistory.value[0]
+  if (latestEntry && latestEntry.cleaningCompletedAt) {
+    pendingCompletionAction.value = 'cleaning'
+    pendingCompletionExistingTime.value = latestEntry.cleaningCompletedAt
+    showCompletionConfirmModal.value = true
+    return
+  }
+
+  await performCleaningCompletion(false)
+}
+
+const performCleaningCompletion = async (isUpdate: boolean) => {
+  if (!record.value || completionLoading.value) return
+  
+  completionLoading.value = true
+  cleaningCompletedFeedback.value = ''
+  
+  try {
+    console.log('Marking cleaning completed for:', record.value.code, '(Update:', isUpdate, ')')
+    console.log('Auth token present:', !!authToken.value)
+    console.log('User role:', currentUser.value?.role)
+    const result: { entryId: number; timestamp: string; endTimeSet?: boolean } = await markCompletion(record.value.code, 'cleaning')
+    cleaningCompletedFeedback.value = `✅ ${result.timestamp}`
+    
+    // Always refresh full data to ensure status and end_time are current
+    try {
+      const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+        `/api/scan/${encodeURIComponent(recordCode.value)}`
+      )
+      serviceHistory.value = data.entries ?? []
+      console.log('Data refreshed. Latest entry status:', data.entries?.[0]?.status)
+    } catch (error) {
+      console.error('Failed to refresh data:', error)
+      // Fallback: manually update the completion timestamp
+      const existingIndex = serviceHistory.value.findIndex((e: ServiceEntry) => e.id === result.entryId)
+      if (existingIndex >= 0) {
+        serviceHistory.value = serviceHistory.value.map((e: ServiceEntry) =>
+          e.id === result.entryId ? { ...e, cleaningCompletedAt: result.timestamp } : e
+        )
+      }
+    }
+  } catch (error: any) {
+    console.error('Cleaning completion error:', error)
+    const errorMsg = error?.data?.message || error?.message || 'Failed to mark cleaning completed'
+    cleaningCompletedFeedback.value = errorMsg
+    setTimeout(() => { cleaningCompletedFeedback.value = '' }, 5000)
   } finally {
     completionLoading.value = false
   }
 }
 
 const closeRequestOnEscape = (event: KeyboardEvent) => {
-  if (event.key !== 'Escape' || !requestType.value) return
-  cancelRequest()
+  if (event.key !== 'Escape') return
+  if (showCompletionConfirmModal.value) {
+    cancelCompletionUpdate()
+    return
+  }
+  if (requestType.value) {
+    cancelRequest()
+  }
 }
 
 onMounted(async () => {
@@ -539,6 +733,29 @@ const onTaskCheckboxChange = async (taskId: number, event: Event) => {
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })
+
+const formatTimeShort = (timeStr: string) => {
+  if (!timeStr || timeStr === '—') return '—'
+  try {
+    // timeStr is already formatted like "25 Dec 2024, 14:30"
+    // For mobile, show just "25/12 14:30"
+    const match = timeStr.match(/(\d+)\s+(\w+).*?(\d{2}:\d{2})/)
+    if (match) {
+      const day = match[1]
+      const month = match[2]
+      const time = match[3]
+      const monthMap: Record<string, string> = {
+        Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+        Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+      }
+      const monthNum = monthMap[month] || '01'
+      return `${day}/${monthNum} ${time}`
+    }
+    return timeStr
+  } catch {
+    return timeStr
+  }
+}
 
 const submitTaskMessage = async () => {
   if (!selectedHistory.value) return
@@ -904,10 +1121,15 @@ textarea.request-input {
 
 .clickable-row {
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .clickable-row:hover {
   background-color: #f0f4ff !important;
+}
+
+.clickable-row:active {
+  transform: scale(0.99);
 }
 
 /* Modal Styles */
@@ -1223,6 +1445,24 @@ textarea.request-input {
   text-transform: uppercase;
 }
 
+.table-icon {
+  font-size: 20px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.header-text {
+  vertical-align: middle;
+}
+
+.history-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
 .history-table th:first-child {
   border-top-left-radius: 12px;
 }
@@ -1250,10 +1490,34 @@ textarea.request-input {
 }
 
 .time-cell {
-  white-space: nowrap;
   font-weight: 600;
   color: var(--brand-dark);
   font-size: 0.88rem;
+}
+
+.time-full {
+  display: inline;
+}
+
+.time-short {
+  display: none;
+}
+
+.status-emoji {
+  display: inline;
+}
+
+.status-text {
+  display: inline;
+}
+
+.completion-icon {
+  display: inline;
+  margin-right: 4px;
+}
+
+.completion-time {
+  display: inline;
 }
 
 .description-cell {
@@ -1312,12 +1576,66 @@ textarea.request-input {
   }
 
   .history-table {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
   }
 
   .history-table th,
   .history-table td {
-    padding: 10px 10px;
+    padding: 10px 6px;
+  }
+
+  /* Show icons only, hide text on mobile */
+  .header-text {
+    display: none;
+  }
+
+  .table-icon {
+    margin-right: 0;
+    font-size: 18px;
+  }
+
+  .history-table th {
+    text-align: center;
+    padding: 10px 4px;
+  }
+
+  .history-table td {
+    text-align: center;
+    padding: 10px 4px;
+  }
+
+  /* Show short time format on mobile */
+  .time-full {
+    display: none;
+  }
+
+  .time-short {
+    display: inline;
+    font-size: 0.8rem;
+  }
+
+  /* Status: emoji only on mobile */
+  .status-text {
+    display: none;
+  }
+
+  .status-badge {
+    padding: 4px 8px;
+    font-size: 1rem;
+  }
+
+  /* Completion cells: icon only, hide time on mobile */
+  .completion-time {
+    display: none;
+  }
+
+  .completion-icon {
+    margin-right: 0;
+    font-size: 1.1rem;
+  }
+
+  .history-hint {
+    font-size: 0.8rem;
   }
 
   .request-form-actions {
@@ -1399,6 +1717,33 @@ textarea.request-input {
 
   .request-form-wrap {
     padding: 12px;
+  }
+
+  /* Extra mobile optimizations for very small screens */
+  .history-table {
+    font-size: 0.78rem;
+  }
+
+  .table-icon {
+    font-size: 16px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 8px 3px;
+  }
+
+  .time-short {
+    font-size: 0.75rem;
+  }
+
+  .status-badge {
+    font-size: 0.9rem;
+    padding: 3px 6px;
+  }
+
+  .completion-icon {
+    font-size: 1rem;
   }
 }
 
@@ -1558,12 +1903,16 @@ textarea.request-input {
 /* ── Completion timestamp cells ───────────────────────────────────────────── */
 .completion-cell {
   white-space: nowrap;
+  text-align: center;
 }
 
 .completion-stamp {
   font-size: 0.8rem;
   color: #059669;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .completion-none {

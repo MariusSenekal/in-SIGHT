@@ -160,8 +160,8 @@ export const useScheduleTracking = () => {
   const markCompletion = async (
     recordCode: string,
     action: 'check' | 'cleaning'
-  ): Promise<{ entryId: number; timestamp: string }> => {
-    const result = await $fetch<{ ok: boolean; entryId: number; timestamp: string }>(
+  ): Promise<{ entryId: number; timestamp: string; endTimeSet?: boolean }> => {
+    const result = await $fetch<{ ok: boolean; entryId: number; timestamp: string; endTimeSet?: boolean }>(
       '/api/scan/complete',
       {
         method: 'POST',
@@ -176,7 +176,7 @@ export const useScheduleTracking = () => {
         ? { ...entry, checkCompletedAt: result.timestamp }
         : { ...entry, cleaningCompletedAt: result.timestamp }
     })
-    return { entryId: result.entryId, timestamp: result.timestamp }
+    return { entryId: result.entryId, timestamp: result.timestamp, endTimeSet: result.endTimeSet }
   }
 
   return {

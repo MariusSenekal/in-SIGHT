@@ -35,7 +35,18 @@
                     />
                   </v-col>
                   <v-col cols="12">
-                    <v-btn block color="primary" size="large" prepend-icon="mdi-login" type="submit" class="btn-gradient">Sign In</v-btn>
+                    <v-btn 
+                      block 
+                      color="primary" 
+                      size="large" 
+                      prepend-icon="mdi-login" 
+                      type="submit" 
+                      class="btn-gradient"
+                      :loading="loginLoading"
+                      :disabled="loginLoading"
+                    >
+                      {{ loginLoading ? 'Signing in...' : 'Sign In' }}
+                    </v-btn>
                   </v-col>
                 </v-row>
               </v-form>
@@ -61,7 +72,18 @@
                     />
                   </v-col>
                   <v-col cols="12">
-                    <v-btn block color="primary" size="large" prepend-icon="mdi-account-plus" type="submit" class="btn-gradient">Create Account</v-btn>
+                    <v-btn 
+                      block 
+                      color="primary" 
+                      size="large" 
+                      prepend-icon="mdi-account-plus" 
+                      type="submit" 
+                      class="btn-gradient"
+                      :loading="signupLoading"
+                      :disabled="signupLoading"
+                    >
+                      {{ signupLoading ? 'Creating account...' : 'Create Account' }}
+                    </v-btn>
                   </v-col>
                 </v-row>
               </v-form>
@@ -75,7 +97,7 @@
                 </v-btn>
               </div>
 
-              <v-alert v-if="formMessage" type="error" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
+              <v-alert v-if="formMessage" :type="formMessageType" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
             </v-card>
           </v-col>
         </v-row>
@@ -128,7 +150,18 @@
                 />
               </v-col>
               <v-col cols="12">
-                <v-btn block color="primary" size="large" prepend-icon="mdi-login" type="submit" class="btn-gradient">Sign In</v-btn>
+                <v-btn 
+                  block 
+                  color="primary" 
+                  size="large" 
+                  prepend-icon="mdi-login" 
+                  type="submit" 
+                  class="btn-gradient"
+                  :loading="loginLoading"
+                  :disabled="loginLoading"
+                >
+                  {{ loginLoading ? 'Signing in...' : 'Sign In' }}
+                </v-btn>
               </v-col>
             </v-row>
           </v-form>
@@ -154,7 +187,18 @@
                 />
               </v-col>
               <v-col cols="12">
-                <v-btn block color="primary" size="large" prepend-icon="mdi-account-plus" type="submit" class="btn-gradient">Create Account</v-btn>
+                <v-btn 
+                  block 
+                  color="primary" 
+                  size="large" 
+                  prepend-icon="mdi-account-plus" 
+                  type="submit" 
+                  class="btn-gradient"
+                  :loading="signupLoading"
+                  :disabled="signupLoading"
+                >
+                  {{ signupLoading ? 'Creating account...' : 'Create Account' }}
+                </v-btn>
               </v-col>
             </v-row>
           </v-form>
@@ -168,7 +212,7 @@
             </v-btn>
           </div>
 
-          <v-alert v-if="formMessage" type="error" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
+          <v-alert v-if="formMessage" :type="formMessageType" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
         </div>
       </div>
     </div>
@@ -331,6 +375,8 @@ const formMessage = ref('')
 const showLoginPassword = ref(false)
 const showSignupPassword = ref(false)
 const showProfileModal = ref(false)
+const loginLoading = ref(false)
+const signupLoading = ref(false)
 
 const loginForm = reactive({ username: '', password: '' })
 const signupForm = reactive({ name: '', username: '', password: '' })
@@ -355,6 +401,14 @@ const maintenanceForm = reactive({
 const allRecordSelectItems = computed(() =>
   getRecords().map((r: { code: string; name: string }) => ({ label: `${r.code} - ${r.name}`, value: r.code }))
 )
+
+const formMessageType = computed(() => {
+  if (!formMessage.value) return 'error'
+  const msg = formMessage.value.toLowerCase()
+  if (msg.includes('success') || msg.includes('created')) return 'success'
+  return 'error'
+})
+
 
 const submitMaintenanceRequest = () => {
   if (!maintenanceForm.message.trim()) return
@@ -429,22 +483,58 @@ const visibleActions = computed(() =>
 
 onMounted(() => { initAuth() })
 
-const submitLogin = () => {
-  const result = login(loginForm.username, loginForm.password)
-  if (!result.ok) { formMessage.value = result.message; return }
+const submitLogin = async () => {
+  if (loginLoading.value) return
+  if (!loginForm.username.trim() || !loginForm.password.trim()) {
+    formMessage.value = 'Please enter both username and password.'
+    return
+  }
+  
+  loginLoading.value = true
   formMessage.value = ''
-  loginForm.username = ''
-  loginForm.password = ''
+  
+  try {
+    const result = await login(loginForm.username, loginForm.password)
+    if (!result.ok) { 
+      formMessage.value = result.message || 'Login failed. Please check your username and password.'
+      return 
+    }
+    formMessage.value = ''
+    loginForm.username = ''
+    loginForm.password = ''
+  } catch (error) {
+    formMessage.value = 'Connection error. Please check your internet and try again.'
+  } finally {
+    loginLoading.value = false
+  }
 }
 
-const submitSignup = () => {
-  const result = signup(signupForm.name, signupForm.username, signupForm.password)
-  formMessage.value = result.message
-  if (!result.ok) return
-  signupForm.name = ''
-  signupForm.username = ''
-  signupForm.password = ''
-  mode.value = 'login'
+const submitSignup = async () => {
+  if (signupLoading.value) return
+  if (!signupForm.name.trim() || !signupForm.username.trim() || !signupForm.password.trim()) {
+    formMessage.value = 'Please fill in all fields.'
+    return
+  }
+  
+  signupLoading.value = true
+  formMessage.value = ''
+  
+  try {
+    const result = await signup(signupForm.name, signupForm.username, signupForm.password)
+    formMessage.value = result.message
+    if (!result.ok) return
+    signupForm.name = ''
+    signupForm.username = ''
+    signupForm.password = ''
+    setTimeout(() => {
+      mode.value = 'login'
+      formMessage.value = ''
+    }, 2000)
+  } catch (error) {
+    formMessage.value = 'Connection error. Please check your internet and try again.'
+  } finally {
+    signupLoading.value = false
+  }
 }
 
 const goToProfilePage = () => {
