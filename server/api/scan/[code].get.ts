@@ -58,6 +58,9 @@ export default defineEventHandler(async (event) => {
       notes: e.notes ?? '',
       checkCompletedAt: formatTimeOrNull(e.check_completed_at),
       cleaningCompletedAt: formatTimeOrNull(e.cleaning_completed_at),
+      uvCheckCompletedAt: formatTimeOrNull(e.uv_check_completed_at),
+      jobStartedAt: formatTimeOrNull(e.job_started_at),
+      jobCompletedAt: formatTimeOrNull(e.job_completed_at),
       checklist: (e.service_tasks ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),

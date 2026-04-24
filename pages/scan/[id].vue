@@ -52,6 +52,18 @@
                   <span class="material-symbols-outlined table-icon">cleaning_services</span>
                   <span class="header-text">Cleaning</span>
                 </th>
+                <th v-if="isUvHero">
+                  <span class="material-symbols-outlined table-icon">uv_index</span>
+                  <span class="header-text">UV Check</span>
+                </th>
+                <th v-if="isUvHero">
+                  <span class="material-symbols-outlined table-icon">play_circle</span>
+                  <span class="header-text">Job Started</span>
+                </th>
+                <th v-if="isUvHero">
+                  <span class="material-symbols-outlined table-icon">check_circle</span>
+                  <span class="header-text">Job Done</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -86,6 +98,27 @@
                   <span v-if="entry.cleaningCompletedAt" class="completion-stamp">
                     <span class="completion-icon">✅</span>
                     <span class="completion-time">{{ formatTimeShort(entry.cleaningCompletedAt) }}</span>
+                  </span>
+                  <span v-else class="completion-none">—</span>
+                </td>
+                <td v-if="isUvHero" class="time-cell completion-cell">
+                  <span v-if="entry.uvCheckCompletedAt" class="completion-stamp">
+                    <span class="completion-icon">✅</span>
+                    <span class="completion-time">{{ formatTimeShort(entry.uvCheckCompletedAt) }}</span>
+                  </span>
+                  <span v-else class="completion-none">—</span>
+                </td>
+                <td v-if="isUvHero" class="time-cell completion-cell">
+                  <span v-if="entry.jobStartedAt" class="completion-stamp">
+                    <span class="completion-icon">✅</span>
+                    <span class="completion-time">{{ formatTimeShort(entry.jobStartedAt) }}</span>
+                  </span>
+                  <span v-else class="completion-none">—</span>
+                </td>
+                <td v-if="isUvHero" class="time-cell completion-cell">
+                  <span v-if="entry.jobCompletedAt" class="completion-stamp">
+                    <span class="completion-icon">✅</span>
+                    <span class="completion-time">{{ formatTimeShort(entry.jobCompletedAt) }}</span>
                   </span>
                   <span v-else class="completion-none">—</span>
                 </td>
