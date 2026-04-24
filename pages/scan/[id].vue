@@ -88,39 +88,49 @@
                   </span>
                 </td>
                 <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <span v-if="entry.checkCompletedAt" class="completion-stamp">
-                    <span class="completion-icon">✅</span>
+                  <button v-if="entry.checkCompletedAt" class="completion-btn" title="Remove check completion" @click.stop="toggleCompletion(entry, 'check')">
+                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
                     <span class="completion-time">{{ formatTimeShort(entry.checkCompletedAt) }}</span>
+                  </button>
+                  <span v-else class="completion-none">
+                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
-                  <span v-else class="completion-none">—</span>
                 </td>
                 <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <span v-if="entry.cleaningCompletedAt" class="completion-stamp">
-                    <span class="completion-icon">✅</span>
+                  <button v-if="entry.cleaningCompletedAt" class="completion-btn" title="Remove cleaning completion" @click.stop="toggleCompletion(entry, 'cleaning')">
+                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
                     <span class="completion-time">{{ formatTimeShort(entry.cleaningCompletedAt) }}</span>
+                  </button>
+                  <span v-else class="completion-none">
+                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
-                  <span v-else class="completion-none">—</span>
                 </td>
                 <td v-if="isUvHero" class="time-cell completion-cell">
-                  <span v-if="entry.uvCheckCompletedAt" class="completion-stamp">
-                    <span class="completion-icon">✅</span>
+                  <button v-if="entry.uvCheckCompletedAt" class="completion-btn" title="Remove UV check completion" @click.stop="toggleCompletion(entry, 'uv-check')">
+                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
                     <span class="completion-time">{{ formatTimeShort(entry.uvCheckCompletedAt) }}</span>
+                  </button>
+                  <span v-else class="completion-none">
+                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
-                  <span v-else class="completion-none">—</span>
                 </td>
                 <td v-if="isUvHero" class="time-cell completion-cell">
-                  <span v-if="entry.jobStartedAt" class="completion-stamp">
-                    <span class="completion-icon">✅</span>
+                  <button v-if="entry.jobStartedAt" class="completion-btn" title="Remove job started" @click.stop="toggleCompletion(entry, 'job-started')">
+                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
                     <span class="completion-time">{{ formatTimeShort(entry.jobStartedAt) }}</span>
+                  </button>
+                  <span v-else class="completion-none">
+                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
-                  <span v-else class="completion-none">—</span>
                 </td>
                 <td v-if="isUvHero" class="time-cell completion-cell">
-                  <span v-if="entry.jobCompletedAt" class="completion-stamp">
-                    <span class="completion-icon">✅</span>
+                  <button v-if="entry.jobCompletedAt" class="completion-btn" title="Remove job completion" @click.stop="toggleCompletion(entry, 'job-completed')">
+                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
                     <span class="completion-time">{{ formatTimeShort(entry.jobCompletedAt) }}</span>
+                  </button>
+                  <span v-else class="completion-none">
+                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
-                  <span v-else class="completion-none">—</span>
                 </td>
               </tr>
             </tbody>
@@ -545,7 +555,7 @@ const { goBack } = useAppNavigation()
 const { currentUser, isAdmin, isCleaner, isUvHero, isStaffOrCleaner, authToken } = useAuth()
 const { loadRecords, getRecords } = useRecords()
 const { addRequest } = useServiceRequests()
-const { toggleTask, addMessage, markCompletion } = useScheduleTracking()
+const { toggleTask, addMessage, markCompletion, unmarkCompletion } = useScheduleTracking()
 
 const recordCode = computed(() => String(route.params.id || '').trim().toUpperCase())
 
@@ -571,6 +581,27 @@ const satisfactionChoice = ref<'happy' | 'sad' | null>(null)
 const satisfactionSent = ref(false)
 
 const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isCleaner.value && !isUvHero.value)
+
+// ── Completion toggle (remove a completion from the history table) ────────
+const completionToggleLoading = ref(false)
+const toggleCompletion = async (
+  entry: ServiceEntry,
+  action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
+) => {
+  if (completionToggleLoading.value) return
+  completionToggleLoading.value = true
+  try {
+    await unmarkCompletion(entry.id, action)
+    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+      `/api/scan/${encodeURIComponent(recordCode.value)}`
+    )
+    serviceHistory.value = data.entries ?? []
+  } catch (error: any) {
+    console.error('Uncomplete error:', error)
+  } finally {
+    completionToggleLoading.value = false
+  }
+}
 
 // ── Completion buttons (staff + cleaner) ──────────────────────────────────
 const completionLoading = ref(false)
@@ -2095,16 +2126,40 @@ textarea.request-input {
   text-align: center;
 }
 
-.completion-stamp {
+.completion-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
   font-size: 0.8rem;
   color: #059669;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.completion-btn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.completion-icon-done {
+  font-size: 1.15rem;
+  color: inherit;
 }
 
 .completion-none {
+  color: var(--text-muted, #9ca3af);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.completion-icon-empty {
+  font-size: 1.15rem;
   color: var(--text-muted, #9ca3af);
 }
 

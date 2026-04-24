@@ -191,6 +191,18 @@ export const useScheduleTracking = () => {
     return { entryId: result.entryId, timestamp: result.timestamp, endTimeSet: result.endTimeSet }
   }
 
+  /** Remove a specific completion timestamp from an entry, recalculating its status */
+  const unmarkCompletion = async (
+    entryId: number,
+    action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
+  ): Promise<void> => {
+    await $fetch<{ ok: boolean; status: string }>('/api/scan/uncomplete', {
+      method: 'POST',
+      headers: authHeaders.value as Record<string, string>,
+      body: { entryId, action }
+    })
+  }
+
   return {
     entries,
     entriesLoading,
@@ -201,6 +213,7 @@ export const useScheduleTracking = () => {
     setChecklistTemplate,
     toggleTask,
     addMessage,
-    markCompletion
+    markCompletion,
+    unmarkCompletion
   }
 }
