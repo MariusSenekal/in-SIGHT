@@ -943,7 +943,7 @@ const submitCreateQrCode = async () => {
 
 // ── Create User ──────────────────────────────────────────────────────────────
 const showCreateUserDialog = ref(false)
-const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' })
+const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero' })
 const createUserError = ref('')
 const createUserSuccess = ref('')
 const createUserLoading = ref(false)
@@ -952,6 +952,7 @@ const roleOptions = [
   { title: 'User', value: 'user' },
   { title: 'Staff', value: 'staff' },
   { title: 'Cleaner', value: 'cleaner' },
+  { title: 'UV Hero', value: 'uv-hero' },
   { title: 'Admin', value: 'admin' }
 ]
 

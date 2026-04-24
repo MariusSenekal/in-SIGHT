@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Name, username, and password are required.' })
   }
 
-  const allowedRoles = ['user', 'staff', 'admin', 'cleaner']
+  const allowedRoles = ['user', 'staff', 'admin', 'cleaner', 'uv-hero']
   const safeRole = allowedRoles.includes(role) ? role : 'user'
 
   interface Row { user_id: number; username: string; name: string; role: string }
