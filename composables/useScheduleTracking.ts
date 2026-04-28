@@ -35,6 +35,8 @@ export interface ServiceEntry {
   uvCheckCompletedAt?: string | null
   jobStartedAt?: string | null
   jobCompletedAt?: string | null
+  latitude?: number | null
+  longitude?: number | null
   checklist: ServiceTask[]
   messages: ServiceMessage[]
   completionHistory?: CompletionHistoryRecord[]
@@ -171,14 +173,16 @@ export const useScheduleTracking = () => {
    */
   const markCompletion = async (
     recordCode: string,
-    action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
+    action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed',
+    latitude?: number | null,
+    longitude?: number | null
   ): Promise<{ entryId: number; timestamp: string; endTimeSet?: boolean }> => {
     const result = await $fetch<{ ok: boolean; entryId: number; timestamp: string; endTimeSet?: boolean }>(
       '/api/scan/complete',
       {
         method: 'POST',
         headers: authHeaders.value as Record<string, string>,
-        body: { recordCode, action }
+        body: { recordCode, action, latitude, longitude }
       }
     )
     // Update cached entries

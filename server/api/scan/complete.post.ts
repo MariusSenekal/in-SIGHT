@@ -10,9 +10,11 @@ export default defineEventHandler(async (event) => {
   const userId = parseInt(authPayload.sub, 10)
   const userRole = authPayload.app_role // Store the user's role at the time of action
 
-  const { recordCode, action } = await readBody<{
+  const { recordCode, action, latitude, longitude } = await readBody<{
     recordCode: string
     action: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
+    latitude?: number | null
+    longitude?: number | null
   }>(event)
 
   if (!recordCode?.trim()) {
@@ -41,7 +43,9 @@ export default defineEventHandler(async (event) => {
     status: 'Done',
     notes: '',
     created_by: userId,
-    created_by_role: userRole // Store role at time of action
+    created_by_role: userRole, // Store role at time of action
+    latitude: latitude || null,
+    longitude: longitude || null
   }
 
   // Set the appropriate completion timestamp based on action

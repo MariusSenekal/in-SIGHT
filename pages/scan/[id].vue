@@ -48,6 +48,10 @@
                   <span class="material-symbols-outlined table-icon">flag</span>
                   <span class="header-text">Status</span>
                 </th>
+                <th class="location-header">
+                  <span class="material-symbols-outlined table-icon">location_on</span>
+                  <span class="header-text">Location</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -79,6 +83,12 @@
                     <span class="status-emoji">{{ getStatusEmoji(entry.status) }}</span>
                     <span class="status-text">{{ entry.status }}</span>
                   </span>
+                </td>
+                <td class="location-cell">
+                  <span v-if="entry.latitude && entry.longitude" class="location-indicator" :title="`Location: ${entry.latitude.toFixed(4)}, ${entry.longitude.toFixed(4)}`">
+                    <span class="material-symbols-outlined">pin_drop</span>
+                  </span>
+                  <span v-else class="no-location">—</span>
                 </td>
               </tr>
             </tbody>
@@ -118,6 +128,33 @@
                 <span class="status-badge" :class="selectedHistory.status">
                   {{ getStatusEmoji(selectedHistory.status) }} {{ selectedHistory.status }}
                 </span>
+              </div>
+
+              <!-- Location Information (if available) -->
+              <div v-if="selectedHistory.latitude && selectedHistory.longitude" class="location-info">
+                <h4>
+                  <span class="material-symbols-outlined">location_on</span>
+                  Location
+                </h4>
+                <div class="location-content">
+                  <div class="location-coordinates">
+                    <div class="coordinate-item">
+                      <strong>Latitude:</strong> {{ selectedHistory.latitude.toFixed(6) }}
+                    </div>
+                    <div class="coordinate-item">
+                      <strong>Longitude:</strong> {{ selectedHistory.longitude.toFixed(6) }}
+                    </div>
+                  </div>
+                  <a
+                    :href="`https://www.google.com/maps?q=${selectedHistory.latitude},${selectedHistory.longitude}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="view-map-btn"
+                  >
+                    <span class="material-symbols-outlined">map</span>
+                    View on Map
+                  </a>
+                </div>
               </div>
 
               <div class="checklist-section">
@@ -294,7 +331,7 @@
           <button
             type="button"
             class="action-button upload-photo-button"
-            @click="requestMaintenance"
+            @click="goToUpload"
           >
             <span class="material-symbols-outlined">photo_camera</span>
             Upload Photo
@@ -548,6 +585,42 @@ const satisfactionSent = ref(false)
 
 const canUpdateChecklist = computed(() => Boolean(currentUser.value) && !isCleaner.value && !isUvHero.value)
 
+// ── Geolocation helper ────────────────────────────────────────────────────
+const getCurrentLocation = (): Promise<{ latitude: number; longitude: number } | null> => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      console.warn('Geolocation not supported')
+      resolve(null)
+      return
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('Location acquired:', {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: position.timestamp
+        })
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        })
+      },
+      (error) => {
+        console.warn('Geolocation error:', error.message, error.code)
+        resolve(null)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    )
+  })
+}
+
+
 // ── Completion toggle (remove a completion from the history table) ────────
 const completionToggleLoading = ref(false)
 const toggleCompletion = async (
@@ -753,7 +826,19 @@ const markUvCheckCompleted = async () => {
   uvCheckCompletedFeedback.value = ''
   
   try {
-    const result = await markCompletion(record.value.code, 'uv-check')
+    uvCheckCompletedFeedback.value = '📍 Getting accurate location...'
+    const location = await getCurrentLocation()
+    if (location) {
+      console.log('UV Check - Location captured:', location)
+    } else {
+      console.warn('UV Check - Location unavailable, proceeding without coordinates')
+    }
+    const result = await markCompletion(
+      record.value.code,
+      'uv-check',
+      location?.latitude,
+      location?.longitude
+    )
     uvCheckCompletedFeedback.value = `✅ ${result.timestamp}`
     
     const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
@@ -780,7 +865,19 @@ const markJobStarted = async () => {
   jobStartedFeedback.value = ''
   
   try {
-    const result = await markCompletion(record.value.code, 'job-started')
+    jobStartedFeedback.value = '📍 Getting accurate location...'
+    const location = await getCurrentLocation()
+    if (location) {
+      console.log('Job Started - Location captured:', location)
+    } else {
+      console.warn('Job Started - Location unavailable, proceeding without coordinates')
+    }
+    const result = await markCompletion(
+      record.value.code,
+      'job-started',
+      location?.latitude,
+      location?.longitude
+    )
     jobStartedFeedback.value = `✅ ${result.timestamp}`
     
     const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
@@ -807,7 +904,19 @@ const markJobCompleted = async () => {
   jobCompletedFeedback.value = ''
   
   try {
-    const result = await markCompletion(record.value.code, 'job-completed')
+    jobCompletedFeedback.value = '📍 Getting accurate location...'
+    const location = await getCurrentLocation()
+    if (location) {
+      console.log('Job Completed - Location captured:', location)
+    } else {
+      console.warn('Job Completed - Location unavailable, proceeding without coordinates')
+    }
+    const result = await markCompletion(
+      record.value.code,
+      'job-completed',
+      location?.latitude,
+      location?.longitude
+    )
     jobCompletedFeedback.value = `✅ ${result.timestamp}`
     
     const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
@@ -1006,6 +1115,10 @@ const requestMaintenance = () => {
   requestTargetType.value = 'qr'
   selectedRecordCode.value = record.value?.code || ''
   requestFeedback.value = ''
+}
+
+const goToUpload = () => {
+  navigateTo('/upload')
 }
 
 const submitSatisfaction = async () => {
@@ -1219,11 +1332,11 @@ const handleBackToWelcome = () => {
 }
 
 .upload-photo-button {
-  background: linear-gradient(145deg, #3b82f6, #2563eb);
+  background: linear-gradient(145deg, #06b6d4, #0891b2);
 }
 
 .upload-photo-button:hover {
-  background: linear-gradient(145deg, #2563eb, #1d4ed8);
+  background: linear-gradient(145deg, #0891b2, #0e7490);
 }
 
 .request-modal-overlay {
@@ -1473,6 +1586,79 @@ textarea.request-input {
   margin-bottom: 24px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Location Information */
+.location-info {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+}
+
+.location-info h4 {
+  font-size: 1.1rem;
+  color: var(--ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.location-info h4 .material-symbols-outlined {
+  color: #16a34a;
+  font-size: 24px;
+}
+
+.location-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.location-coordinates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coordinate-item {
+  background: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #d9f99d;
+}
+
+.coordinate-item strong {
+  color: #16a34a;
+  margin-right: 8px;
+}
+
+.view-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(145deg, #16a34a, #15803d);
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.view-map-btn:hover {
+  background: linear-gradient(145deg, #15803d, #166534);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.view-map-btn .material-symbols-outlined {
+  font-size: 20px;
 }
 
 .checklist-section {
@@ -1911,6 +2097,41 @@ textarea.request-input {
   color: #6b7280;
 }
 
+/* Location Column */
+.location-header {
+  text-align: center;
+  min-width: 70px;
+}
+
+.location-cell {
+  text-align: center;
+  padding: 10px 8px;
+}
+
+.location-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #16a34a;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.location-indicator .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.location-indicator:hover {
+  color: #15803d;
+  transform: scale(1.1);
+}
+
+.no-location {
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+
 /* Back Link */
 .back-link-container {
   text-align: center;
@@ -2054,6 +2275,20 @@ textarea.request-input {
     font-size: 0.65rem;
     letter-spacing: 0.02em;
     white-space: nowrap;
+  }
+
+  /* Location column: compact on mobile */
+  .location-cell {
+    padding: 8px 4px;
+    min-width: 50px;
+  }
+
+  .location-indicator .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .no-location {
+    font-size: 1rem;
   }
 
   .history-hint {
