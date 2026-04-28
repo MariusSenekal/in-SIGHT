@@ -15,6 +15,13 @@ export interface ServiceMessage {
   createdAt: string
 }
 
+export interface CompletionHistoryRecord {
+  id: number
+  actionType: 'check' | 'cleaning' | 'uv-check' | 'job-started' | 'job-completed'
+  completedAt: string | null
+  completedBy: number
+}
+
 export interface ServiceEntry {
   id: number
   recordCode: string
@@ -22,6 +29,7 @@ export interface ServiceEntry {
   endTime: string
   status: ScheduleStatus
   notes: string
+  createdByRole: string | null
   checkCompletedAt: string | null
   cleaningCompletedAt: string | null
   uvCheckCompletedAt?: string | null
@@ -29,6 +37,7 @@ export interface ServiceEntry {
   jobCompletedAt?: string | null
   checklist: ServiceTask[]
   messages: ServiceMessage[]
+  completionHistory?: CompletionHistoryRecord[]
 }
 
 export interface ChecklistTemplate {

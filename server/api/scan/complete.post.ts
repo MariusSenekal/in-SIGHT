@@ -1,12 +1,14 @@
 // POST /api/scan/complete
-// Staff, Cleaner, or UV Hero marks completion actions
-// on the most recent service entry for a given record code.
-// Records the Africa/Johannesburg timestamp of the button press.
+// Staff, Cleaner, or UV Hero marks completion actions.
+// Each button click creates a NEW service entry record with timestamp.
+// This gives each action its own row in the service history table.
 import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   // Only staff, cleaner, uv-hero roles may use this endpoint
-  requireAuth(event, ['staff', 'cleaner', 'uv-hero', 'admin'])
+  const authPayload = requireAuth(event, ['staff', 'cleaner', 'uv-hero', 'admin'])
+  const userId = parseInt(authPayload.sub, 10)
+  const userRole = authPayload.app_role // Store the user's role at the time of action
 
   const { recordCode, action } = await readBody<{
     recordCode: string
@@ -23,88 +25,73 @@ export default defineEventHandler(async (event) => {
 
   const code = recordCode.trim().toUpperCase()
 
-  // Find the most recent service entry for this record
-  let entries = await pgrestAdmin<any[]>('/service_entries', {
-    query: {
-      record_code: `eq.${code}`,
-      select: 'id',
-      order:  'id.desc',
-      limit:  '1'
-    }
-  })
-
-  let entryId: number
-
-  // If no entry exists, create one automatically
-  if (!entries?.length) {
-    const newEntry = await pgrestAdmin<any[]>('/service_entries', {
-      method: 'POST',
-      body: {
-        record_code: code,
-        start_time: new Date().toISOString(),
-        notes: 'Auto-created on completion button press',
-        status: 'Not Done'
-      },
-      extraHeaders: { 'Prefer': 'return=representation' }
-    })
-    entryId = newEntry[0].id
-  } else {
-    entryId = entries[0].id
-  }
-
   // Timestamp in Africa/Johannesburg (stored as UTC, formatted on read)
   const nowUtc = new Date().toISOString()
 
-  // Fetch current entry to check completion status
-  const currentEntry = await pgrestAdmin<any[]>(`/service_entries?id=eq.${entryId}`, {
-    query: { select: 'check_completed_at,cleaning_completed_at,uv_check_completed_at,job_started_at,job_completed_at,end_time' }
-  })
+  // ────────────────────────────────────────────────────────────────────────────
+  // CREATE A NEW SERVICE ENTRY FOR EACH BUTTON CLICK
+  // This gives each action its own row in the service history table
+  // ────────────────────────────────────────────────────────────────────────────
+  
+  // Build the new entry based on which button was clicked
+  const entryData: any = {
+    record_code: code,
+    start_time: nowUtc,
+    end_time: nowUtc,
+    status: 'Done',
+    notes: '',
+    created_by: userId,
+    created_by_role: userRole // Store role at time of action
+  }
 
-  const entry = currentEntry[0]
-  const isCheckAlreadyDone = !!entry.check_completed_at
-  const isCleaningAlreadyDone = !!entry.cleaning_completed_at
-  const isUvCheckAlreadyDone = !!entry.uv_check_completed_at
-  const isJobStartedAlreadyDone = !!entry.job_started_at
-  const isJobCompletedAlreadyDone = !!entry.job_completed_at
-
-  // Build patch object based on action
-  const patch: any = {}
-  let willBothBeCompleted = false
-
+  // Set the appropriate completion timestamp based on action
   if (action === 'check') {
-    patch.check_completed_at = nowUtc
-    willBothBeCompleted = isCleaningAlreadyDone
+    entryData.check_completed_at = nowUtc
+    entryData.notes = 'Check completed'
   } else if (action === 'cleaning') {
-    patch.cleaning_completed_at = nowUtc
-    willBothBeCompleted = isCheckAlreadyDone
+    entryData.cleaning_completed_at = nowUtc
+    entryData.notes = 'Cleaning completed'
   } else if (action === 'uv-check') {
-    patch.uv_check_completed_at = nowUtc
-    // UV Hero: all three tasks must be complete
-    willBothBeCompleted = isJobStartedAlreadyDone && isJobCompletedAlreadyDone
+    entryData.uv_check_completed_at = nowUtc
+    entryData.notes = 'UV check completed'
   } else if (action === 'job-started') {
-    patch.job_started_at = nowUtc
-    willBothBeCompleted = isUvCheckAlreadyDone && isJobCompletedAlreadyDone
+    entryData.job_started_at = nowUtc
+    entryData.notes = 'Job started'
   } else if (action === 'job-completed') {
-    patch.job_completed_at = nowUtc
-    willBothBeCompleted = isUvCheckAlreadyDone && isJobStartedAlreadyDone
+    entryData.job_completed_at = nowUtc
+    entryData.notes = 'Job completed'
   }
 
-  console.log(`[complete.post] Entry ${entryId} - Action: ${action}, All complete: ${willBothBeCompleted}`)
-
-  // If this completes all required tasks, update end_time and status to Done
-  if (willBothBeCompleted) {
-    patch.end_time = nowUtc
-    patch.status = 'Done'
-    console.log('[complete.post] All tasks complete - setting end_time to:', nowUtc, 'and status=Done')
-  }
-
-  await pgrestAdmin(`/service_entries?id=eq.${entryId}`, {
-    method: 'PATCH',
-    extraHeaders: { Prefer: 'return=minimal' },
-    body: patch
+  const newEntry = await pgrestAdmin<any[]>('/service_entries', {
+    method: 'POST',
+    body: entryData,
+    extraHeaders: { 'Prefer': 'return=representation' }
   })
+  
+  const entryId = newEntry[0].id
+  console.log(`[complete.post] New service entry created: ${entryId} for action: ${action}`)
 
-  console.log(`[complete.post] Patch applied successfully. Entry ${entryId} updated with:`, JSON.stringify(patch))
+  // ────────────────────────────────────────────────────────────────────────────
+  // INSERT COMPLETION HISTORY RECORD
+  // Track every button click in the completion history table for audit purposes
+  // ────────────────────────────────────────────────────────────────────────────
+  try {
+    await pgrestAdmin('/service_entry_completion_history', {
+      method: 'POST',
+      body: {
+        service_entry_id: entryId,
+        action_type: action,
+        completed_at: nowUtc,
+        completed_by: userId
+      },
+      extraHeaders: { 'Prefer': 'return=minimal' }
+    })
+    console.log(`[complete.post] Completion history record created: entry=${entryId}, action=${action}, user=${userId}`)
+  } catch (historyError: any) {
+    // Log the error but don't fail the request - the main update already succeeded
+    console.error('[complete.post] Failed to insert completion history record:', historyError)
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Return the formatted Johannesburg time for immediate UI display
   const formatted = new Date(nowUtc).toLocaleString('en-ZA', {
@@ -116,7 +103,6 @@ export default defineEventHandler(async (event) => {
   return { 
     ok: true, 
     entryId, 
-    timestamp: formatted,
-    endTimeSet: willBothBeCompleted // true if both tasks are now complete
+    timestamp: formatted
   }
 })

@@ -33,36 +33,20 @@
             <thead>
               <tr>
                 <th>
-                  <span class="material-symbols-outlined table-icon">schedule</span>
-                  <span class="header-text">Start Time</span>
+                  <span class="material-symbols-outlined table-icon">event</span>
+                  <span class="header-text">Date & Time</span>
                 </th>
                 <th>
-                  <span class="material-symbols-outlined table-icon">alarm_on</span>
-                  <span class="header-text">End Time</span>
+                  <span class="material-symbols-outlined table-icon">task_alt</span>
+                  <span class="header-text">Task Completed</span>
+                </th>
+                <th>
+                  <span class="material-symbols-outlined table-icon">person</span>
+                  <span class="header-text">Completed By</span>
                 </th>
                 <th>
                   <span class="material-symbols-outlined table-icon">flag</span>
                   <span class="header-text">Status</span>
-                </th>
-                <th v-if="isStaffOrCleaner">
-                  <span class="material-symbols-outlined table-icon">fact_check</span>
-                  <span class="header-text">Check</span>
-                </th>
-                <th v-if="isStaffOrCleaner">
-                  <span class="material-symbols-outlined table-icon">cleaning_services</span>
-                  <span class="header-text">Cleaning</span>
-                </th>
-                <th v-if="isUvHero">
-                  <span class="material-symbols-outlined table-icon">uv_index</span>
-                  <span class="header-text">UV Check</span>
-                </th>
-                <th v-if="isUvHero">
-                  <span class="material-symbols-outlined table-icon">play_circle</span>
-                  <span class="header-text">Job Started</span>
-                </th>
-                <th v-if="isUvHero">
-                  <span class="material-symbols-outlined table-icon">check_circle</span>
-                  <span class="header-text">Job Done</span>
                 </th>
               </tr>
             </thead>
@@ -77,59 +61,23 @@
                   <span class="time-full">{{ entry.startTime }}</span>
                   <span class="time-short">{{ formatTimeShort(entry.startTime) }}</span>
                 </td>
-                <td class="time-cell">
-                  <span class="time-full">{{ entry.endTime }}</span>
-                  <span class="time-short">{{ formatTimeShort(entry.endTime) }}</span>
+                <td class="task-completed-cell">
+                  <div class="task-completed-content">
+                    <span class="material-symbols-outlined task-icon">{{ getTaskIcon(entry) }}</span>
+                    <span class="task-label">{{ getTaskLabel(entry) }}</span>
+                  </div>
+                </td>
+                <td class="user-role-cell">
+                  <div class="user-role-content">
+                    <span class="role-badge" :class="getRoleClass(entry)">
+                      {{ getRoleLabel(entry) }}
+                    </span>
+                  </div>
                 </td>
                 <td class="status-cell">
                   <span class="status-badge" :class="entry.status">
                     <span class="status-emoji">{{ getStatusEmoji(entry.status) }}</span>
                     <span class="status-text">{{ entry.status }}</span>
-                  </span>
-                </td>
-                <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <button v-if="entry.checkCompletedAt" class="completion-btn" title="Remove check completion" @click.stop="toggleCompletion(entry, 'check')">
-                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
-                    <span class="completion-time">{{ formatTimeShort(entry.checkCompletedAt) }}</span>
-                  </button>
-                  <span v-else class="completion-none">
-                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
-                  </span>
-                </td>
-                <td v-if="isStaffOrCleaner" class="time-cell completion-cell">
-                  <button v-if="entry.cleaningCompletedAt" class="completion-btn" title="Remove cleaning completion" @click.stop="toggleCompletion(entry, 'cleaning')">
-                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
-                    <span class="completion-time">{{ formatTimeShort(entry.cleaningCompletedAt) }}</span>
-                  </button>
-                  <span v-else class="completion-none">
-                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
-                  </span>
-                </td>
-                <td v-if="isUvHero" class="time-cell completion-cell">
-                  <button v-if="entry.uvCheckCompletedAt" class="completion-btn" title="Remove UV check completion" @click.stop="toggleCompletion(entry, 'uv-check')">
-                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
-                    <span class="completion-time">{{ formatTimeShort(entry.uvCheckCompletedAt) }}</span>
-                  </button>
-                  <span v-else class="completion-none">
-                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
-                  </span>
-                </td>
-                <td v-if="isUvHero" class="time-cell completion-cell">
-                  <button v-if="entry.jobStartedAt" class="completion-btn" title="Remove job started" @click.stop="toggleCompletion(entry, 'job-started')">
-                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
-                    <span class="completion-time">{{ formatTimeShort(entry.jobStartedAt) }}</span>
-                  </button>
-                  <span v-else class="completion-none">
-                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
-                  </span>
-                </td>
-                <td v-if="isUvHero" class="time-cell completion-cell">
-                  <button v-if="entry.jobCompletedAt" class="completion-btn" title="Remove job completion" @click.stop="toggleCompletion(entry, 'job-completed')">
-                    <span class="material-symbols-outlined completion-icon-done">task_alt</span>
-                    <span class="completion-time">{{ formatTimeShort(entry.jobCompletedAt) }}</span>
-                  </button>
-                  <span v-else class="completion-none">
-                    <span class="material-symbols-outlined completion-icon-empty">radio_button_unchecked</span>
                   </span>
                 </td>
               </tr>
@@ -201,6 +149,24 @@
                 <div class="notes-box">
                   {{ selectedHistory.notes }}
                 </div>
+              </div>
+
+              <!-- Completion History Section -->
+              <div v-if="selectedHistory.completionHistory && selectedHistory.completionHistory.length > 0" class="completion-history-section">
+                <h4>
+                  <span class="material-symbols-outlined">history</span>
+                  Completion History
+                </h4>
+                <p class="history-description">Individual button clicks recorded for this service entry:</p>
+                <ul class="completion-history-list">
+                  <li v-for="record in selectedHistory.completionHistory" :key="record.id" class="completion-history-item">
+                    <div class="history-action">
+                      <span class="material-symbols-outlined action-icon">{{ getActionIcon(record.actionType) }}</span>
+                      <span class="action-label">{{ getActionLabel(record.actionType) }}</span>
+                    </div>
+                    <div class="history-time">{{ record.completedAt }}</div>
+                  </li>
+                </ul>
               </div>
 
               <div class="messages-section">
@@ -956,6 +922,62 @@ const formatTimeShort = (timeStr: string) => {
   }
 }
 
+const getActionIcon = (actionType: string) => {
+  const iconMap: Record<string, string> = {
+    'check': 'fact_check',
+    'cleaning': 'cleaning_services',
+    'uv-check': 'light_mode',
+    'job-started': 'play_circle',
+    'job-completed': 'check_circle'
+  }
+  return iconMap[actionType] || 'radio_button_checked'
+}
+
+const getActionLabel = (actionType: string) => {
+  const labelMap: Record<string, string> = {
+    'check': 'Check Completed',
+    'cleaning': 'Cleaning Completed',
+    'uv-check': 'UV Check Completed',
+    'job-started': 'Job Started',
+    'job-completed': 'Job Completed'
+  }
+  return labelMap[actionType] || actionType
+}
+
+const getTaskIcon = (entry: ServiceEntry) => {
+  if (entry.checkCompletedAt) return 'fact_check'
+  if (entry.cleaningCompletedAt) return 'cleaning_services'
+  if (entry.uvCheckCompletedAt) return 'light_mode'
+  if (entry.jobStartedAt) return 'play_circle'
+  if (entry.jobCompletedAt) return 'check_circle'
+  return 'task_alt'
+}
+
+const getTaskLabel = (entry: ServiceEntry) => {
+  if (entry.checkCompletedAt) return 'Check Completed'
+  if (entry.cleaningCompletedAt) return 'Cleaning Completed'
+  if (entry.uvCheckCompletedAt) return 'UV Check Completed'
+  if (entry.jobStartedAt) return 'Job Started'
+  if (entry.jobCompletedAt) return 'Job Completed'
+  return entry.notes || 'Service Completed'
+}
+
+const getRoleLabel = (entry: ServiceEntry) => {
+  if (!entry.createdByRole) return 'Unknown'
+  const roleMap: Record<string, string> = {
+    'cleaner': 'Cleaner',
+    'uv-hero': 'UV Hero',
+    'staff': 'Staff',
+    'admin': 'Admin'
+  }
+  return roleMap[entry.createdByRole] || entry.createdByRole
+}
+
+const getRoleClass = (entry: ServiceEntry) => {
+  if (!entry.createdByRole) return 'role-unknown'
+  return `role-${entry.createdByRole}`
+}
+
 const submitTaskMessage = async () => {
   if (!selectedHistory.value) return
   const text = staffMessageDraft.value.trim()
@@ -1534,6 +1556,85 @@ textarea.request-input {
   min-height: 80px;
 }
 
+/* Completion History Section */
+.completion-history-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+}
+
+.completion-history-section h4 {
+  font-size: 1.1rem;
+  color: var(--ink);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completion-history-section h4 .material-symbols-outlined {
+  color: var(--brand);
+  font-size: 24px;
+}
+
+.history-description {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.completion-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.completion-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.completion-history-item:hover {
+  background: #f0f9ff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.history-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.action-icon {
+  color: var(--brand);
+  font-size: 24px;
+}
+
+.action-label {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.history-time {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .messages-section {
   margin-top: 20px;
   border-top: 1px solid var(--border);
@@ -1745,6 +1846,71 @@ textarea.request-input {
   line-height: 1.5;
 }
 
+.task-completed-cell {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.task-completed-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-icon {
+  color: var(--brand);
+  font-size: 24px;
+}
+
+.task-label {
+  font-size: 0.95rem;
+}
+
+.user-role-cell {
+  text-align: center;
+}
+
+.user-role-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-cleaner {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.role-uv-hero {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.role-staff {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.role-admin {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.role-unknown {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
 /* Back Link */
 .back-link-container {
   text-align: center;
@@ -1793,6 +1959,7 @@ textarea.request-input {
 
   .table-wrapper {
     max-height: none;
+    font-size: 0.8rem;
   }
 
   .history-table {
@@ -1801,7 +1968,7 @@ textarea.request-input {
 
   .history-table th,
   .history-table td {
-    padding: 10px 6px;
+    padding: 8px 4px;
   }
 
   /* Show icons only, hide text on mobile */
@@ -1821,7 +1988,7 @@ textarea.request-input {
 
   .history-table td {
     text-align: center;
-    padding: 10px 4px;
+    padding: 8px 4px;
   }
 
   /* Show short time format on mobile */
@@ -1831,7 +1998,13 @@ textarea.request-input {
 
   .time-short {
     display: inline;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .time-cell {
+    font-size: 0.75rem;
+    min-width: 55px;
   }
 
   /* Status: emoji only on mobile */
@@ -1840,18 +2013,47 @@ textarea.request-input {
   }
 
   .status-badge {
-    padding: 4px 8px;
-    font-size: 1rem;
-  }
-
-  /* Completion cells: icon only, hide time on mobile */
-  .completion-time {
-    display: none;
-  }
-
-  .completion-icon {
-    margin-right: 0;
+    padding: 4px 6px;
     font-size: 1.1rem;
+  }
+
+  .status-emoji {
+    font-size: 1.1rem;
+  }
+
+  /* Task completed cell: compact layout */
+  .task-completed-cell {
+    min-width: 70px;
+  }
+
+  .task-completed-content {
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .task-icon {
+    font-size: 18px;
+  }
+
+  .task-label {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    text-align: center;
+    word-break: break-word;
+    max-width: 65px;
+  }
+
+  /* Role badge: compact on mobile */
+  .user-role-cell {
+    min-width: 60px;
+  }
+
+  .role-badge {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 
   .history-hint {

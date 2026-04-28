@@ -40,6 +40,19 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Fetch completion history for all entries
+  const entryIds = (entries ?? []).map((e: any) => e.id)
+  let completionHistory: any[] = []
+  if (entryIds.length > 0) {
+    completionHistory = await pgrestAdmin<any[]>('/service_entry_completion_history', {
+      query: {
+        service_entry_id: `in.(${entryIds.join(',')})`,
+        select: '*',
+        order: 'completed_at.desc'
+      }
+    }) ?? []
+  }
+
   return {
     record: {
       id: r.id,
@@ -49,28 +62,38 @@ export default defineEventHandler(async (event) => {
       type: r.type ?? '',
       location: r.location ?? ''
     },
-    entries: (entries ?? []).map((e: any) => ({
-      id: e.id,
-      recordCode: e.record_code,
-      startTime: formatTime(e.start_time),
-      endTime: formatTime(e.end_time),
-      status: e.status,
-      notes: e.notes ?? '',
-      checkCompletedAt: formatTimeOrNull(e.check_completed_at),
-      cleaningCompletedAt: formatTimeOrNull(e.cleaning_completed_at),
-      uvCheckCompletedAt: formatTimeOrNull(e.uv_check_completed_at),
-      jobStartedAt: formatTimeOrNull(e.job_started_at),
-      jobCompletedAt: formatTimeOrNull(e.job_completed_at),
-      checklist: (e.service_tasks ?? [])
-        .sort((a: any, b: any) => a.sort_order - b.sort_order)
-        .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),
-      messages: (e.service_messages ?? []).map((m: any) => ({
-        id: m.id,
-        fromRole: m.from_role,
-        fromName: m.from_name,
-        text: m.text,
-        createdAt: m.created_at
-      }))
-    }))
+    entries: (entries ?? []).map((e: any) => {
+      const history = completionHistory.filter((h: any) => h.service_entry_id === e.id)
+      return {
+        id: e.id,
+        recordCode: e.record_code,
+        startTime: formatTime(e.start_time),
+        endTime: formatTime(e.end_time),
+        status: e.status,
+        notes: e.notes ?? '',
+        createdByRole: e.created_by_role || null,
+        checkCompletedAt: formatTimeOrNull(e.check_completed_at),
+        cleaningCompletedAt: formatTimeOrNull(e.cleaning_completed_at),
+        uvCheckCompletedAt: formatTimeOrNull(e.uv_check_completed_at),
+        jobStartedAt: formatTimeOrNull(e.job_started_at),
+        jobCompletedAt: formatTimeOrNull(e.job_completed_at),
+        checklist: (e.service_tasks ?? [])
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+          .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),
+        messages: (e.service_messages ?? []).map((m: any) => ({
+          id: m.id,
+          fromRole: m.from_role,
+          fromName: m.from_name,
+          text: m.text,
+          createdAt: m.created_at
+        })),
+        completionHistory: history.map((h: any) => ({
+          id: h.id,
+          actionType: h.action_type,
+          completedAt: formatTimeOrNull(h.completed_at),
+          completedBy: h.completed_by
+        }))
+      }
+    })
   }
 })

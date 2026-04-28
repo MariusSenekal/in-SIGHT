@@ -33,23 +33,47 @@ export default defineEventHandler(async (event) => {
 
   const rows = await pgrest<any[]>('/service_entries', { token, query })
 
-  return (rows ?? []).map(e => ({
-    id: e.id,
-    recordCode: e.record_code,
-    startTime: fmt(e.start_time),
-    endTime: fmt(e.end_time),
-    status: e.status,
-    notes: e.notes ?? '',
-    checkCompletedAt: fmtOrNull(e.check_completed_at),
-    cleaningCompletedAt: fmtOrNull(e.cleaning_completed_at),
-    uvCheckCompletedAt: fmtOrNull(e.uv_check_completed_at),
-    jobStartedAt: fmtOrNull(e.job_started_at),
-    jobCompletedAt: fmtOrNull(e.job_completed_at),
-    checklist: (e.service_tasks ?? [])
-      .sort((a: any, b: any) => a.sort_order - b.sort_order)
-      .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),
-    messages: (e.service_messages ?? []).map((m: any) => ({
-      id: m.id, fromRole: m.from_role, fromName: m.from_name, text: m.text, createdAt: m.created_at
-    }))
-  }))
+  // Fetch completion history for all entries
+  const entryIds = (rows ?? []).map((e: any) => e.id)
+  let completionHistory: any[] = []
+  if (entryIds.length > 0) {
+    completionHistory = await pgrest<any[]>('/service_entry_completion_history', {
+      token,
+      query: {
+        service_entry_id: `in.(${entryIds.join(',')})`,
+        select: '*',
+        order: 'completed_at.desc'
+      }
+    }) ?? []
+  }
+
+  return (rows ?? []).map(e => {
+    const history = completionHistory.filter((h: any) => h.service_entry_id === e.id)
+    return {
+      id: e.id,
+      recordCode: e.record_code,
+      startTime: fmt(e.start_time),
+      endTime: fmt(e.end_time),
+      status: e.status,
+      notes: e.notes ?? '',
+      createdByRole: e.created_by_role || null,
+      checkCompletedAt: fmtOrNull(e.check_completed_at),
+      cleaningCompletedAt: fmtOrNull(e.cleaning_completed_at),
+      uvCheckCompletedAt: fmtOrNull(e.uv_check_completed_at),
+      jobStartedAt: fmtOrNull(e.job_started_at),
+      jobCompletedAt: fmtOrNull(e.job_completed_at),
+      checklist: (e.service_tasks ?? [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        .map((t: any) => ({ id: t.id, task: t.task, completed: t.completed })),
+      messages: (e.service_messages ?? []).map((m: any) => ({
+        id: m.id, fromRole: m.from_role, fromName: m.from_name, text: m.text, createdAt: m.created_at
+      })),
+      completionHistory: history.map((h: any) => ({
+        id: h.id,
+        actionType: h.action_type,
+        completedAt: fmtOrNull(h.completed_at),
+        completedBy: h.completed_by
+      }))
+    }
+  })
 })
