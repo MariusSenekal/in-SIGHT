@@ -589,6 +589,21 @@
           prepend-inner-icon="mdi-shield-account"
           variant="outlined"
           density="comfortable"
+          class="mb-2"
+        />
+        <v-select
+          v-if="isClientRole(createUserForm.role)"
+          v-model="createUserForm.companyId"
+          :items="companySelectItems"
+          item-title="title"
+          item-value="value"
+          label="Company *"
+          prepend-inner-icon="mdi-domain"
+          variant="outlined"
+          density="comfortable"
+          hint="Client roles must be assigned to a company"
+          persistent-hint
+        />
         />
         <v-alert v-if="createUserError" type="error" variant="tonal" density="compact" class="mt-2">{{ createUserError }}</v-alert>
         <v-alert v-if="createUserSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createUserSuccess }}</v-alert>
@@ -943,7 +958,13 @@ const submitCreateQrCode = async () => {
 
 // ── Create User ──────────────────────────────────────────────────────────────
 const showCreateUserDialog = ref(false)
-const createUserForm = reactive({ name: '', username: '', password: '', role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero' })
+const createUserForm = reactive({ 
+  name: '', 
+  username: '', 
+  password: '', 
+  role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero' | 'client_admin' | 'client_technician',
+  companyId: null as number | null
+})
 const createUserError = ref('')
 const createUserSuccess = ref('')
 const createUserLoading = ref(false)
@@ -953,12 +974,25 @@ const roleOptions = [
   { title: 'Staff', value: 'staff' },
   { title: 'Cleaner', value: 'cleaner' },
   { title: 'UV Hero', value: 'uv-hero' },
+  { title: 'Client Admin', value: 'client_admin' },
+  { title: 'Client Technician', value: 'client_technician' },
   { title: 'Admin', value: 'admin' }
 ]
+
+const isClientRole = (role: string) => {
+  return role === 'client_admin' || role === 'client_technician'
+}
 
 const submitCreateUser = async () => {
   createUserError.value = ''
   createUserSuccess.value = ''
+  
+  // Validate client roles have a company
+  if (isClientRole(createUserForm.role) && !createUserForm.companyId) {
+    createUserError.value = 'Client Admin and Client Technician roles must be assigned to a company.'
+    return
+  }
+  
   createUserLoading.value = true
   try {
     const result = await createUser(createUserForm.name, createUserForm.username, createUserForm.password, createUserForm.role)
@@ -966,11 +1000,22 @@ const submitCreateUser = async () => {
       createUserError.value = result.message
       return
     }
+    
+    // Link user to company if client role
+    if (isClientRole(createUserForm.role) && createUserForm.companyId) {
+      // Get the newly created user's ID from the users array
+      const newUser = users.value.find(u => u.username === createUserForm.username)
+      if (newUser) {
+        await linkUserToCompany(createUserForm.companyId, newUser.id)
+      }
+    }
+    
     createUserSuccess.value = result.message
     createUserForm.name = ''
     createUserForm.username = ''
     createUserForm.password = ''
     createUserForm.role = 'user'
+    createUserForm.companyId = null
     setTimeout(() => {
       showCreateUserDialog.value = false
       createUserSuccess.value = ''
@@ -1453,6 +1498,9 @@ const roleColor = (role: string) => {
   if (role === 'admin') { return 'error' }
   if (role === 'staff') { return 'warning' }
   if (role === 'cleaner') { return 'teal' }
+  if (role === 'uv-hero') { return 'purple' }
+  if (role === 'client_admin') { return 'green' }
+  if (role === 'client_technician') { return 'cyan' }
   return 'primary'
 }
 

@@ -7,9 +7,6 @@ export default defineNuxtConfig({
   build: {
     transpile: ['vuetify']
   },
-  experimental: {
-    inlineSSRStyles: false
-  },
   pwa: {
     registerType: 'autoUpdate',
     injectRegister: 'auto',
@@ -22,17 +19,17 @@ export default defineNuxtConfig({
       display: 'standalone',
       display_override: ['fullscreen', 'standalone', 'minimal-ui'],
       orientation: 'portrait',
-      scope: '/login/',
-      start_url: '/login/',
+      scope: '/',
+      start_url: '/',
       icons: [
         {
-          src: '/login/icons/pwa-192x192.png',
+          src: '/icons/pwa-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any maskable'
         },
         {
-          src: '/login/icons/pwa-512x512.png',
+          src: '/icons/pwa-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any maskable'
@@ -49,7 +46,7 @@ export default defineNuxtConfig({
     }
   },
   app: {
-    baseURL: '/login/',
+    baseURL: '/',
     head: {
       title: 'in-SIGHT - Record Manager',
       meta: [
@@ -61,8 +58,8 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
       link: [
-        { rel: 'apple-touch-icon', href: '/login/icons/apple-touch-icon.png' },
-        { rel: 'icon', type: 'image/png', href: '/login/icons/pwa-192x192.png' }
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', href: '/icons/pwa-192x192.png' }
       ]
     }
   },

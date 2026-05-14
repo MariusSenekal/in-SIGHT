@@ -12,7 +12,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   currentPath.value = to.fullPath
 
-  const { initAuth, ensureValidSession, isAdmin } = useAuth()
+  const { initAuth, ensureValidSession, isAdmin, isClientAdmin, isClientTechnician } = useAuth()
   initAuth()
 
   const isPublicRoute = to.path === '/' || to.path.startsWith('/scan')
@@ -24,7 +24,13 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/')
   }
 
+  // Block dashboard routes for non-admin users
   if (to.path.startsWith('/dashboard') && !isAdmin.value) {
+    return navigateTo('/')
+  }
+
+  // Block modules routes for users who are not client admins/technicians
+  if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value) {
     return navigateTo('/')
   }
 })

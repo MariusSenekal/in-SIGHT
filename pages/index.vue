@@ -366,7 +366,7 @@ definePageMeta({ ssr: false })
 type AuthMode = 'login' | 'signup'
 
 const logoUrl = `${useRuntimeConfig().app.baseURL}branding/login-logo-slide1-trimmed.png`
-const { currentUser, isAdmin, initAuth, login, signup, logout } = useAuth()
+const { currentUser, isAdmin, isClientAdmin, initAuth, login, signup, logout } = useAuth()
 const { addRequest } = useServiceRequests()
 const { getRecords } = useRecords()
 
@@ -443,7 +443,8 @@ const allActions = computed(() => [
     color1: 'rgb(var(--v-theme-primary))',
     color2: 'rgb(var(--v-theme-secondary))',
     action: () => navigateTo('/scan'),
-    adminOnly: false
+    adminOnly: false,
+    clientAdminOnly: false
   },
   {
     key: 'upload',
@@ -453,7 +454,19 @@ const allActions = computed(() => [
     color1: '#06b6d4',
     color2: '#0891b2',
     action: () => navigateTo('/upload'),
-    adminOnly: false
+    adminOnly: false,
+    clientAdminOnly: false
+  },
+  {
+    key: 'modules',
+    title: 'View Modules',
+    description: 'Access vehicle, equipment, and cleaning tracking modules.',
+    icon: 'mdi-view-module-outline',
+    color1: '#10b981',
+    color2: '#059669',
+    action: () => navigateTo('/modules'),
+    adminOnly: false,
+    clientAdminOnly: true
   },
   {
     key: 'dashboard',
@@ -463,7 +476,8 @@ const allActions = computed(() => [
     color1: '#7c3aed',
     color2: '#6d28d9',
     action: () => navigateTo('/dashboard'),
-    adminOnly: true
+    adminOnly: true,
+    clientAdminOnly: false
   },
   {
     key: 'maintenance',
@@ -473,12 +487,17 @@ const allActions = computed(() => [
     color1: '#ea580c',
     color2: '#c2410c',
     action: () => { showMaintenanceDialog.value = true },
-    adminOnly: false
+    adminOnly: false,
+    clientAdminOnly: false
   },
 ])
 
 const visibleActions = computed(() =>
-  allActions.value.filter(a => !a.adminOnly || isAdmin.value)
+  allActions.value.filter(a => {
+    if (a.adminOnly && !isAdmin.value) return false
+    if (a.clientAdminOnly && !isClientAdmin.value) return false
+    return true
+  })
 )
 
 onMounted(() => { initAuth() })

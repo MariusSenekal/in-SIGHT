@@ -12,7 +12,7 @@ export interface AppUser {
   id: number
   name: string
   username: string
-  role: 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero'
+  role: 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero' | 'client_admin' | 'client_technician'
   isActive?: boolean
   profile: UserProfile
   createdAt?: string
@@ -319,7 +319,7 @@ export const useAuth = () => {
   ): Promise<AuthResult> => {
     try {
       await $fetch(`/api/users/${userId}`, {
-        method: 'PATCH' as 'POST',
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${authToken.value}` },
         body: input
       })
@@ -351,7 +351,7 @@ export const useAuth = () => {
   const deleteUser = async (userId: number): Promise<AuthResult> => {
     try {
       await $fetch(`/api/users/${userId}`, {
-        method: 'DELETE' as 'POST',
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken.value}` }
       })
       users.value = users.value.filter(u => u.id !== userId)
@@ -371,6 +371,8 @@ export const useAuth = () => {
   const isCleaner = computed(() => currentUser.value?.role === 'cleaner')
   const isUvHero = computed(() => currentUser.value?.role === 'uv-hero')
   const isStaff = computed(() => currentUser.value?.role === 'staff')
+  const isClientAdmin = computed(() => currentUser.value?.role === 'client_admin')
+  const isClientTechnician = computed(() => currentUser.value?.role === 'client_technician')
   const isStaffOrCleaner = computed(() =>
     currentUser.value?.role === 'staff' || currentUser.value?.role === 'cleaner'
   )
@@ -389,6 +391,8 @@ export const useAuth = () => {
     isCleaner,
     isUvHero,
     isStaff,
+    isClientAdmin,
+    isClientTechnician,
     isStaffOrCleaner,
     isStaffOrCleanerOrUvHero,
     isAuthenticated,
