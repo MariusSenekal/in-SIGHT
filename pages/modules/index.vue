@@ -3,19 +3,24 @@
     <v-row justify="center">
       <v-col cols="12" md="11" lg="9" xl="8">
         
-        <!-- Page header -->
-        <div class="d-flex align-center mb-5">
-          <v-btn
-            icon="mdi-arrow-left"
-            variant="text"
-            @click="navigateTo('/')"
-            class="mr-2"
-          />
-          <div>
-            <h1 class="text-h4 font-weight-bold">Modules</h1>
-            <p class="text-medium-emphasis mb-0">Select a tracking module to manage</p>
+        <!-- Page header with gradient -->
+        <v-card rounded="xl" elevation="3" class="mb-4 overflow-hidden">
+          <div class="modules-hero">
+            <div class="d-flex align-center ga-3" style="position: relative; z-index: 1;">
+              <div class="modules-hero__icon">
+                <v-icon icon="mdi-view-grid-outline" size="28" color="white" />
+              </div>
+              <div>
+                <h1 class="text-h5 text-md-h4 font-weight-bold text-white">Modules</h1>
+                <p class="text-caption text-white d-none d-sm-block" style="opacity:0.8">Select a tracking module to manage</p>
+              </div>
+            </div>
+            <div class="d-flex ga-2 flex-wrap" style="position: relative; z-index: 1;">
+              <v-btn color="white" variant="tonal" prepend-icon="mdi-arrow-left" size="small" @click="navigateTo('/')">Back</v-btn>
+              <v-btn color="white" variant="outlined" prepend-icon="mdi-logout" size="small" @click="handleLogout">Log Out</v-btn>
+            </div>
           </div>
-        </div>
+        </v-card>
 
         <!-- Module cards grid -->
         <v-row dense>
@@ -54,7 +59,12 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { isAdmin } = useAuth()
+const { isAdmin, logout } = useAuth()
+
+const handleLogout = () => {
+  logout()
+  navigateTo('/')
+}
 
 const modules = [
   {
@@ -103,6 +113,39 @@ const availableModules = computed(() =>
 </script>
 
 <style scoped>
+.modules-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.modules-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.modules-hero__icon {
+  position: relative;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .module-card {
   position: relative;
   overflow: hidden;

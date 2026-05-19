@@ -15,7 +15,7 @@
             <v-btn
               icon="mdi-arrow-left"
               variant="text"
-              @click="navigateTo('/modules/vehicles')"
+              @click="handleBack"
               class="mr-2"
             />
             <div>
@@ -519,7 +519,7 @@
 definePageMeta({ ssr: false })
 
 const route = useRoute()
-const { authToken } = useAuth()
+const { authToken, isAdmin } = useAuth()
 const vehicleId = computed(() => route.params.id as string)
 
 interface Vehicle {
@@ -731,6 +731,16 @@ const editServiceEntry = (entry: ServiceHistory) => {
   serviceForm.notes = entry.notes
   
   showAddServiceDialog.value = true
+}
+
+const handleBack = () => {
+  // If admin came from management tools, route back to management
+  if (isAdmin.value && route.query.from === 'management') {
+    navigateTo('/dashboard/management')
+    return
+  }
+  // Otherwise go to vehicles list
+  navigateTo('/modules/vehicles')
 }
 
 const loadVehicle = async () => {

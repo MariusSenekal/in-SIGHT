@@ -1,5 +1,5 @@
 <template>
-  <v-container class="py-6">
+  <DashboardLayout>
     <!-- Live new-request snackbar -->
     <v-snackbar
       v-model="newRequestSnack"
@@ -15,20 +15,17 @@
       </template>
     </v-snackbar>
 
-    <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
-      <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
-        <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">Service Requests</h1>
-          <p class="text-medium-emphasis">Review maintenance, cleaning and satisfaction feedback from users.</p>
-        </div>
-        <div class="d-flex ga-2">
-          <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack({ adminFallback: '/' })">Back</v-btn>
-          <v-btn color="error" variant="tonal" prepend-icon="mdi-logout" @click="handleLogout">Log Out</v-btn>
-        </div>
-      </div>
+    <!-- Main content card -->
+    <v-card rounded="xl" elevation="2" class="pa-4 pa-md-6">
+          <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4">
+            <div>
+              <h2 class="text-h6 text-md-h5 font-weight-bold">Request Overview</h2>
+              <p class="text-body-2 text-medium-emphasis">Filter and manage service requests by type and status.</p>
+            </div>
+          </div>
 
-      <!-- Stats summary -->
-      <v-row dense class="mb-4">
+          <!-- Stats summary -->
+          <v-row dense class="mb-4">
         <v-col cols="6" sm="3">
           <v-card rounded="lg" color="success" variant="tonal" class="pa-3 text-center">
             <div class="text-h4 font-weight-bold">{{ happyCount }}</div>
@@ -53,10 +50,10 @@
             <div class="text-body-2 mt-1">🔧 Maintenance</div>
           </v-card>
         </v-col>
-      </v-row>
+          </v-row>
 
-      <!-- Active record-code filter banner -->
-      <v-alert
+          <!-- Active record-code filter banner -->
+          <v-alert
         v-if="filterCode"
         type="info"
         variant="tonal"
@@ -65,23 +62,23 @@
         closable
         @click:close="clearCodeFilter"
       >
-        Showing requests for QR code <strong>{{ filterCode }}</strong>. Click × to see all.
-      </v-alert>
+            Showing requests for QR code <strong>{{ filterCode }}</strong>. Click × to see all.
+          </v-alert>
 
-      <!-- Filter tabs -->
-      <v-tabs v-model="filterTab" color="primary" class="mb-4">
+          <!-- Filter tabs -->
+          <v-tabs v-model="filterTab" color="primary" class="mb-4">
         <v-tab value="all">All</v-tab>
         <v-tab value="maintenance">Maintenance</v-tab>
         <v-tab value="cleaning">Cleaning</v-tab>
         <v-tab value="satisfaction">Satisfaction</v-tab>
         <v-tab value="open">Open</v-tab>
-      </v-tabs>
+          </v-tabs>
 
-      <v-alert v-if="filteredRequests.length === 0" type="info" variant="tonal" border="start">
-        No requests match the current filter.
-      </v-alert>
+          <v-alert v-if="filteredRequests.length === 0" type="info" variant="tonal" border="start">
+            No requests match the current filter.
+          </v-alert>
 
-      <v-row v-else dense>
+          <v-row v-else dense>
         <v-col cols="12" md="6" v-for="request in filteredRequests" :key="request.id">
           <v-card
             rounded="lg"
@@ -149,9 +146,9 @@
             </v-card-actions>
           </v-card>
         </v-col>
-      </v-row>
-    </v-card>
-  </v-container>
+          </v-row>
+        </v-card>
+  </DashboardLayout>
 
   <!-- ── Delete Request Confirm Dialog ──────────────────────────────────── -->
   <v-dialog v-model="showDeleteDialog" max-width="400" persistent>
@@ -176,8 +173,7 @@
 <script setup lang="ts">
 import type { ServiceRequest } from '~/composables/useServiceRequests'
 
-const { currentUser, isAdmin, initAuth, logout } = useAuth()
-const { goBack } = useAppNavigation()
+const { currentUser, isAdmin, initAuth } = useAuth()
 const { getRequests, loadRequests, setRequestStatus, requests, deleteRequest } = useServiceRequests()
 const { connect, disconnect } = useSocket()
 const route = useRoute()
@@ -243,11 +239,6 @@ onMounted(async () => {
 onUnmounted(() => {
   disconnect()
 })
-
-const handleLogout = () => {
-  logout()
-  navigateTo('/')
-}
 
 const markResolved = (id: number) => {
   setRequestStatus(id, 'resolved')

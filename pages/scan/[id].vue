@@ -953,12 +953,15 @@ onMounted(async () => {
     )
     
     // Check if this is a vehicle or equipment code - redirect to tracking page
+    // Preserve the 'from' query parameter for proper back navigation
     if (data.type === 'vehicle') {
-      await navigateTo(`/modules/vehicles/${data.id}`)
+      const query = route.query.from ? { from: route.query.from } : {}
+      await navigateTo({ path: `/modules/vehicles/${data.id}`, query })
       return
     }
     if (data.type === 'equipment') {
-      await navigateTo(`/modules/equipment/${data.id}`)
+      const query = route.query.from ? { from: route.query.from } : {}
+      await navigateTo({ path: `/modules/equipment/${data.id}`, query })
       return
     }
     
@@ -1196,10 +1199,19 @@ const submitServiceRequest = async () => {
 }
 
 const handleBackToWelcome = () => {
+  // Check if admin came from management tools - route back to management tools
+  if (isAdmin.value && route.query.from === 'management') {
+    navigateTo('/dashboard/management')
+    return
+  }
+  
+  // Regular users go home
   if (!isAdmin.value) {
     navigateTo('/')
     return
   }
+  
+  // Admins use goBack with fallback
   goBack({ adminFallback: '/dashboard', userFallback: '/' })
 }
 </script>

@@ -1,6 +1,5 @@
 <template>
-  <div class="container">
-
+  <DashboardLayout>
     <!-- Live service request notification snackbar -->
     <v-snackbar
       v-model="liveRequestSnack"
@@ -18,63 +17,6 @@
         <v-btn variant="text" @click="liveRequestSnack = false">Dismiss</v-btn>
       </template>
     </v-snackbar>
-
-    <!-- Hero header -->
-    <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
-      <div class="mgmt-hero">
-        <div class="d-flex align-center ga-3">
-          <div class="mgmt-hero__icon">
-            <v-icon icon="mdi-cog-outline" size="28" color="white" />
-          </div>
-          <div>
-            <h1 class="text-h5 text-md-h4 font-weight-bold text-white">Management Tools</h1>
-            <p class="text-caption text-white" style="opacity:0.8">Admin directory, QR records, checklists and service request management.</p>
-          </div>
-        </div>
-        <div class="d-flex ga-2 flex-wrap">
-          <v-btn color="white" variant="tonal" prepend-icon="mdi-arrow-left" size="small" @click="navigateTo('/')">Back</v-btn>
-          <v-btn color="white" variant="outlined" prepend-icon="mdi-logout" size="small" @click="handleLogout">Log Out</v-btn>
-        </div>
-      </div>
-    </v-card>
-
-    <!-- Quick action cards -->
-    <v-row dense class="mb-5">
-      <v-col cols="12" sm="6" lg="3" v-for="item in quickActions" :key="item.to">
-        <v-badge
-          v-if="item.to === '/dashboard/requests' && liveRequestCount > 0"
-          :content="liveRequestCount"
-          color="error"
-          floating
-          class="w-100"
-        >
-          <v-card :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100 w-100" @click="liveRequestCount = 0">
-            <div class="mgmt-action-card__strip" :style="`background: linear-gradient(90deg, ${item.color1} 0%, ${item.color2} 100%)`" />
-            <v-card-text class="pa-4">
-              <div class="d-flex align-center ga-3 mb-2">
-                <div class="mgmt-action-card__icon" :style="`background: linear-gradient(135deg, ${item.color1} 0%, ${item.color2} 100%)`">
-                  <v-icon :icon="item.icon" color="white" size="20" />
-                </div>
-                <h3 class="text-subtitle-2 font-weight-bold">{{ item.title }}</h3>
-              </div>
-              <p class="text-body-2 text-medium-emphasis">{{ item.description }}</p>
-            </v-card-text>
-          </v-card>
-        </v-badge>
-        <v-card v-else :to="item.to" rounded="xl" elevation="2" class="mgmt-action-card cursor-pointer h-100">
-          <div class="mgmt-action-card__strip" :style="`background: linear-gradient(90deg, ${item.color1} 0%, ${item.color2} 100%)`" />
-          <v-card-text class="pa-4">
-            <div class="d-flex align-center ga-3 mb-2">
-              <div class="mgmt-action-card__icon" :style="`background: linear-gradient(135deg, ${item.color1} 0%, ${item.color2} 100%)`">
-                <v-icon :icon="item.icon" color="white" size="20" />
-              </div>
-              <h3 class="text-subtitle-2 font-weight-bold">{{ item.title }}</h3>
-            </div>
-            <p class="text-body-2 text-medium-emphasis">{{ item.description }}</p>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
 
     <!-- Main content card -->
     <v-card rounded="xl" elevation="2" class="pa-2 pa-md-3">
@@ -432,7 +374,7 @@
                         <v-card variant="outlined" rounded="lg" class="pa-2">
                           <QrcodeVue :value="toScanUrl(record)" :size="130" level="H" render-as="svg" />
                         </v-card>
-                        <v-btn :to="`/scan/${record.code}`" color="primary" variant="flat" prepend-icon="mdi-open-in-new">
+                        <v-btn :to="`/scan/${record.code}?from=management`" color="primary" variant="flat" prepend-icon="mdi-open-in-new">
                           Open QR Site
                         </v-btn>
                       </v-col>
@@ -530,7 +472,7 @@
                       <QrcodeVue :value="toScanUrl(rec)" :size="80" level="H" render-as="svg" />
                     </div>
                     <div class="d-flex ga-2 mt-2">
-                      <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" class="flex-grow-1">
+                      <v-btn :to="`/scan/${rec.code}?from=management`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" class="flex-grow-1">
                         Open Tracking Page
                       </v-btn>
                       <v-btn v-if="rec.itemType === 'record'" size="small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(rec as any)" />
@@ -555,7 +497,7 @@
         </v-col>
       </v-row>
     </v-card>
-  </div>
+  </DashboardLayout>
 
   <!-- ── Create User Dialog ──────────────────────────────────────────────── -->
   <v-dialog v-model="showCreateUserDialog" max-width="440" persistent>
@@ -1478,41 +1420,6 @@ const getUserNameById = (userId: number) => {
   return user ? (user.profile?.displayName || user.name) : `User #${userId}`
 }
 
-const quickActions = [
-  {
-    to: '/dashboard',
-    title: 'Dashboard Home',
-    description: 'Return to the admin dashboard overview.',
-    icon: 'mdi-view-dashboard-outline',
-    color1: 'rgb(var(--v-theme-primary))',
-    color2: 'rgb(var(--v-theme-secondary))'
-  },
-  {
-    to: '/records',
-    title: 'Record Access',
-    description: 'Manage records and identifiers.',
-    icon: 'mdi-folder-multiple-outline',
-    color1: '#0d9488',
-    color2: '#0891b2'
-  },
-  {
-    to: '/dashboard/qr-codes',
-    title: 'QR Code Section',
-    description: 'Generate printable QR pages.',
-    icon: 'mdi-qrcode',
-    color1: '#7c3aed',
-    color2: '#6d28d9'
-  },
-  {
-    to: '/dashboard/requests',
-    title: 'Service Requests',
-    description: 'Review and resolve requests.',
-    icon: 'mdi-clipboard-list-outline',
-    color1: '#ea580c',
-    color2: '#c2410c'
-  }
-]
-
 const allRecords = computed(() => getRecords())
 
 const filteredUsers = computed(() => {
@@ -1787,11 +1694,6 @@ onMounted(async () => {
 onUnmounted(() => {
   disconnect()
 })
-
-const handleLogout = () => {
-  logout()
-  navigateTo('/')
-}
 
 const toScanUrl = (record: { code: string; name: string; location: string }) => {
   const { siteUrl } = useRuntimeConfig().public

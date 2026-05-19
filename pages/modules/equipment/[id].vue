@@ -15,7 +15,7 @@
             <v-btn
               icon="mdi-arrow-left"
               variant="text"
-              @click="navigateTo('/modules/equipment')"
+              @click="handleBack"
               class="mr-2"
             />
             <div>
@@ -198,7 +198,7 @@
 definePageMeta({ ssr: false })
 
 const route = useRoute()
-const { authToken } = useAuth()
+const { authToken, isAdmin } = useAuth()
 const equipmentId = computed(() => route.params.id as string)
 
 interface Equipment {
@@ -265,6 +265,16 @@ const formatDate = (dateStr: string) => {
     month: 'short', 
     day: 'numeric' 
   })
+}
+
+const handleBack = () => {
+  // If admin came from management tools, route back to management
+  if (isAdmin.value && route.query.from === 'management') {
+    navigateTo('/dashboard/management')
+    return
+  }
+  // Otherwise go to equipment list
+  navigateTo('/modules/equipment')
 }
 
 const loadEquipment = async () => {

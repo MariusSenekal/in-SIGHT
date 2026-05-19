@@ -1,18 +1,14 @@
 <template>
-  <v-container class="py-6">
-    <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6">
+  <DashboardLayout>
+    <!-- Quick action for creating QR codes -->
+    <div v-if="isAdmin" class="d-flex justify-end mb-4">
+      <v-btn color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="openCreateRecord">
+        Create QR Code
+      </v-btn>
+    </div>
 
-      <!-- ── Header ── -->
-      <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-5">
-        <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">in-SIGHT Records</h1>
-          <p class="text-medium-emphasis">{{ isAdmin ? 'Manage all QR codes, records, owners and associated requests.' : 'View your assigned cleaning records.' }}</p>
-        </div>
-        <div class="d-flex flex-wrap ga-2">
-          <v-btn v-if="isAdmin" color="success" variant="flat" prepend-icon="mdi-qrcode-plus" @click="openCreateRecord">Create QR Code</v-btn>
-          <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack()">Back</v-btn>
-        </div>
-      </div>
+    <!-- Main content card -->
+    <v-card rounded="xl" elevation="2" class="pa-4 pa-md-6">
 
       <!-- ── Filters (admin only) ── -->
       <v-row v-if="isAdmin" dense class="mb-4">
@@ -221,9 +217,8 @@
       </v-row>
 
     </v-card>
-  </v-container>
 
-  <!-- ── Create / Edit Record Dialog ── -->
+    <!-- ── Create / Edit Record Dialog ── -->
   <v-dialog v-model="showRecordDialog" max-width="520" persistent>
     <v-card rounded="lg">
       <v-card-title class="d-flex align-center ga-2">
@@ -305,6 +300,7 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+  </DashboardLayout>
 </template>
 
 <script setup lang="ts">
@@ -312,7 +308,6 @@ import type { Record as QrRecord } from '~/composables/useRecords'
 import type { AppUser, Company } from '~/composables/useAuth'
 
 const { isAdmin, initAuth, users, companies, loadUsers, loadCompanies, authToken } = useAuth()
-const { goBack } = useAppNavigation()
 const { records, loadRecords, addRecord, updateRecord, deleteRecord } = useRecords()
 const { requests, loadRequests } = useServiceRequests()
 

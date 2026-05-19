@@ -1,245 +1,320 @@
 <template>
-  <div class="container">
-    <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6 app-shell">
-      <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4 print-hidden">
-        <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">QR Code Management</h1>
-          <p class="text-medium-emphasis">Select records, vehicles, or equipment to generate and print QR code sheets.</p>
-        </div>
-        <div class="d-flex ga-2 flex-wrap">
-          <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack({ adminFallback: '/' })">Back</v-btn>
-          <v-btn color="error" variant="tonal" prepend-icon="mdi-logout" @click="handleLogout">Log Out</v-btn>
-        </div>
-      </div>
+  <DashboardLayout>
+    <!-- Main Content -->
+    <v-row dense class="print-hidden">
+          <!-- Controls Column -->
+          <v-col cols="12" md="5" lg="4">
+            <v-card rounded="xl" elevation="2" class="mb-4">
+              <div class="card-accent-top" />
+              <v-card-title class="d-flex align-center ga-2">
+                <v-icon icon="mdi-checklist" color="primary" />
+                Item Selection
+              </v-card-title>
+              <v-card-text class="pa-3 pa-sm-4">
+                <div class="d-flex ga-2 mb-3 flex-wrap">
+                  <v-btn variant="tonal" prepend-icon="mdi-select-all" size="small" @click="selectAll">Select All</v-btn>
+                  <v-btn variant="tonal" prepend-icon="mdi-close-box-multiple-outline" size="small" @click="clearAll">Clear</v-btn>
+                  <v-chip color="primary" size="small" variant="tonal">{{ selectedIds.length }} selected</v-chip>
+                </div>
 
-      <v-row dense class="mb-3 print-hidden">
-        <v-col cols="12" md="3" v-for="item in quickActions" :key="item.to">
-          <v-card :to="item.to" variant="tonal" rounded="lg" class="h-100">
-            <v-card-title class="d-flex align-center ga-2"><v-icon :icon="item.icon" />{{ item.title }}</v-card-title>
-            <v-card-text class="text-medium-emphasis">{{ item.description }}</v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+                <v-text-field
+                  v-model="searchTerm"
+                  label="Search items"
+                  prepend-inner-icon="mdi-magnify"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  clearable
+                  class="mb-2"
+                />
 
-      <v-row class="qr-layout-row" dense>
-        <v-col cols="12" md="5" class="qr-controls-col qr-controls-scroll">
-          <v-card variant="outlined" rounded="lg" class="record-selection-card">
-            <v-card-title class="d-flex align-center ga-2"><v-icon icon="mdi-checklist" />Item Selection</v-card-title>
-            <v-card-text>
-              <div class="d-flex ga-2 mb-3 flex-wrap">
-                <v-btn variant="tonal" prepend-icon="mdi-select-all" @click="selectAll">Select All</v-btn>
-                <v-btn variant="tonal" prepend-icon="mdi-close-box-multiple-outline" @click="clearAll">Clear</v-btn>
-                <v-chip color="primary" size="small" variant="tonal">{{ selectedIds.length }} selected</v-chip>
-              </div>
+                <v-select
+                  v-model="selectedTypeFilter"
+                  :items="typeFilterItems"
+                  label="Filter by type"
+                  prepend-inner-icon="mdi-filter-variant"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="mb-2"
+                />
 
-              <v-text-field
-                v-model="searchTerm"
-                label="Search items"
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                class="mb-3"
-              />
+                <v-select
+                  v-model="selectedOwnerFilter"
+                  :items="ownerFilterItems"
+                  label="Filter by owner"
+                  prepend-inner-icon="mdi-filter"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="mb-3"
+                />
 
-              <v-select
-                v-model="selectedTypeFilter"
-                :items="typeFilterItems"
-                label="Filter by type"
-                prepend-inner-icon="mdi-filter-variant"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                class="mb-2"
-              />
+                <v-list class="rounded-lg" lines="two" nav density="compact" style="max-height: 400px; overflow-y: auto;">
+                  <v-list-item v-for="item in filteredItems" :key="`${item.type}-${item.id}`" rounded="lg" class="mb-1">
+                    <template #prepend>
+                      <v-checkbox-btn
+                        :model-value="selectedIds.includes(`${item.type}-${item.id}`)"
+                        @update:model-value="setItemSelection(`${item.type}-${item.id}`, Boolean($event))"
+                      />
+                    </template>
 
-              <v-select
-                v-model="selectedOwnerFilter"
-                :items="ownerFilterItems"
-                label="Filter by owner (user or company)"
-                prepend-inner-icon="mdi-filter"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                class="mb-3"
-              />
+                    <v-list-item-title class="text-body-2">
+                      {{ item.name }}
+                      <v-chip size="x-small" :color="getTypeColor(item.type)" variant="tonal" class="ml-1">
+                        {{ getTypeLabel(item.type) }}
+                      </v-chip>
+                    </v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">
+                      {{ item.code }} | 
+                      <span v-if="item.ownerCompanyName" class="font-weight-medium">{{ item.ownerCompanyName }}</span>
+                      <span v-else>{{ itemOwnerLabel(item.ownerUserId) }}</span>
+                    </v-list-item-subtitle>
 
-              <v-list class="qr-record-list-material" lines="two" nav>
-                <v-list-item v-for="item in filteredItems" :key="`${item.type}-${item.id}`" rounded="lg">
-                  <template #prepend>
-                    <v-checkbox-btn
-                      :model-value="selectedIds.includes(`${item.type}-${item.id}`)"
-                      @update:model-value="setItemSelection(`${item.type}-${item.id}`, Boolean($event))"
+                    <template #append>
+                      <v-text-field
+                        :model-value="quantityById[`${item.type}-${item.id}`] || 1"
+                        type="number"
+                        min="1"
+                        max="500"
+                        label="Qty"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        style="max-width: 80px;"
+                        @update:model-value="updateQuantityValue(`${item.type}-${item.id}`, $event)"
+                      />
+                    </template>
+                  </v-list-item>
+                </v-list>
+
+                <v-alert v-if="filteredItems.length === 0" type="info" variant="tonal" density="compact" class="mt-2">
+                  No items match your search.
+                </v-alert>
+              </v-card-text>
+            </v-card>
+
+            <v-card rounded="xl" elevation="2" class="mb-4">
+              <div class="card-accent-top" />
+              <v-card-title class="d-flex align-center ga-2">
+                <v-icon icon="mdi-tune-vertical" color="primary" />
+                Page & QR Settings
+              </v-card-title>
+              <v-card-text class="pa-3 pa-sm-4">
+                <v-row dense>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="selectedPagePreset"
+                      :items="pagePresetItems"
+                      label="Page Size"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
                     />
-                  </template>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="orientation"
+                      :items="orientationItems"
+                      label="Orientation"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
 
-                  <v-list-item-title>
-                    {{ item.name }}
-                    <v-chip size="x-small" :color="getTypeColor(item.type)" variant="tonal" class="ml-2">
-                      {{ getTypeLabel(item.type) }}
-                    </v-chip>
-                  </v-list-item-title>
-                  <v-list-item-subtitle>
-                    {{ item.code }} | 
-                    <span v-if="item.ownerCompanyName" class="font-weight-medium">{{ item.ownerCompanyName }}</span>
-                    <span v-else>{{ itemOwnerLabel(item.ownerUserId) }}</span>
-                  </v-list-item-subtitle>
+                <v-row v-if="selectedPagePreset === 'Custom'" dense class="mt-2">
+                  <v-col cols="6" sm="6">
+                    <v-text-field v-model.number="customWidthMm" type="number" min="100" max="500" label="Width (mm)" variant="outlined" density="compact" hide-details />
+                  </v-col>
+                  <v-col cols="6" sm="6">
+                    <v-text-field v-model.number="customHeightMm" type="number" min="100" max="700" label="Height (mm)" variant="outlined" density="compact" hide-details />
+                  </v-col>
+                </v-row>
 
-                  <template #append>
-                    <v-text-field
-                      :model-value="quantityById[`${item.type}-${item.id}`] || 1"
-                      type="number"
-                      min="1"
-                      max="500"
-                      label="Qty"
+                <v-slider v-model="qrSizeMm" :min="10" :max="260" :step="1" color="primary" class="mt-3" thumb-label>
+                  <template #prepend><span class="text-caption text-sm-body-2">QR Size</span></template>
+                  <template #append><span class="text-caption text-sm-body-2">{{ qrSizeMm }}mm</span></template>
+                </v-slider>
+
+                <v-slider v-model="marginMm" :min="5" :max="25" :step="1" color="primary" thumb-label>
+                  <template #prepend><span class="text-caption text-sm-body-2">Margin</span></template>
+                  <template #append><span class="text-caption text-sm-body-2">{{ marginMm }}mm</span></template>
+                </v-slider>
+
+                <v-slider v-model="gapMm" :min="2" :max="16" :step="1" color="primary" thumb-label>
+                  <template #prepend><span class="text-caption text-sm-body-2">Gap</span></template>
+                  <template #append><span class="text-caption text-sm-body-2">{{ gapMm }}mm</span></template>
+                </v-slider>
+
+                <v-alert v-if="isQrSizeClamped" type="warning" variant="tonal" border="start" density="compact" class="mb-3">
+                  QR size clamped to {{ effectiveQrSizeMm.toFixed(0) }}mm to fit page.
+                </v-alert>
+
+                <v-list density="compact" class="mb-3 rounded-lg">
+                  <v-list-item>
+                    <v-list-item-title class="text-caption text-sm-body-2">Sheet Size</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">{{ pageWidthMm.toFixed(0) }}mm x {{ pageHeightMm.toFixed(0) }}mm</v-list-item-subtitle>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-title class="text-caption text-sm-body-2">Effective QR Size</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">{{ effectiveQrSizeMm.toFixed(0) }}mm</v-list-item-subtitle>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-title class="text-caption text-sm-body-2">Smart Packing</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">{{ perRow }} × {{ perColumn }} = {{ perPage }} per page</v-list-item-subtitle>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-title class="text-caption text-sm-body-2">Total QR Labels</v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">{{ expandedRecords.length }} ({{ pages.length }} page{{ pages.length === 1 ? '' : 's' }})</v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+
+                <v-btn block color="primary" prepend-icon="mdi-printer" :disabled="expandedRecords.length === 0" @click="printSheets">
+                  Print QR Sheets
+                </v-btn>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <!-- Preview Column -->
+          <v-col cols="12" md="7" lg="8">
+            <v-card rounded="xl" elevation="2">
+              <div class="card-accent-top" />
+              <v-card-title class="d-flex align-center ga-2">
+                <v-icon icon="mdi-eye-outline" color="primary" />
+                QR Preview
+                <v-spacer />
+                <v-btn
+                  class="print-hidden d-none d-sm-flex"
+                  color="primary"
+                  variant="flat"
+                  prepend-icon="mdi-printer"
+                  size="small"
+                  :disabled="expandedRecords.length === 0"
+                  @click="printSheets"
+                >
+                  Print
+                </v-btn>
+              </v-card-title>
+              <v-card-text class="pa-3 pa-sm-4">
+                <v-alert v-if="expandedRecords.length > 0" type="info" variant="tonal" border="start" density="compact" class="mb-3 print-hidden">
+                  Preview auto-packs QR codes to fit each page. Use arrow keys or buttons to navigate.
+                </v-alert>
+                <v-alert v-else type="info" variant="tonal" border="start" density="compact" class="print-hidden">
+                  Select at least one item to generate printable QR sheets.
+                </v-alert>
+
+                <!-- Pagination Controls -->
+                <div v-if="pages.length > 1" class="d-flex flex-wrap align-center justify-space-between ga-2 mb-3 print-hidden">
+                  <div class="d-flex ga-1">
+                    <v-btn
+                      icon="mdi-chevron-left"
+                      size="small"
+                      variant="tonal"
+                      :disabled="currentPage === 0"
+                      @click="previousPage"
+                    />
+                    <v-btn
+                      icon="mdi-chevron-right"
+                      size="small"
+                      variant="tonal"
+                      :disabled="currentPage === pages.length - 1"
+                      @click="nextPage"
+                    />
+                  </div>
+                  
+                  <div class="d-flex align-center ga-2 flex-grow-1 justify-center">
+                    <span class="text-body-2 font-weight-medium">Page {{ currentPage + 1 }} of {{ pages.length }}</span>
+                    <v-select
+                      :model-value="currentPage"
+                      :items="pageOptions"
                       density="compact"
                       variant="outlined"
                       hide-details
-                      style="max-width: 110px;"
-                      @update:model-value="updateQuantityValue(`${item.type}-${item.id}`, $event)"
+                      style="max-width: 100px;"
+                      @update:model-value="goToPage"
                     />
-                  </template>
-                </v-list-item>
-              </v-list>
-
-              <v-alert v-if="filteredItems.length === 0" type="info" variant="tonal" density="compact" class="mt-2">
-                No items match your search.
-              </v-alert>
-            </v-card-text>
-          </v-card>
-
-          <v-card variant="outlined" rounded="lg" class="page-settings-card">
-            <v-card-title class="d-flex align-center ga-2"><v-icon icon="mdi-tune-vertical" />Page and QR Settings</v-card-title>
-            <v-card-text>
-              <v-row dense>
-                <v-col cols="12" md="6">
-                  <v-select
-                    v-model="selectedPagePreset"
-                    :items="pagePresetItems"
-                    label="Page Size"
-                    variant="outlined"
-                    density="comfortable"
-                    hide-details
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-select
-                    v-model="orientation"
-                    :items="orientationItems"
-                    label="Orientation"
-                    variant="outlined"
-                    density="comfortable"
-                    hide-details
-                  />
-                </v-col>
-              </v-row>
-
-              <v-row v-if="selectedPagePreset === 'Custom'" dense class="mt-1">
-                <v-col cols="12" md="6">
-                  <v-text-field v-model.number="customWidthMm" type="number" min="100" max="500" label="Width (mm)" variant="outlined" density="comfortable" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model.number="customHeightMm" type="number" min="100" max="700" label="Height (mm)" variant="outlined" density="comfortable" />
-                </v-col>
-              </v-row>
-
-              <v-slider v-model="qrSizeMm" :min="10" :max="260" :step="1" color="primary" class="mt-2" thumb-label>
-                <template #prepend><span class="text-body-2">QR Size</span></template>
-                <template #append><span class="text-body-2">{{ qrSizeMm }}mm</span></template>
-              </v-slider>
-
-              <v-slider v-model="marginMm" :min="5" :max="25" :step="1" color="primary" thumb-label>
-                <template #prepend><span class="text-body-2">Margin</span></template>
-                <template #append><span class="text-body-2">{{ marginMm }}mm</span></template>
-              </v-slider>
-
-              <v-slider v-model="gapMm" :min="2" :max="16" :step="1" color="primary" thumb-label>
-                <template #prepend><span class="text-body-2">Gap</span></template>
-                <template #append><span class="text-body-2">{{ gapMm }}mm</span></template>
-              </v-slider>
-
-              <v-alert v-if="isQrSizeClamped" type="warning" variant="tonal" border="start" class="mb-3">
-                Requested QR size is larger than printable area. Using max safe size: {{ effectiveQrSizeMm.toFixed(0) }}mm.
-              </v-alert>
-
-              <v-list density="compact" class="mb-3">
-                <v-list-item title="Sheet Size" :subtitle="`${pageWidthMm.toFixed(0)}mm x ${pageHeightMm.toFixed(0)}mm`" />
-                <v-list-item title="Effective QR Size" :subtitle="`${effectiveQrSizeMm.toFixed(0)}mm`" />
-                <v-list-item title="Smart Packing" :subtitle="`${perRow} across x ${perColumn} down = ${perPage} per page`" />
-                <v-list-item title="Total QR Labels" :subtitle="`${expandedRecords.length} (${pages.length} page${pages.length === 1 ? '' : 's'})`" />
-              </v-list>
-
-              <v-btn color="primary" prepend-icon="mdi-printer" :disabled="expandedRecords.length === 0" @click="printSheets">
-                Print QR Sheets
-              </v-btn>
-            </v-card-text>
-          </v-card>
-        </v-col>
-
-        <v-col cols="12" md="7" class="print-preview-area preview-col">
-          <v-card variant="outlined" rounded="lg" class="preview-pane">
-            <v-card-title class="d-flex align-center ga-2">
-              <v-icon icon="mdi-eye-outline" />
-              QR Preview
-              <v-spacer />
-              <v-btn
-                class="print-hidden"
-                color="primary"
-                variant="flat"
-                prepend-icon="mdi-printer"
-                :disabled="expandedRecords.length === 0"
-                @click="printSheets"
-              >
-                Print Preview
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <v-alert v-if="expandedRecords.length > 0" type="info" variant="tonal" border="start" class="mb-3 print-hidden">
-                Preview auto-packs QR codes to fit each page.
-              </v-alert>
-              <v-alert v-else type="info" variant="tonal" border="start" class="print-hidden">
-                Select at least one record to generate printable QR sheets.
-              </v-alert>
-
-              <div class="qr-sheet-stack" v-if="expandedRecords.length > 0">
-                <article
-                  v-for="(pageRecords, pageIndex) in pages"
-                  :key="`page-${pageIndex}`"
-                  class="qr-sheet"
-                  :style="sheetStyle"
-                >
-                  <header class="qr-sheet-header">
-                    <h3>QR Sheet {{ pageIndex + 1 }}</h3>
-                    <p>{{ pageLabel }} | {{ pageRecords.length }} codes</p>
-                  </header>
-
-                  <div class="qr-sheet-grid" :style="gridStyle">
-                    <div
-                      v-for="recordEntry in pageRecords"
-                      :key="`${recordEntry.record.id}-${recordEntry.copyIndex}`"
-                      class="qr-sheet-item"
-                      :style="sheetItemStyle"
-                    >
-                      <div class="qr-code-frame" :style="qrFrameStyle">
-                        <QrcodeVue
-                          :value="toScanUrl(recordEntry.record)"
-                          :size="qrPixelSize"
-                          level="H"
-                          render-as="svg"
-                          :style="qrSvgStyle"
-                        />
-                      </div>
-                      <p class="qr-item-code" :style="qrCodeTextStyle">{{ recordEntry.record.code }}</p>
-                    </div>
                   </div>
-                </article>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-card>
-  </div>
+                  
+                  <v-chip size="small" variant="tonal" color="primary">
+                    {{ currentPageRecords.length }} codes
+                  </v-chip>
+                </div>
+
+                <!-- Print-only: All pages -->
+                <div class="qr-sheet-stack print-only" v-if="expandedRecords.length > 0" style="display: none;">
+                  <article
+                    v-for="(pageRecords, pageIndex) in pages"
+                    :key="`print-page-${pageIndex}`"
+                    class="qr-sheet"
+                    :style="sheetStyle"
+                  >
+                    <header class="qr-sheet-header">
+                      <h3 class="text-subtitle-2 text-sm-h6">QR Sheet {{ pageIndex + 1 }}</h3>
+                      <p class="text-caption text-sm-body-2">{{ pageLabel }} | {{ pageRecords.length }} codes</p>
+                    </header>
+
+                    <div class="qr-sheet-grid" :style="gridStyle">
+                      <div
+                        v-for="recordEntry in pageRecords"
+                        :key="`${recordEntry.record.id}-${recordEntry.copyIndex}`"
+                        class="qr-sheet-item"
+                        :style="sheetItemStyle"
+                      >
+                        <div class="qr-code-frame" :style="qrFrameStyle">
+                          <QrcodeVue
+                            :value="toScanUrl(recordEntry.record)"
+                            :size="qrPixelSize"
+                            level="H"
+                            render-as="svg"
+                            :style="qrSvgStyle"
+                          />
+                        </div>
+                        <p class="qr-item-code" :style="qrCodeTextStyle">{{ recordEntry.record.code }}</p>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <!-- Screen preview: Current page only -->
+                <div class="qr-sheet-stack" v-if="expandedRecords.length > 0 && currentPageRecords.length > 0">
+                  <article
+                    class="qr-sheet"
+                    :style="sheetStyle"
+                  >
+                    <header class="qr-sheet-header">
+                      <h3 class="text-subtitle-2 text-sm-h6">QR Sheet {{ currentPage + 1 }}</h3>
+                      <p class="text-caption text-sm-body-2">{{ pageLabel }} | {{ currentPageRecords.length }} codes</p>
+                    </header>
+
+                    <div class="qr-sheet-grid" :style="gridStyle">
+                      <div
+                        v-for="recordEntry in currentPageRecords"
+                        :key="`${recordEntry.record.id}-${recordEntry.copyIndex}`"
+                        class="qr-sheet-item"
+                        :style="sheetItemStyle"
+                      >
+                        <div class="qr-code-frame" :style="qrFrameStyle">
+                          <QrcodeVue
+                            :value="toScanUrl(recordEntry.record)"
+                            :size="qrPixelSize"
+                            level="H"
+                            render-as="svg"
+                            :style="qrSvgStyle"
+                          />
+                        </div>
+                        <p class="qr-item-code" :style="qrCodeTextStyle">{{ recordEntry.record.code }}</p>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+  </DashboardLayout>
 </template>
 
 <script setup lang="ts">
@@ -259,7 +334,6 @@ if (import.meta.client) {
   onMounted(checkAccess)
   watch(() => currentUser.value, checkAccess)
 }
-const { goBack } = useAppNavigation()
 const { records, loadRecords } = useRecords()
 const { authToken } = useAuth()
 
@@ -357,6 +431,7 @@ const searchTerm = ref('')
 const selectedOwnerFilter = ref('all')
 const selectedTypeFilter = ref('all')
 const quantityById = ref<Record<string, number>>({})
+const currentPage = ref(0)
 
 const selectedPagePreset = ref<'A4' | 'Letter' | 'A3' | 'Custom'>('A4')
 const orientation = ref<'portrait' | 'landscape'>('portrait')
@@ -371,33 +446,6 @@ const pagePresets = {
   Letter: { width: 216, height: 279 },
   A3: { width: 297, height: 420 }
 } as const
-
-const quickActions = [
-  {
-    to: '/dashboard',
-    title: 'Dashboard Home',
-    description: 'Return to the admin overview.',
-    icon: 'mdi-view-dashboard-outline'
-  },
-  {
-    to: '/dashboard/management',
-    title: 'Management Tools',
-    description: 'Assign checklists and review users.',
-    icon: 'mdi-account-cog-outline'
-  },
-  {
-    to: '/dashboard/requests',
-    title: 'Service Requests',
-    description: 'Review maintenance and cleaning requests.',
-    icon: 'mdi-clipboard-list-outline'
-  },
-  {
-    to: '/records',
-    title: 'Records',
-    description: 'Open all record details and QR links.',
-    icon: 'mdi-folder-multiple-outline'
-  }
-]
 
 const pagePresetItems = ['A4', 'Letter', 'A3', 'Custom']
 const orientationItems: Array<'portrait' | 'landscape'> = ['portrait', 'landscape']
@@ -451,12 +499,28 @@ onMounted(async () => {
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
   }
+
+  // Keyboard navigation
+  const handleKeyPress = (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return // Don't interfere with form inputs
+    }
+    if (e.key === 'ArrowLeft') {
+      previousPage()
+    } else if (e.key === 'ArrowRight') {
+      nextPage()
+    }
+  }
+  window.addEventListener('keydown', handleKeyPress)
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyPress)
+  })
 })
 
-const handleLogout = () => {
-  logout()
-  navigateTo('/')
-}
+// Reset to first page when filters change
+watch([selectedIds, searchTerm, selectedOwnerFilter, selectedTypeFilter, qrSizeMm, marginMm, gapMm], () => {
+  currentPage.value = 0
+})
 
 const itemsByTypeFilter = computed(() => {
   if (selectedTypeFilter.value === 'all') {
@@ -647,6 +711,39 @@ const pages = computed(() => {
   return chunks
 })
 
+const currentPageRecords = computed(() => {
+  if (pages.value.length === 0) return []
+  if (currentPage.value >= pages.value.length) {
+    currentPage.value = Math.max(0, pages.value.length - 1)
+  }
+  return pages.value[currentPage.value] || []
+})
+
+const pageOptions = computed(() => {
+  return pages.value.map((_, index) => ({
+    title: `Page ${index + 1}`,
+    value: index
+  }))
+})
+
+const nextPage = () => {
+  if (currentPage.value < pages.value.length - 1) {
+    currentPage.value++
+  }
+}
+
+const previousPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--
+  }
+}
+
+const goToPage = (page: number) => {
+  if (page >= 0 && page < pages.value.length) {
+    currentPage.value = page
+  }
+}
+
 const sheetStyle = computed(() => {
   return {
     width: `${pageWidthMm.value}mm`,
@@ -823,6 +920,16 @@ const printSheets = () => {
   margin: 0;
 }
 
+.print-only {
+  display: none;
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
 .qr-sheet-grid {
   align-content: start;
 }
@@ -839,6 +946,10 @@ const printSheets = () => {
 
   .print-hidden {
     display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 
   .qr-controls-col {

@@ -1,33 +1,22 @@
 <template>
-  <v-container class="py-5 py-md-7" fluid>
-    <v-row justify="center">
-      <v-col cols="12" md="11" lg="10" xl="9">
-        
-        <!-- Page header -->
-        <div class="d-flex align-center justify-space-between mb-5">
-          <div class="d-flex align-center">
-            <v-btn
-              icon="mdi-arrow-left"
-              variant="text"
-              @click="navigateTo('/modules')"
-              class="mr-2"
-            />
-            <div>
-              <h1 class="text-h4 font-weight-bold">Equipment Tracking</h1>
-              <p class="text-medium-emphasis mb-0">Manage your equipment and maintenance records</p>
-            </div>
-          </div>
-          <v-btn
-            color="primary"
-            prepend-icon="mdi-plus"
-            @click="showAddDialog = true"
-            class="btn-gradient"
-          >
-            Add Equipment
-          </v-btn>
-        </div>
+  <ModuleLayout
+    title="Equipment Tracking"
+    description="Manage your equipment and maintenance records"
+    icon="mdi-toolbox"
+  >
+    <!-- Quick action for adding equipment -->
+    <div class="d-flex justify-end mb-4">
+      <v-btn
+        color="primary"
+        prepend-icon="mdi-plus"
+        @click="showAddDialog = true"
+        variant="flat"
+      >
+        Add Equipment
+      </v-btn>
+    </div>
 
-        <!-- Loading state -->
+    <!-- Loading state -->
         <div v-if="loading" class="text-center py-8">
           <v-progress-circular indeterminate color="primary" size="64" />
         </div>
@@ -91,9 +80,6 @@
             </v-card>
           </v-col>
         </v-row>
-
-      </v-col>
-    </v-row>
 
     <!-- Add Equipment Dialog -->
     <v-dialog v-model="showAddDialog" max-width="700">
@@ -271,8 +257,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-
-  </v-container>
+  </ModuleLayout>
 </template>
 
 <script setup lang="ts">
