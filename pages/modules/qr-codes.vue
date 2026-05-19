@@ -232,17 +232,26 @@
 <script setup lang="ts">
 import QrcodeVue from 'qrcode.vue'
 
-const { currentUser, isClientAdmin, isClientTechnician, authToken } = useAuth()
+definePageMeta({ ssr: false })
+
+const { currentUser, isAdmin, authToken } = useAuth()
+
+// Redirect non-admin users away from this page
+if (import.meta.client) {
+  const checkAccess = () => {
+    if (currentUser.value && !isAdmin.value) {
+      navigateTo('/modules')
+    }
+  }
+  onMounted(checkAccess)
+  watch(() => currentUser.value, checkAccess)
+}
 const { records, loadRecords } = useRecords()
 
 const loading = ref(true)
-const userCompanyId = ref<number | null>(null)
 
-// Filter records to only show those belonging to the user's company
-const companyRecords = computed(() => {
-  if (!userCompanyId.value) return []
-  return records.value.filter(r => r.ownerCompanyId === userCompanyId.value)
-})
+// Admin can see all records
+const availableRecords = computed(() => records.value)
 
 const selectedIds = ref<number[]>([])
 const recordSearch = ref('')
@@ -265,41 +274,19 @@ const pagePresets = {
 const pagePresetItems = ['A4', 'Letter', 'A3', 'Custom']
 const orientationItems: Array<'portrait' | 'landscape'> = ['portrait', 'landscape']
 
-// Fetch user's company
-const fetchUserCompany = async () => {
-  if (!authToken.value || !currentUser.value) return null
-  
-  try {
-    const response = await $fetch<any[]>('/api/companies', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
-    })
-    
-    // Find the company that the current user is linked to
-    const userCompany = response.find((company: any) => 
-      company.linkedUserIds && company.linkedUserIds.includes(currentUser.value!.id)
-    )
-    
-    return userCompany?.id || null
-  } catch (error) {
-    console.error('Failed to fetch user company:', error)
-    return null
-  }
-}
-
 onMounted(async () => {
-  if (!currentUser.value || (!isClientAdmin.value && !isClientTechnician.value)) {
+  // Only admins can access the QR codes module
+  if (!currentUser.value || !isAdmin.value) {
     navigateTo('/modules')
     return
   }
 
   try {
     await loadRecords()
-    userCompanyId.value = await fetchUserCompany()
     
-    // Auto-select all company records and initialize quantities
-    selectedIds.value = companyRecords.value.map(r => r.id)
+    // Initialize quantities for all records
     quantityById.value = Object.fromEntries(
-      companyRecords.value.map(record => [record.id, 1])
+      availableRecords.value.map(record => [record.id, 1])
     )
   } finally {
     loading.value = false
@@ -308,13 +295,12 @@ onMounted(async () => {
 
 const filteredRecords = computed(() => {
   const term = recordSearch.value.trim().toLowerCase()
-  if (!term) return companyRecords.value
+  if (!term) return availableRecords.value
   
-  return companyRecords.value.filter(record => {
+  return availableRecords.value.filter(record => {
     return record.name.toLowerCase().includes(term) || record.code.toLowerCase().includes(term)
   })
 })
-
 const selectAll = () => {
   const visibleIds = filteredRecords.value.map(record => record.id)
   selectedIds.value = [...new Set([...selectedIds.value, ...visibleIds])]
@@ -420,7 +406,7 @@ const perPage = computed(() => {
 })
 
 const selectedRecords = computed(() => {
-  return companyRecords.value.filter(record => selectedIds.value.includes(record.id))
+  return availableRecords.value.filter(record => selectedIds.value.includes(record.id))
 })
 
 const expandedRecords = computed(() => {

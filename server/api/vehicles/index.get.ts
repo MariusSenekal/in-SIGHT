@@ -16,6 +16,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Check if user is an admin - admins can see ALL vehicles
+    const isAdmin = payload.app_role === 'admin'
+
+    if (isAdmin) {
+      // Admin users - get ALL vehicles
+      const vehicles = await pgrestAdmin<any[]>('/vehicles', {
+        query: {
+          select: '*',
+          order: 'created_at.desc'
+        }
+      })
+      return vehicles
+    }
+
     // Check if user has a company (client role) - use admin token for company_users query
     const userCompanies = await pgrestAdmin<any[]>('/company_users', {
       query: {
@@ -30,6 +44,7 @@ export default defineEventHandler(async (event) => {
       const companyId = userCompanies[0].company_id
       vehicles = await pgrestAdmin<any[]>('/vehicles', {
         query: {
+          select: '*',
           owner_company_id: `eq.${companyId}`,
           order: 'created_at.desc'
         }
@@ -38,6 +53,7 @@ export default defineEventHandler(async (event) => {
       // Regular user - get only their own vehicles
       vehicles = await pgrestAdmin<any[]>('/vehicles', {
         query: {
+          select: '*',
           owner_user_id: `eq.${payload.sub}`,
           order: 'created_at.desc'
         }

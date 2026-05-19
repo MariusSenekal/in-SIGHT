@@ -1,4 +1,4 @@
-// GET /api/vehicles/[id]/service-history - Get service history for a vehicle
+// PATCH /api/vehicles/[id]/service-history/[historyId] - Update service history entry
 import { pgrest, pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
@@ -16,8 +16,27 @@ export default defineEventHandler(async (event) => {
   }
 
   const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'Vehicle ID is required.' })
+  const historyId = getRouterParam(event, 'historyId')
+  
+  if (!id || !historyId) {
+    throw createError({ statusCode: 400, message: 'Vehicle ID and History ID are required.' })
+  }
+
+  const body = await readBody(event)
+  const {
+    serviceDatetime,
+    repairCompleted,
+    performedBy,
+    cost,
+    odometerReading,
+    notes
+  } = body
+
+  if (!serviceDatetime || !repairCompleted || !performedBy) {
+    throw createError({ 
+      statusCode: 400, 
+      message: 'Service datetime, repair completed, and technician are required.' 
+    })
   }
 
   try {
@@ -29,7 +48,7 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // First verify the vehicle belongs to the user or their company
+    // Verify the vehicle belongs to the user or their company
     let vehicles
     if (userCompanies && userCompanies.length > 0) {
       const companyId = userCompanies[0].company_id
@@ -52,20 +71,30 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, message: 'Vehicle not found.' })
     }
 
-    // Get service history (order by datetime if available, fallback to date)
-    const history = await pgrestAdmin<any[]>('/vehicle_service_history', {
+    // Update service history entry
+    const updated = await pgrestAdmin<any>('/vehicle_service_history', {
+      method: 'PATCH',
       query: {
-        vehicle_id: `eq.${id}`,
-        order: 'service_datetime.desc.nullslast,service_date.desc'
+        id: `eq.${historyId}`,
+        vehicle_id: `eq.${id}`
+      },
+      body: {
+        service_date: serviceDatetime.split('T')[0],
+        service_datetime: serviceDatetime,
+        repair_completed: repairCompleted,
+        performed_by: performedBy,
+        cost: cost ? parseFloat(cost) : null,
+        odometer_reading: odometerReading ? parseInt(odometerReading) : null,
+        notes: notes || ''
       }
     })
     
-    return history
+    return updated
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) {
       throw error
     }
-    console.error('[API] Failed to fetch service history:', error)
-    throw createError({ statusCode: 500, message: 'Failed to fetch service history.' })
+    console.error('[API] Failed to update service history:', error)
+    throw createError({ statusCode: 500, message: 'Failed to update service history.' })
   }
 })

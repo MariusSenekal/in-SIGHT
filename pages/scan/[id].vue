@@ -948,9 +948,21 @@ onMounted(async () => {
 
   // Fetch record + service history from the public scan API
   try {
-    const data = await $fetch<{ record: typeof record.value; entries: ServiceEntry[] }>(
+    const data = await $fetch<any>(
       `/api/scan/${encodeURIComponent(recordCode.value)}`
     )
+    
+    // Check if this is a vehicle or equipment code - redirect to tracking page
+    if (data.type === 'vehicle') {
+      await navigateTo(`/modules/vehicles/${data.id}`)
+      return
+    }
+    if (data.type === 'equipment') {
+      await navigateTo(`/modules/equipment/${data.id}`)
+      return
+    }
+    
+    // Default: treat as a record
     record.value = data.record
     serviceHistory.value = data.entries ?? []
   } catch {

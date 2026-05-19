@@ -1,4 +1,4 @@
-// GET /api/vehicles/[id]/service-history - Get service history for a vehicle
+// GET /api/equipment/[id] - Get a specific equipment item
 import { pgrest, pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
@@ -17,10 +17,28 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, message: 'Vehicle ID is required.' })
+    throw createError({ statusCode: 400, message: 'Equipment ID is required.' })
   }
 
   try {
+    // Check if user is an admin - admins can see ALL equipment
+    const isAdmin = payload.app_role === 'admin'
+
+    if (isAdmin) {
+      // Admin users - get any equipment
+      const equipment = await pgrestAdmin<any[]>('/equipment', {
+        query: {
+          id: `eq.${id}`
+        }
+      })
+      
+      if (!equipment || equipment.length === 0) {
+        throw createError({ statusCode: 404, message: 'Equipment not found.' })
+      }
+      
+      return equipment[0]
+    }
+
     // Check if user has a company (client role) - use admin token for company_users query
     const userCompanies = await pgrestAdmin<any[]>('/company_users', {
       query: {
@@ -29,18 +47,19 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // First verify the vehicle belongs to the user or their company
-    let vehicles
+    let equipment
     if (userCompanies && userCompanies.length > 0) {
+      // User belongs to a company - get equipment if it belongs to their company
       const companyId = userCompanies[0].company_id
-      vehicles = await pgrestAdmin<any[]>('/vehicles', {
+      equipment = await pgrestAdmin<any[]>('/equipment', {
         query: {
           id: `eq.${id}`,
           owner_company_id: `eq.${companyId}`
         }
       })
     } else {
-      vehicles = await pgrestAdmin<any[]>('/vehicles', {
+      // Regular user - get equipment if they own it
+      equipment = await pgrestAdmin<any[]>('/equipment', {
         query: {
           id: `eq.${id}`,
           owner_user_id: `eq.${payload.sub}`
@@ -48,24 +67,16 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    if (!vehicles || vehicles.length === 0) {
-      throw createError({ statusCode: 404, message: 'Vehicle not found.' })
+    if (!equipment || equipment.length === 0) {
+      throw createError({ statusCode: 404, message: 'Equipment not found.' })
     }
-
-    // Get service history (order by datetime if available, fallback to date)
-    const history = await pgrestAdmin<any[]>('/vehicle_service_history', {
-      query: {
-        vehicle_id: `eq.${id}`,
-        order: 'service_datetime.desc.nullslast,service_date.desc'
-      }
-    })
     
-    return history
+    return equipment[0]
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) {
       throw error
     }
-    console.error('[API] Failed to fetch service history:', error)
-    throw createError({ statusCode: 500, message: 'Failed to fetch service history.' })
+    console.error('[API] Failed to fetch equipment:', error)
+    throw createError({ statusCode: 500, message: 'Failed to fetch equipment.' })
   }
 })

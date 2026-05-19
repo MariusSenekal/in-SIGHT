@@ -59,8 +59,8 @@
       <v-row v-if="isAdmin" dense class="mb-5">
         <v-col cols="6" sm="3">
           <v-card rounded="lg" color="primary" variant="tonal" class="pa-3 text-center">
-            <div class="text-h5 font-weight-bold">{{ records.length }}</div>
-            <div class="text-caption">Total Records</div>
+            <div class="text-h5 font-weight-bold">{{ allItems.length }}</div>
+            <div class="text-caption">Total Items</div>
           </v-card>
         </v-col>
         <v-col cols="6" sm="3">
@@ -90,7 +90,7 @@
 
       <!-- ── Record cards ── -->
       <v-row dense>
-        <v-col cols="12" md="6" lg="4" v-for="record in filteredRecords" :key="record.id">
+        <v-col cols="12" md="6" lg="4" v-for="record in filteredRecords" :key="`${record.type}-${record.id}`">
           <v-card rounded="lg" variant="outlined" class="h-100 d-flex flex-column">
 
             <!-- Card header -->
@@ -98,9 +98,19 @@
               <span class="text-truncate" style="max-width:180px">{{ record.name }}</span>
               <div class="d-flex ga-1">
                 <v-chip size="x-small" color="primary" variant="flat">{{ record.code }}</v-chip>
-                <template v-if="isAdmin">
-                  <v-btn size="x-small" icon="mdi-pencil-outline" variant="text" color="primary" @click.stop="openEditRecord(record)" />
-                  <v-btn size="x-small" icon="mdi-delete-outline" variant="text" color="error" @click.stop="openDeleteRecord(record)" />
+                <v-chip 
+                  size="x-small" 
+                  :color="record.type === 'vehicle' ? 'blue' : record.type === 'equipment' ? 'orange' : 'grey'" 
+                  variant="tonal"
+                >
+                  <v-icon v-if="record.type === 'vehicle'" icon="mdi-car" size="12" class="mr-1" />
+                  <v-icon v-else-if="record.type === 'equipment'" icon="mdi-toolbox" size="12" class="mr-1" />
+                  <v-icon v-else icon="mdi-qrcode" size="12" class="mr-1" />
+                  {{ record.type === 'vehicle' ? 'Vehicle' : record.type === 'equipment' ? 'Equipment' : 'Record' }}
+                </v-chip>
+                <template v-if="isAdmin && record.type === 'record'">
+                  <v-btn size="x-small" icon="mdi-pencil-outline" variant="text" color="primary" @click.stop="openEditRecordById(record.id)" />
+                  <v-btn size="x-small" icon="mdi-delete-outline" variant="text" color="error" @click.stop="openDeleteRecordById(record.id)" />
                 </template>
               </div>
             </v-card-title>
@@ -108,7 +118,7 @@
             <v-card-text class="flex-grow-1 pt-1">
               <!-- Type + location chips -->
               <div class="d-flex flex-wrap ga-1 mb-2">
-                <v-chip v-if="record.type" size="x-small" color="info" variant="tonal">{{ record.type }}</v-chip>
+                <v-chip v-if="record.subType" size="x-small" color="info" variant="tonal">{{ record.subType }}</v-chip>
                 <v-chip v-if="record.location" size="x-small" color="secondary" variant="tonal" prepend-icon="mdi-map-marker">{{ record.location }}</v-chip>
               </div>
 
@@ -129,8 +139,8 @@
                 </div>
               </div>
 
-              <!-- Requests summary for this record (all users see counts; admin can click to open requests) -->
-              <div>
+              <!-- Requests summary for records only -->
+              <div v-if="record.type === 'record'">
                 <v-divider class="my-2" />
                 <div class="d-flex flex-wrap ga-1">
                   <v-chip
@@ -176,17 +186,34 @@
             </v-card-text>
 
             <v-card-actions class="pt-0">
-              <v-btn :to="`/scan/${record.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-qrcode-scan" class="flex-grow-1">
-                View QR Page
-              </v-btn>
-              <v-btn
-                v-if="isAdmin"
-                :to="`/dashboard/requests?code=${record.code}`"
-                size="small"
-                color="warning"
-                variant="tonal"
-                prepend-icon="mdi-bell-outline"
-              >Requests</v-btn>
+              <!-- Records: QR scan page -->
+              <template v-if="record.type === 'record'">
+                <v-btn :to="`/scan/${record.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-qrcode-scan" class="flex-grow-1">
+                  View QR Page
+                </v-btn>
+                <v-btn
+                  v-if="isAdmin"
+                  :to="`/dashboard/requests?code=${record.code}`"
+                  size="small"
+                  color="warning"
+                  variant="tonal"
+                  prepend-icon="mdi-bell-outline"
+                >Requests</v-btn>
+              </template>
+              
+              <!-- Vehicles: tracking page -->
+              <template v-else-if="record.type === 'vehicle'">
+                <v-btn :to="`/modules/vehicles/${record.id}`" size="small" color="blue" variant="tonal" prepend-icon="mdi-car" class="flex-grow-1">
+                  View Vehicle
+                </v-btn>
+              </template>
+              
+              <!-- Equipment: tracking page -->
+              <template v-else-if="record.type === 'equipment'">
+                <v-btn :to="`/modules/equipment/${record.id}`" size="small" color="orange" variant="tonal" prepend-icon="mdi-toolbox" class="flex-grow-1">
+                  View Equipment
+                </v-btn>
+              </template>
             </v-card-actions>
 
           </v-card>
@@ -284,10 +311,107 @@
 import type { Record as QrRecord } from '~/composables/useRecords'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { isAdmin, initAuth, users, companies, loadUsers, loadCompanies } = useAuth()
+const { isAdmin, initAuth, users, companies, loadUsers, loadCompanies, authToken } = useAuth()
 const { goBack } = useAppNavigation()
 const { records, loadRecords, addRecord, updateRecord, deleteRecord } = useRecords()
 const { requests, loadRequests } = useServiceRequests()
+
+// ── Load vehicles and equipment ───────────────────────────────────────────────
+const vehicles = ref<any[]>([])
+const equipment = ref<any[]>([])
+
+const loadVehicles = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/vehicles', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    vehicles.value = response || []
+  } catch (error) {
+    console.error('Failed to load vehicles:', error)
+    vehicles.value = []
+  }
+}
+
+const loadEquipment = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/equipment', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    equipment.value = response || []
+  } catch (error) {
+    console.error('Failed to load equipment:', error)
+    equipment.value = []
+  }
+}
+
+// Unified item type
+interface UnifiedItem {
+  id: number
+  code: string
+  name: string
+  type: 'record' | 'vehicle' | 'equipment'
+  subType?: string  // For records: their type field
+  location: string
+  description: string
+  ownerUserId: number | null
+  ownerCompanyId: number | null
+  // Vehicle-specific
+  make?: string
+  model?: string
+  year?: number
+  registrationNumber?: string
+  // Equipment-specific
+  category?: string
+  serialNumber?: string
+}
+
+// Combine all items
+const allItems = computed<UnifiedItem[]>(() => {
+  const recordItems: UnifiedItem[] = records.value.map(r => ({
+    id: r.id,
+    code: r.code,
+    name: r.name,
+    type: 'record' as const,
+    subType: r.type,
+    location: r.location,
+    description: r.description || '',
+    ownerUserId: r.ownerUserId,
+    ownerCompanyId: r.ownerCompanyId
+  }))
+
+  const vehicleItems: UnifiedItem[] = vehicles.value.map(v => ({
+    id: v.id,
+    code: v.code || 'NO-CODE',
+    name: `${v.make} ${v.model} (${v.year})`,
+    type: 'vehicle' as const,
+    location: v.registration_number || '',
+    description: `${v.colour} • VIN: ${v.vin_number || 'N/A'}`,
+    ownerUserId: v.owner_user_id,
+    ownerCompanyId: v.owner_company_id,
+    make: v.make,
+    model: v.model,
+    year: v.year,
+    registrationNumber: v.registration_number
+  }))
+
+  const equipmentItems: UnifiedItem[] = equipment.value.map(e => ({
+    id: e.id,
+    code: e.code || 'NO-CODE',
+    name: e.name,
+    type: 'equipment' as const,
+    subType: e.category,
+    location: e.location || '',
+    description: `${e.category || 'Equipment'} • Serial: ${e.serial_number || 'N/A'}`,
+    ownerUserId: e.owner_user_id,
+    ownerCompanyId: e.owner_company_id,
+    category: e.category,
+    serialNumber: e.serial_number
+  }))
+
+  return [...recordItems, ...vehicleItems, ...equipmentItems]
+})
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 const search           = ref('')
@@ -303,37 +427,37 @@ const companyFilterItems = computed(() => [
 ])
 
 const filteredRecords = computed(() => {
-  let list = records.value
+  let list = allItems.value
   if (filterOwnerUser.value !== null) {
-    list = list.filter(r => r.ownerUserId === filterOwnerUser.value)
+    list = list.filter(item => item.ownerUserId === filterOwnerUser.value)
   }
   if (filterOwnerCompany.value !== null) {
-    list = list.filter(r => r.ownerCompanyId === filterOwnerCompany.value)
+    list = list.filter(item => item.ownerCompanyId === filterOwnerCompany.value)
   }
   if (search.value.trim()) {
     const term = search.value.trim().toLowerCase()
-    list = list.filter(r =>
-      r.name.toLowerCase().includes(term) ||
-      r.code.toLowerCase().includes(term) ||
-      r.location.toLowerCase().includes(term) ||
-      r.type.toLowerCase().includes(term) ||
-      (r.description || '').toLowerCase().includes(term)
+    list = list.filter(item =>
+      item.name.toLowerCase().includes(term) ||
+      item.code.toLowerCase().includes(term) ||
+      item.location.toLowerCase().includes(term) ||
+      (item.subType || '').toLowerCase().includes(term) ||
+      (item.description || '').toLowerCase().includes(term)
     )
   }
   return list
 })
 
 // ── Owner helpers ─────────────────────────────────────────────────────────────
-const ownerLabel = (record: QrRecord) => {
-  if (!record.ownerUserId) return null
-  const u = users.value.find((u: AppUser) => u.id === record.ownerUserId)
-  return u ? (u.profile?.displayName || u.name) : `User #${record.ownerUserId}`
+const ownerLabel = (item: UnifiedItem) => {
+  if (!item.ownerUserId) return null
+  const u = users.value.find((u: AppUser) => u.id === item.ownerUserId)
+  return u ? (u.profile?.displayName || u.name) : `User #${item.ownerUserId}`
 }
 
-const companyLabel = (record: QrRecord) => {
-  if (!record.ownerCompanyId) return null
-  const c = companies.value.find((c: Company) => c.id === record.ownerCompanyId)
-  return c ? c.name : `Company #${record.ownerCompanyId}`
+const companyLabel = (item: UnifiedItem) => {
+  if (!item.ownerCompanyId) return null
+  const c = companies.value.find((c: Company) => c.id === item.ownerCompanyId)
+  return c ? c.name : `Company #${item.ownerCompanyId}`
 }
 
 // ── Request helpers ───────────────────────────────────────────────────────────
@@ -350,7 +474,7 @@ const openRequestsCount = computed(() =>
   requests.value.filter(r => r.status === 'open' && r.recordCode).length
 )
 const unassignedCount = computed(() =>
-  records.value.filter(r => !r.ownerUserId && !r.ownerCompanyId).length
+  allItems.value.filter(item => !item.ownerUserId && !item.ownerCompanyId).length
 )
 
 // ── Assign items for create/edit dialog ───────────────────────────────────────
@@ -406,6 +530,11 @@ const openEditRecord = (record: QrRecord) => {
   showRecordDialog.value    = true
 }
 
+const openEditRecordById = (id: number) => {
+  const record = records.value.find(r => r.id === id)
+  if (record) openEditRecord(record)
+}
+
 const submitRecordDialog = async () => {
   if (!recordForm.name.trim()) {
     recordDialogError.value = 'Name is required.'
@@ -458,7 +587,10 @@ const openDeleteRecord = (record: QrRecord) => {
   deleteDialogError.value = ''
   showDeleteDialog.value  = true
 }
-
+const openDeleteRecordById = (id: number) => {
+  const record = records.value.find(r => r.id === id)
+  if (record) openDeleteRecord(record)
+}
 const submitDelete = async () => {
   if (!deleteTarget.value) return
   deleteDialogError.value   = ''
@@ -479,6 +611,8 @@ onMounted(async () => {
   await initAuth()
   await Promise.all([
     loadRecords(),
+    loadVehicles(),
+    loadEquipment(),
     loadRequests(),
     ...(isAdmin.value ? [loadUsers(), loadCompanies()] : [])
   ])

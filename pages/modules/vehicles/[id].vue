@@ -19,7 +19,8 @@
               class="mr-2"
             />
             <div>
-              <h1 class="text-h4 font-weight-bold">{{ vehicle.make }} {{ vehicle.model }}</h1>
+              <h1 class="text-h4 font-weight-bold">Vehicle Tracking</h1>
+              <p class="text-h6 mb-1">{{ vehicle.make }} {{ vehicle.model }}</p>
               <p class="text-medium-emphasis mb-0">{{ vehicle.year }} • {{ vehicle.registration_number }}</p>
             </div>
           </div>
@@ -203,26 +204,15 @@
     </v-dialog>
 
     <!-- Service History Dialog -->
-    <v-dialog v-model="showServiceHistory" max-width="900">
+    <v-dialog v-model="showServiceHistory" max-width="1100">
       <v-card rounded="xl">
         <v-card-title class="pa-5 pb-3">
-          <div class="d-flex align-center justify-space-between">
-            <div class="d-flex align-center ga-2">
-              <v-icon icon="mdi-history" color="primary" />
-              Service History
-            </div>
-            <v-btn
-              color="primary"
-              variant="flat"
-              size="small"
-              prepend-icon="mdi-plus"
-              @click="showAddServiceDialog = true"
-            >
-              Add Service
-            </v-btn>
+          <div class="d-flex align-center ga-2">
+            <v-icon icon="mdi-history" color="primary" />
+            Service History
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1" style="max-height: 500px; overflow-y: auto;">
+        <v-card-text class="pa-5 pt-1" style="max-height: 600px; overflow-y: auto;">
           <!-- Loading service history -->
           <div v-if="historyLoading" class="text-center py-4">
             <v-progress-circular indeterminate color="primary" size="48" />
@@ -231,50 +221,52 @@
           <!-- Empty service history -->
           <div v-else-if="serviceHistory.length === 0" class="text-center py-8">
             <v-icon icon="mdi-clipboard-text-off" size="48" color="grey-lighten-1" class="mb-2" />
-            <p class="text-medium-emphasis">No service history yet</p>
+            <p class="text-medium-emphasis mb-4">No service history yet</p>
+            <v-btn
+              color="error"
+              variant="flat"
+              prepend-icon="mdi-plus"
+              @click="showAddServiceDialog = true"
+            >
+              Update Service History
+            </v-btn>
           </div>
 
-          <!-- Service history timeline -->
-          <v-timeline v-else side="end" density="compact" class="mt-2">
-            <v-timeline-item
-              v-for="entry in serviceHistory"
-              :key="entry.id"
-              dot-color="primary"
-              size="small"
-            >
-              <template v-slot:opposite>
-                <div class="text-body-2 text-medium-emphasis">
-                  {{ formatDate(entry.service_date) }}
-                </div>
-              </template>
-              <v-card variant="outlined" rounded="lg">
-                <v-card-text class="pa-3">
-                  <div class="d-flex align-center ga-2 mb-1">
-                    <v-icon icon="mdi-wrench" size="18" color="primary" />
-                    <h4 class="text-subtitle-2 font-weight-bold">{{ entry.service_type }}</h4>
-                  </div>
-                  <p v-if="entry.description" class="text-body-2 mb-2">{{ entry.description }}</p>
-                  <div class="d-flex flex-wrap ga-3 text-caption text-medium-emphasis">
-                    <span v-if="entry.odometer_reading">
-                      <v-icon icon="mdi-speedometer" size="14" />
-                      {{ formatNumber(entry.odometer_reading) }} km
-                    </span>
-                    <span v-if="entry.cost">
-                      <v-icon icon="mdi-currency-usd" size="14" />
-                      R {{ entry.cost }}
-                    </span>
-                    <span v-if="entry.performed_by">
-                      <v-icon icon="mdi-account" size="14" />
-                      {{ entry.performed_by }}
-                    </span>
-                  </div>
-                  <p v-if="entry.notes" class="text-caption text-medium-emphasis mt-2 mb-0">
-                    Note: {{ entry.notes }}
-                  </p>
-                </v-card-text>
-              </v-card>
-            </v-timeline-item>
-          </v-timeline>
+          <!-- Service history table -->
+          <div v-else>
+            <v-table hover>
+              <thead>
+                <tr>
+                  <th class="text-left font-weight-bold">Date & Time</th>
+                  <th class="text-left font-weight-bold">Repair Completed</th>
+                  <th class="text-left font-weight-bold">Technician</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="entry in serviceHistory" 
+                  :key="entry.id"
+                  class="cursor-pointer"
+                  @click="editServiceEntry(entry)"
+                >
+                  <td>{{ formatDateTime(entry.service_datetime || entry.created_at) }}</td>
+                  <td>{{ entry.repair_completed || entry.service_type }}</td>
+                  <td>{{ entry.performed_by || '—' }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+
+            <div class="mt-4 text-center">
+              <v-btn
+                color="error"
+                variant="flat"
+                prepend-icon="mdi-plus"
+                @click="showAddServiceDialog = true"
+              >
+                Update Service History
+              </v-btn>
+            </div>
+          </div>
         </v-card-text>
         <v-card-actions class="px-5 pb-4">
           <v-spacer />
@@ -283,90 +275,221 @@
       </v-card>
     </v-dialog>
 
-    <!-- Add Service Dialog -->
-    <v-dialog v-model="showAddServiceDialog" max-width="600">
+    <!-- Add/Edit Service Dialog -->
+    <v-dialog v-model="showAddServiceDialog" max-width="700">
       <v-card rounded="xl">
         <v-card-title class="pa-5 pb-3">
           <div class="d-flex align-center ga-2">
-            <v-icon icon="mdi-wrench-plus" color="primary" />
-            Add Service Record
+            <v-icon :icon="editingServiceId ? 'mdi-pencil' : 'mdi-wrench-plus'" color="primary" />
+            {{ editingServiceId ? 'Edit Service Record' : 'Add Service Record' }}
           </div>
         </v-card-title>
         <v-card-text class="pa-5 pt-1">
-          <v-form ref="serviceForm" @submit.prevent="submitAddService">
+          <v-form @submit.prevent="submitService">
             <v-row dense>
+              <!-- Date Picker -->
               <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newService.serviceDate"
-                  label="Service Date *"
-                  type="date"
-                  prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  density="comfortable"
-                  required
-                />
+                <v-menu
+                  v-model="datePickerMenu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
+                  min-width="auto"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      :model-value="formattedServiceDate"
+                      label="Service Date *"
+                      prepend-inner-icon="mdi-calendar"
+                      readonly
+                      variant="outlined"
+                      density="comfortable"
+                      v-bind="props"
+                      hint="Click to select the date of service"
+                      persistent-hint
+                    />
+                  </template>
+                  <v-date-picker
+                    v-model="serviceFormDate"
+                    @update:model-value="datePickerMenu = false"
+                    color="primary"
+                    show-adjacent-months
+                    hide-header
+                  />
+                </v-menu>
               </v-col>
+              <!-- Time Picker -->
               <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newService.serviceType"
-                  label="Service Type *"
+                <v-menu
+                  v-model="timePickerMenu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
+                  min-width="auto"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      :model-value="displayedServiceTime"
+                      label="Service Time *"
+                      prepend-inner-icon="mdi-clock-outline"
+                      readonly
+                      variant="outlined"
+                      density="comfortable"
+                      v-bind="props"
+                      hint="Click to select the time of service"
+                      persistent-hint
+                    />
+                  </template>
+                  <v-card class="time-picker-card">
+                    <v-card-text class="pa-0">
+                      <div class="time-picker-header primary pa-4">
+                        <div class="time-display">
+                          <span 
+                            class="time-part"
+                            :class="{ 'time-part--active': selectingHour }"
+                            @click="selectingHour = true"
+                          >
+                            {{ timeHour }}
+                          </span>
+                          <span class="time-separator">:</span>
+                          <span 
+                            class="time-part"
+                            :class="{ 'time-part--active': !selectingHour }"
+                            @click="selectingHour = false"
+                          >
+                            {{ timeMinute }}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div class="time-picker-body pa-4">
+                        <!-- Hour Selection -->
+                        <div v-if="selectingHour" class="time-grid">
+                          <v-btn
+                            v-for="hour in hours"
+                            :key="hour"
+                            :color="timeHour === hour ? 'primary' : undefined"
+                            :variant="timeHour === hour ? 'flat' : 'text'"
+                            class="time-grid-btn"
+                            @click="setHour(hour)"
+                          >
+                            {{ hour }}
+                          </v-btn>
+                        </div>
+                        
+                        <!-- Minute Selection -->
+                        <div v-else class="time-grid">
+                          <v-btn
+                            v-for="minute in minuteOptions"
+                            :key="minute"
+                            :color="timeMinute === minute ? 'primary' : undefined"
+                            :variant="timeMinute === minute ? 'flat' : 'text'"
+                            class="time-grid-btn"
+                            @click="setMinute(minute)"
+                          >
+                            {{ minute }}
+                          </v-btn>
+                        </div>
+                      </div>
+                      
+                      <v-divider />
+                      
+                      <div class="pa-3 d-flex justify-end ga-2">
+                        <v-btn
+                          variant="text"
+                          @click="timePickerMenu = false"
+                        >
+                          Cancel
+                        </v-btn>
+                        <v-btn
+                          color="primary"
+                          variant="flat"
+                          @click="confirmTime"
+                        >
+                          OK
+                        </v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-menu>
+              </v-col>
+              <!-- Repair Completed -->
+              <v-col cols="12">
+                <v-textarea
+                  v-model="serviceForm.repairCompleted"
+                  label="Repair Completed *"
                   prepend-inner-icon="mdi-wrench"
                   variant="outlined"
                   density="comfortable"
-                  placeholder="e.g., Oil Change, Tire Rotation"
+                  rows="3"
                   required
+                  placeholder="Describe what repairs or maintenance were completed..."
+                  hint="Detailed description of the work performed"
+                  persistent-hint
                 />
               </v-col>
-              <v-col cols="12">
-                <v-textarea
-                  v-model="newService.description"
-                  label="Description"
-                  prepend-inner-icon="mdi-text"
-                  variant="outlined"
-                  density="comfortable"
-                  rows="2"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newService.odometerReading"
-                  label="Odometer Reading (km)"
-                  type="number"
-                  prepend-inner-icon="mdi-speedometer"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newService.cost"
-                  label="Cost (R)"
-                  type="number"
-                  step="0.01"
-                  prepend-inner-icon="mdi-currency-usd"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
+              <!-- Technician -->
               <v-col cols="12">
                 <v-text-field
-                  v-model="newService.performedBy"
-                  label="Performed By"
+                  v-model="serviceForm.performedBy"
+                  label="Technician *"
                   prepend-inner-icon="mdi-account"
                   variant="outlined"
                   density="comfortable"
-                  placeholder="e.g., ABC Auto Service"
+                  required
+                  placeholder="Name of technician who performed the service"
+                  hint="Enter the technician's name"
+                  persistent-hint
                 />
               </v-col>
+              
+              <!-- Optional fields (collapsible) -->
               <v-col cols="12">
-                <v-textarea
-                  v-model="newService.notes"
-                  label="Additional Notes"
-                  prepend-inner-icon="mdi-note-text"
-                  variant="outlined"
-                  density="comfortable"
-                  rows="2"
-                />
+                <v-expansion-panels variant="accordion">
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <div class="d-flex align-center ga-2">
+                        <v-icon icon="mdi-information-outline" size="small" />
+                        Additional Information (Optional)
+                      </div>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <v-row dense class="mt-2">
+                        <v-col cols="12" sm="6">
+                          <v-text-field
+                            v-model="serviceForm.odometerReading"
+                            label="Odometer Reading (km)"
+                            type="number"
+                            prepend-inner-icon="mdi-speedometer"
+                            variant="outlined"
+                            density="comfortable"
+                          />
+                        </v-col>
+                        <v-col cols="12" sm="6">
+                          <v-text-field
+                            v-model="serviceForm.cost"
+                            label="Cost (R)"
+                            type="number"
+                            step="0.01"
+                            prepend-inner-icon="mdi-currency-usd"
+                            variant="outlined"
+                            density="comfortable"
+                          />
+                        </v-col>
+                        <v-col cols="12">
+                          <v-textarea
+                            v-model="serviceForm.notes"
+                            label="Additional Notes"
+                            prepend-inner-icon="mdi-note-text"
+                            variant="outlined"
+                            density="comfortable"
+                            rows="2"
+                          />
+                        </v-col>
+                      </v-row>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
               </v-col>
             </v-row>
             <v-alert v-if="serviceFeedback" :type="serviceFeedbackType" variant="tonal" density="compact" class="mt-3">
@@ -376,15 +499,15 @@
         </v-card-text>
         <v-card-actions class="px-5 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="showAddServiceDialog = false">Cancel</v-btn>
+          <v-btn variant="text" @click="closeServiceDialog">Cancel</v-btn>
           <v-btn 
             color="primary" 
             variant="flat" 
             prepend-icon="mdi-check" 
-            @click="submitAddService"
+            @click="submitService"
             :loading="serviceLoading"
           >
-            Add Service
+            {{ editingServiceId ? 'Update' : 'Add' }} Service
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -401,6 +524,7 @@ const vehicleId = computed(() => route.params.id as string)
 
 interface Vehicle {
   id: number
+  code: string
   make: string
   model: string
   year: number
@@ -414,12 +538,15 @@ interface Vehicle {
 interface ServiceHistory {
   id: number
   service_date: string
+  service_datetime?: string
   service_type: string
   description: string
+  repair_completed?: string
   cost: number | null
   odometer_reading: number | null
   performed_by: string
   notes: string
+  created_at: string
 }
 
 const vehicle = ref<Vehicle | null>(null)
@@ -435,6 +562,16 @@ const editFeedbackType = ref<'success' | 'error'>('success')
 const serviceLoading = ref(false)
 const serviceFeedback = ref('')
 const serviceFeedbackType = ref<'success' | 'error'>('success')
+const editingServiceId = ref<number | null>(null)
+const datePickerMenu = ref(false)
+const timePickerMenu = ref(false)
+const serviceFormDate = ref<Date>(new Date())
+const timeHour = ref('12')
+const timeMinute = ref('00')
+const selectingHour = ref(true)
+
+const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
+const minuteOptions = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'))
 
 const editForm = reactive({
   make: '',
@@ -447,19 +584,20 @@ const editForm = reactive({
   nextServiceDueKm: null as number | null
 })
 
-const newService = reactive({
-  serviceDate: new Date().toISOString().split('T')[0],
-  serviceType: '',
-  description: '',
+const serviceForm = reactive({
+  serviceDate: '',
+  serviceTime: '',
+  repairCompleted: '',
+  performedBy: '',
   odometerReading: null as number | null,
   cost: null as number | null,
-  performedBy: '',
   notes: ''
 })
 
 const vehicleFields = computed(() => {
   if (!vehicle.value) return []
   return [
+    { key: 'code', label: 'QR Code', icon: 'mdi-qrcode', value: vehicle.value.code },
     { key: 'make', label: 'Make', icon: 'mdi-car', value: vehicle.value.make },
     { key: 'model', label: 'Model', icon: 'mdi-car-info', value: vehicle.value.model },
     { key: 'year', label: 'Year', icon: 'mdi-calendar', value: vehicle.value.year },
@@ -491,6 +629,108 @@ const formatDate = (dateStr: string) => {
     month: 'short', 
     day: 'numeric' 
   })
+}
+
+const formatDateTime = (dateTimeStr: string) => {
+  const date = new Date(dateTimeStr)
+  return date.toLocaleString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+}
+
+const formattedServiceDate = computed(() => {
+  if (!serviceForm.serviceDate) return ''
+  const date = new Date(serviceForm.serviceDate)
+  return date.toLocaleDateString('en-GB', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+})
+
+const displayedServiceTime = computed(() => {
+  return `${timeHour.value}:${timeMinute.value}`
+})
+
+const setHour = (hour: string) => {
+  timeHour.value = hour
+  selectingHour.value = false
+}
+
+const setMinute = (minute: string) => {
+  timeMinute.value = minute
+}
+
+const confirmTime = () => {
+  timePickerMenu.value = false
+  selectingHour.value = true
+}
+
+watch(serviceFormDate, (newDate) => {
+  if (newDate) {
+    // Format as YYYY-MM-DD for the serviceForm.serviceDate
+    const year = newDate.getFullYear()
+    const month = (newDate.getMonth() + 1).toString().padStart(2, '0')
+    const day = newDate.getDate().toString().padStart(2, '0')
+    serviceForm.serviceDate = `${year}-${month}-${day}`
+  }
+})
+
+// Watch timeHour and timeMinute to always keep serviceForm.serviceTime in sync
+watch([timeHour, timeMinute], ([hour, minute]) => {
+  serviceForm.serviceTime = `${hour}:${minute}`
+})
+
+const resetServiceForm = () => {
+  const now = new Date()
+  serviceForm.serviceDate = now.toISOString().split('T')[0]
+  serviceFormDate.value = now
+  timeHour.value = now.getHours().toString().padStart(2, '0')
+  const minutes = now.getMinutes()
+  timeMinute.value = (Math.round(minutes / 5) * 5).toString().padStart(2, '0')
+  // Set serviceTime to match the rounded time values
+  serviceForm.serviceTime = `${timeHour.value}:${timeMinute.value}`
+  serviceForm.repairCompleted = ''
+  serviceForm.performedBy = ''
+  serviceForm.odometerReading = null
+  serviceForm.cost = null
+  serviceForm.notes = ''
+  editingServiceId.value = null
+}
+
+const closeServiceDialog = () => {
+  showAddServiceDialog.value = false
+  resetServiceForm()
+  serviceFeedback.value = ''
+}
+
+const editServiceEntry = (entry: ServiceHistory) => {
+  editingServiceId.value = entry.id
+  
+  // Parse the datetime or use created_at
+  const dateTime = entry.service_datetime || entry.created_at
+  const date = new Date(dateTime)
+  
+  serviceForm.serviceDate = date.toISOString().split('T')[0]
+  serviceFormDate.value = date
+  timeHour.value = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes()
+  timeMinute.value = (Math.round(minutes / 5) * 5).toString().padStart(2, '0')
+  // Set serviceTime to match the rounded time values
+  serviceForm.serviceTime = `${timeHour.value}:${timeMinute.value}`
+  selectingHour.value = true
+  serviceForm.repairCompleted = entry.repair_completed || entry.description || entry.service_type
+  serviceForm.performedBy = entry.performed_by
+  serviceForm.odometerReading = entry.odometer_reading
+  serviceForm.cost = entry.cost
+  serviceForm.notes = entry.notes
+  
+  showAddServiceDialog.value = true
 }
 
 const loadVehicle = async () => {
@@ -563,9 +803,19 @@ const submitEdit = async () => {
   }
 }
 
-const submitAddService = async () => {
-  if (!newService.serviceDate || !newService.serviceType) {
-    serviceFeedback.value = 'Please fill in service date and type.'
+const submitService = async () => {
+  // Debug: Log the form values
+  console.log('Service form values:', {
+    serviceDate: serviceForm.serviceDate,
+    serviceTime: serviceForm.serviceTime,
+    timeHour: timeHour.value,
+    timeMinute: timeMinute.value,
+    repairCompleted: serviceForm.repairCompleted,
+    performedBy: serviceForm.performedBy
+  })
+
+  if (!serviceForm.serviceDate || !serviceForm.serviceTime || !serviceForm.repairCompleted || !serviceForm.performedBy) {
+    serviceFeedback.value = 'Please fill in all required fields (Date, Time, Repair Completed, and Technician).'
     serviceFeedbackType.value = 'error'
     return
   }
@@ -574,29 +824,54 @@ const submitAddService = async () => {
   serviceFeedback.value = ''
 
   try {
-    await $fetch(`/api/vehicles/${vehicleId.value}/service-history`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${authToken.value}` },
-      body: newService
+    // Combine date and time into ISO datetime string with timezone
+    const serviceDatetime = `${serviceForm.serviceDate}T${serviceForm.serviceTime}:00Z`
+    
+    console.log('[Frontend] Submitting service record:', {
+      serviceDatetime,
+      repairCompleted: serviceForm.repairCompleted,
+      performedBy: serviceForm.performedBy,
+      odometerReading: serviceForm.odometerReading,
+      cost: serviceForm.cost,
+      notes: serviceForm.notes
     })
-    serviceFeedback.value = 'Service record added successfully!'
+    
+    const body = {
+      serviceDatetime,
+      repairCompleted: serviceForm.repairCompleted,
+      performedBy: serviceForm.performedBy,
+      odometerReading: serviceForm.odometerReading,
+      cost: serviceForm.cost,
+      notes: serviceForm.notes
+    }
+
+    if (editingServiceId.value) {
+      // Update existing service record
+      await $fetch(`/api/vehicles/${vehicleId.value}/service-history/${editingServiceId.value}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${authToken.value}` },
+        body
+      })
+      serviceFeedback.value = 'Service record updated successfully!'
+    } else {
+      // Create new service record
+      await $fetch(`/api/vehicles/${vehicleId.value}/service-history`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken.value}` },
+        body
+      })
+      serviceFeedback.value = 'Service record added successfully!'
+    }
+    
     serviceFeedbackType.value = 'success'
     
-    setTimeout(async () => {
-      showAddServiceDialog.value = false
-      await loadServiceHistory()
-      // Reset form
-      newService.serviceDate = new Date().toISOString().split('T')[0]
-      newService.serviceType = ''
-      newService.description = ''
-      newService.odometerReading = null
-      newService.cost = null
-      newService.performedBy = ''
-      newService.notes = ''
-      serviceFeedback.value = ''
-    }, 1500)
+    // Close dialog and refresh service history
+    closeServiceDialog()
+    await loadServiceHistory()
   } catch (error) {
-    serviceFeedback.value = 'Failed to add service record. Please try again.'
+    serviceFeedback.value = editingServiceId.value 
+      ? 'Failed to update service record. Please try again.'
+      : 'Failed to add service record. Please try again.'
     serviceFeedbackType.value = 'error'
   } finally {
     serviceLoading.value = false
@@ -611,8 +886,71 @@ watch(showServiceHistory, (val) => {
 
 onMounted(() => {
   loadVehicle()
+  resetServiceForm()
 })
 </script>
+
+<style scoped>
+/* Time Picker Styles */
+.time-picker-card {
+  min-width: 300px;
+}
+
+.time-picker-header {
+  background: rgb(var(--v-theme-primary));
+  color: white;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 3rem;
+  font-weight: 300;
+  user-select: none;
+}
+
+.time-part {
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.6;
+}
+
+.time-part--active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.time-part:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.time-separator {
+  opacity: 0.6;
+}
+
+.time-picker-body {
+  min-height: 280px;
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.time-grid-btn {
+  aspect-ratio: 1;
+  min-width: 0 !important;
+  padding: 0 !important;
+  font-size: 14px;
+}
+</style>
 
 <style scoped>
 .info-field {

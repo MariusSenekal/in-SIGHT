@@ -131,7 +131,7 @@ const quickTasks = ref<string[]>([])
 const quickTaskInput = ref('')
 const quickChecklistFeedback = ref('')
 
-const quickActions = [
+const allQuickActions = [
   {
     to: '/dashboard/management',
     title: 'Management Tools',
@@ -148,7 +148,8 @@ const quickActions = [
     to: '/dashboard/qr-codes',
     title: 'QR Code Section',
     description: 'Generate and print QR sheets for sites.',
-    icon: 'mdi-qrcode'
+    icon: 'mdi-qrcode',
+    adminOnly: true  // Only true admins can access QR codes
   },
   {
     to: '/dashboard/requests',
@@ -157,6 +158,11 @@ const quickActions = [
     icon: 'mdi-clipboard-list-outline'
   }
 ]
+
+// Filter quick actions - only show admin-only items to true admins
+const quickActions = computed(() => 
+  allQuickActions.filter(action => !action.adminOnly || isAdmin.value)
+)
 
 const recordSelectItems = computed(() => {
   return allRecords.value.map(record => ({

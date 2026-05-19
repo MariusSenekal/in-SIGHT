@@ -29,6 +29,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/')
   }
 
+  // Block QR codes module - only admins can access
+  if (to.path.startsWith('/modules/qr-codes') && !isAdmin.value) {
+    return navigateTo('/modules')
+  }
+
   // Block modules routes for users who are not client admins/technicians
   if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value) {
     return navigateTo('/')

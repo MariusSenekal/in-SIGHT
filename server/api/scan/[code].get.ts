@@ -23,7 +23,42 @@ const formatTimeOrNull = (iso: string | null): string | null => {
 export default defineEventHandler(async (event) => {
   const code = getRouterParam(event, 'code')!.trim().toUpperCase()
 
-  // Fetch record (admin JWT bypasses RLS — anon has no direct table access)
+  // Check if this is a vehicle or equipment code
+  if (code.startsWith('VH-')) {
+    // Vehicle code - fetch and return vehicle data
+    const vehicles = await pgrestAdmin<any[]>('/vehicles', {
+      query: { code: `eq.${code}` }
+    })
+    if (!vehicles?.length) throw createError({ statusCode: 404, message: 'Vehicle not found.' })
+    const vehicle = vehicles[0]
+    return {
+      type: 'vehicle',
+      id: vehicle.id,
+      code: vehicle.code,
+      name: `${vehicle.make} ${vehicle.model}`,
+      description: `${vehicle.year} • ${vehicle.registration_number}`,
+      location: vehicle.location || 'No location specified'
+    }
+  }
+
+  if (code.startsWith('EQ-')) {
+    // Equipment code - fetch and return equipment data
+    const equipment = await pgrestAdmin<any[]>('/equipment', {
+      query: { code: `eq.${code}` }
+    })
+    if (!equipment?.length) throw createError({ statusCode: 404, message: 'Equipment not found.' })
+    const item = equipment[0]
+    return {
+      type: 'equipment',
+      id: item.id,
+      code: item.code,
+      name: item.name,
+      description: item.category || 'Equipment',
+      location: item.location || 'No location specified'
+    }
+  }
+
+  // Default: Handle as a record (original behavior)
   const records = await pgrestAdmin<any[]>('/records', {
     query: { code: `eq.${code}` }
   })

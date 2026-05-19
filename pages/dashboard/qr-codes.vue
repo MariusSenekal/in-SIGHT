@@ -3,8 +3,8 @@
     <v-card rounded="xl" elevation="6" class="pa-4 pa-md-6 app-shell">
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-4 print-hidden">
         <div>
-          <h1 class="text-h4 text-md-h3 font-weight-bold">QR Code Section</h1>
-          <p class="text-medium-emphasis">Select records, adjust size/layout, then print smart packed sheets.</p>
+          <h1 class="text-h4 text-md-h3 font-weight-bold">QR Code Management</h1>
+          <p class="text-medium-emphasis">Select records, vehicles, or equipment to generate and print QR code sheets.</p>
         </div>
         <div class="d-flex ga-2 flex-wrap">
           <v-btn variant="tonal" prepend-icon="mdi-arrow-left" @click="goBack({ adminFallback: '/' })">Back</v-btn>
@@ -24,7 +24,7 @@
       <v-row class="qr-layout-row" dense>
         <v-col cols="12" md="5" class="qr-controls-col qr-controls-scroll">
           <v-card variant="outlined" rounded="lg" class="record-selection-card">
-            <v-card-title class="d-flex align-center ga-2"><v-icon icon="mdi-checklist" />Record Selection</v-card-title>
+            <v-card-title class="d-flex align-center ga-2"><v-icon icon="mdi-checklist" />Item Selection</v-card-title>
             <v-card-text>
               <div class="d-flex ga-2 mb-3 flex-wrap">
                 <v-btn variant="tonal" prepend-icon="mdi-select-all" @click="selectAll">Select All</v-btn>
@@ -33,8 +33,8 @@
               </div>
 
               <v-text-field
-                v-model="recordSearch"
-                label="Search records"
+                v-model="searchTerm"
+                label="Search items"
                 prepend-inner-icon="mdi-magnify"
                 variant="outlined"
                 density="comfortable"
@@ -43,10 +43,21 @@
               />
 
               <v-select
+                v-model="selectedTypeFilter"
+                :items="typeFilterItems"
+                label="Filter by type"
+                prepend-inner-icon="mdi-filter-variant"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                class="mb-2"
+              />
+
+              <v-select
                 v-model="selectedOwnerFilter"
                 :items="ownerFilterItems"
-                label="Filter by user"
-                prepend-inner-icon="mdi-account-filter"
+                label="Filter by owner (user or company)"
+                prepend-inner-icon="mdi-filter"
                 variant="outlined"
                 density="comfortable"
                 hide-details
@@ -54,20 +65,29 @@
               />
 
               <v-list class="qr-record-list-material" lines="two" nav>
-                <v-list-item v-for="record in filteredRecords" :key="record.id" rounded="lg">
+                <v-list-item v-for="item in filteredItems" :key="`${item.type}-${item.id}`" rounded="lg">
                   <template #prepend>
                     <v-checkbox-btn
-                      :model-value="selectedIds.includes(record.id)"
-                      @update:model-value="setRecordSelection(record.id, Boolean($event))"
+                      :model-value="selectedIds.includes(`${item.type}-${item.id}`)"
+                      @update:model-value="setItemSelection(`${item.type}-${item.id}`, Boolean($event))"
                     />
                   </template>
 
-                  <v-list-item-title>{{ record.name }}</v-list-item-title>
-                  <v-list-item-subtitle>{{ record.code }} | {{ recordOwnerLabel(record.ownerUserId) }}</v-list-item-subtitle>
+                  <v-list-item-title>
+                    {{ item.name }}
+                    <v-chip size="x-small" :color="getTypeColor(item.type)" variant="tonal" class="ml-2">
+                      {{ getTypeLabel(item.type) }}
+                    </v-chip>
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ item.code }} | 
+                    <span v-if="item.ownerCompanyName" class="font-weight-medium">{{ item.ownerCompanyName }}</span>
+                    <span v-else>{{ itemOwnerLabel(item.ownerUserId) }}</span>
+                  </v-list-item-subtitle>
 
                   <template #append>
                     <v-text-field
-                      :model-value="quantityById[record.id] || 1"
+                      :model-value="quantityById[`${item.type}-${item.id}`] || 1"
                       type="number"
                       min="1"
                       max="500"
@@ -76,14 +96,14 @@
                       variant="outlined"
                       hide-details
                       style="max-width: 110px;"
-                      @update:model-value="updateQuantityValue(record.id, $event)"
+                      @update:model-value="updateQuantityValue(`${item.type}-${item.id}`, $event)"
                     />
                   </template>
                 </v-list-item>
               </v-list>
 
-              <v-alert v-if="filteredRecords.length === 0" type="info" variant="tonal" density="compact" class="mt-2">
-                No records match your search.
+              <v-alert v-if="filteredItems.length === 0" type="info" variant="tonal" density="compact" class="mt-2">
+                No items match your search.
               </v-alert>
             </v-card-text>
           </v-card>
@@ -225,16 +245,119 @@
 <script setup lang="ts">
 import QrcodeVue from 'qrcode.vue'
 
-const { currentUser, isAdmin, initAuth, logout, users } = useAuth()
+definePageMeta({ ssr: false })
+
+const { currentUser, isAdmin, initAuth, logout, users, companies, loadUsers, loadCompanies } = useAuth()
+
+// Redirect non-admin users away from this page
+if (import.meta.client) {
+  const checkAccess = () => {
+    if (currentUser.value && !isAdmin.value) {
+      navigateTo('/')
+    }
+  }
+  onMounted(checkAccess)
+  watch(() => currentUser.value, checkAccess)
+}
 const { goBack } = useAppNavigation()
 const { records, loadRecords } = useRecords()
+const { authToken } = useAuth()
 
-const selectedIds = ref<number[]>(records.value.map(record => record.id))
-const recordSearch = ref('')
+// Types for combined items
+interface QRItem {
+  id: number
+  code: string
+  name: string
+  location: string
+  ownerUserId: number | null
+  ownerCompanyId: number | null
+  ownerCompanyName: string | null
+  type: 'record' | 'vehicle' | 'equipment'
+}
+
+const vehicles = ref<any[]>([])
+const equipment = ref<any[]>([])
+
+// Load all items
+const loadVehicles = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/vehicles', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    vehicles.value = response || []
+  } catch (error) {
+    console.error('Failed to load vehicles:', error)
+    vehicles.value = []
+  }
+}
+
+const loadEquipment = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/equipment', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    equipment.value = response || []
+  } catch (error) {
+    console.error('Failed to load equipment:', error)
+    equipment.value = []
+  }
+}
+
+// Helper to get company name by ID
+const getCompanyName = (companyId: number | null) => {
+  if (!companyId) return null
+  const company = companies.value.find(c => c.id === companyId)
+  return company ? company.name : null
+}
+
+// Combine all items into a unified list
+const allItems = computed<QRItem[]>(() => {
+  const recordItems: QRItem[] = records.value.map(r => ({
+    id: r.id,
+    code: r.code,
+    name: r.name,
+    location: r.location || '',
+    ownerUserId: r.ownerUserId,
+    ownerCompanyId: r.ownerCompanyId,
+    ownerCompanyName: getCompanyName(r.ownerCompanyId),
+    type: 'record' as const
+  }))
+
+  const vehicleItems: QRItem[] = vehicles.value.map(v => {
+    return {
+      id: v.id,
+      code: v.code || 'NO-CODE',
+      name: `${v.make} ${v.model} (${v.year})`,
+      location: v.registration_number || '',
+      ownerUserId: v.owner_user_id,
+      ownerCompanyId: v.owner_company_id,
+      ownerCompanyName: getCompanyName(v.owner_company_id),
+      type: 'vehicle' as const
+    }
+  })
+
+  const equipmentItems: QRItem[] = equipment.value.map(e => ({
+    id: e.id,
+    code: e.code || 'NO-CODE',
+    name: e.name,
+    location: e.location || '',
+    ownerUserId: e.owner_user_id,
+    ownerCompanyId: e.owner_company_id,
+    ownerCompanyName: getCompanyName(e.owner_company_id),
+    type: 'equipment' as const
+  }))
+
+  return [...recordItems, ...vehicleItems, ...equipmentItems]
+})
+
+const selectedIds = ref<string[]>([])
+const searchTerm = ref('')
 const selectedOwnerFilter = ref('all')
-const quantityById = ref<Record<number, number>>(
-  Object.fromEntries(records.value.map(record => [record.id, 1]))
-)
+const selectedTypeFilter = ref('all')
+const quantityById = ref<Record<string, number>>({})
+
 const selectedPagePreset = ref<'A4' | 'Letter' | 'A3' | 'Custom'>('A4')
 const orientation = ref<'portrait' | 'landscape'>('portrait')
 const customWidthMm = ref(210)
@@ -279,20 +402,51 @@ const quickActions = [
 const pagePresetItems = ['A4', 'Letter', 'A3', 'Custom']
 const orientationItems: Array<'portrait' | 'landscape'> = ['portrait', 'landscape']
 
+const typeFilterItems = [
+  { title: 'All types', value: 'all' },
+  { title: 'Records', value: 'record' },
+  { title: 'Vehicles', value: 'vehicle' },
+  { title: 'Equipment', value: 'equipment' }
+]
+
 const ownerFilterItems = computed(() => {
+  const userItems = users.value.map(user => ({
+    title: `👤 ${user.profile?.displayName || user.name} (@${user.username})`,
+    value: `user-${user.id}`
+  }))
+  
+  const companyItems = companies.value.map(company => ({
+    title: `🏢 ${company.name}`,
+    value: `company-${company.id}`
+  }))
+  
   return [
-    { title: 'All users', value: 'all' },
-    { title: 'Unassigned / Admin records', value: 'unassigned' },
-    ...users.value.map(user => ({
-      title: `${user.profile?.displayName || user.name} (@${user.username})`,
-      value: `user-${user.id}`
-    }))
+    { title: 'All owners', value: 'all' },
+    { title: 'Unassigned / Admin', value: 'unassigned' },
+    ...companyItems,
+    ...userItems
   ]
 })
 
+const getTypeLabel = (type: string) => {
+  const labels = { record: 'Record', vehicle: 'Vehicle', equipment: 'Equipment' }
+  return labels[type as keyof typeof labels] || type
+}
+
+const getTypeColor = (type: string) => {
+  const colors = { record: 'primary', vehicle: 'blue', equipment: 'orange' }
+  return colors[type as keyof typeof colors] || 'grey'
+}
+
 onMounted(async () => {
   await initAuth()
-  await loadRecords()
+  await Promise.all([loadRecords(), loadVehicles(), loadEquipment(), loadUsers(), loadCompanies()])
+
+  // Initialize quantities for all items
+  allItems.value.forEach(item => {
+    const key = `${item.type}-${item.id}`
+    quantityById.value[key] = 1
+  })
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
@@ -304,37 +458,54 @@ const handleLogout = () => {
   navigateTo('/')
 }
 
-const recordsByOwnerFilter = computed(() => {
+const itemsByTypeFilter = computed(() => {
+  if (selectedTypeFilter.value === 'all') {
+    return allItems.value
+  }
+  return allItems.value.filter(item => item.type === selectedTypeFilter.value)
+})
+
+const itemsByOwnerFilter = computed(() => {
   if (selectedOwnerFilter.value === 'all') {
-    return records.value
+    return itemsByTypeFilter.value
   }
 
   if (selectedOwnerFilter.value === 'unassigned') {
-    return records.value.filter(record => record.ownerUserId === null)
+    return itemsByTypeFilter.value.filter(item => item.ownerUserId === null && item.ownerCompanyId === null)
   }
 
-  const userId = Number.parseInt(selectedOwnerFilter.value.replace('user-', ''), 10)
-
-  if (Number.isNaN(userId)) {
-    return records.value
+  // Check if filtering by company
+  if (selectedOwnerFilter.value.startsWith('company-')) {
+    const companyId = Number.parseInt(selectedOwnerFilter.value.replace('company-', ''), 10)
+    if (!Number.isNaN(companyId)) {
+      return itemsByTypeFilter.value.filter(item => item.ownerCompanyId === companyId)
+    }
   }
 
-  return records.value.filter(record => record.ownerUserId === userId)
+  // Check if filtering by user
+  if (selectedOwnerFilter.value.startsWith('user-')) {
+    const userId = Number.parseInt(selectedOwnerFilter.value.replace('user-', ''), 10)
+    if (!Number.isNaN(userId)) {
+      return itemsByTypeFilter.value.filter(item => item.ownerUserId === userId)
+    }
+  }
+
+  return itemsByTypeFilter.value
 })
 
-const filteredRecords = computed(() => {
-  const term = recordSearch.value.trim().toLowerCase()
+const filteredItems = computed(() => {
+  const term = searchTerm.value.trim().toLowerCase()
 
   if (!term) {
-    return recordsByOwnerFilter.value
+    return itemsByOwnerFilter.value
   }
 
-  return recordsByOwnerFilter.value.filter(record => {
-    return record.name.toLowerCase().includes(term) || record.code.toLowerCase().includes(term)
+  return itemsByOwnerFilter.value.filter(item => {
+    return item.name.toLowerCase().includes(term) || item.code.toLowerCase().includes(term)
   })
 })
 
-const recordOwnerLabel = (ownerUserId: number | null) => {
+const itemOwnerLabel = (ownerUserId: number | null) => {
   if (ownerUserId === null) {
     return 'Unassigned/Admin'
   }
@@ -344,7 +515,7 @@ const recordOwnerLabel = (ownerUserId: number | null) => {
 }
 
 const selectAll = () => {
-  const visibleIds = filteredRecords.value.map(record => record.id)
+  const visibleIds = filteredItems.value.map(item => `${item.type}-${item.id}`)
   selectedIds.value = [...new Set([...selectedIds.value, ...visibleIds])]
 }
 
@@ -356,7 +527,7 @@ const normalizeQuantity = (value: number) => {
   return Math.min(Math.max(Math.floor(value || 1), 1), 500)
 }
 
-const updateQuantityValue = (id: number, value: string | number | null) => {
+const updateQuantityValue = (key: string, value: string | number | null) => {
   const parsed = typeof value === 'number'
     ? value
     : Number.parseInt(String(value || '1'), 10)
@@ -364,20 +535,20 @@ const updateQuantityValue = (id: number, value: string | number | null) => {
 
   quantityById.value = {
     ...quantityById.value,
-    [id]: next
+    [key]: next
   }
 }
 
-const setRecordSelection = (id: number, checked: boolean) => {
+const setItemSelection = (key: string, checked: boolean) => {
   if (checked) {
-    if (!selectedIds.value.includes(id)) {
-      selectedIds.value = [...selectedIds.value, id]
+    if (!selectedIds.value.includes(key)) {
+      selectedIds.value = [...selectedIds.value, key]
     }
 
     return
   }
 
-  selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
+  selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== key)
 }
 
 const basePageSize = computed(() => {
@@ -445,17 +616,21 @@ const perPage = computed(() => {
   return Math.max(perRow.value * perColumn.value, 1)
 })
 
-const selectedRecords = computed(() => {
-  return records.value.filter(record => selectedIds.value.includes(record.id))
+const selectedItems = computed(() => {
+  return allItems.value.filter(item => {
+    const key = `${item.type}-${item.id}`
+    return selectedIds.value.includes(key)
+  })
 })
 
 const expandedRecords = computed(() => {
-  const output: Array<{ record: (typeof records.value)[number]; copyIndex: number }> = []
+  const output: Array<{ record: QRItem; copyIndex: number }> = []
 
-  selectedRecords.value.forEach(record => {
-    const copies = normalizeQuantity(quantityById.value[record.id] || 1)
+  selectedItems.value.forEach(item => {
+    const key = `${item.type}-${item.id}`
+    const copies = normalizeQuantity(quantityById.value[key] || 1)
     for (let i = 0; i < copies; i += 1) {
-      output.push({ record, copyIndex: i + 1 })
+      output.push({ record: item, copyIndex: i + 1 })
     }
   })
 
@@ -534,12 +709,21 @@ const qrCodeTextStyle = computed(() => {
   }
 })
 
-const toScanUrl = (record: { code: string; name: string; location: string }) => {
+const toScanUrl = (item: QRItem) => {
   const { siteUrl } = useRuntimeConfig().public
   const base = useRuntimeConfig().app.baseURL.replace(/\/$/, '')
   const origin = import.meta.client ? window.location.origin : siteUrl
-  const params = new URLSearchParams({ name: record.name, location: record.location })
-  return `${origin}${base}/scan/${record.code}?${params.toString()}`
+  
+  // Different scan URLs based on type
+  if (item.type === 'vehicle') {
+    return `${origin}${base}/modules/vehicles/${item.id}`
+  } else if (item.type === 'equipment') {
+    return `${origin}${base}/modules/equipment/${item.id}`
+  } else {
+    // Records use the scan page
+    const params = new URLSearchParams({ name: item.name, location: item.location })
+    return `${origin}${base}/scan/${item.code}?${params.toString()}`
+  }
 }
 
 const printSheets = () => {

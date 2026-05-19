@@ -19,7 +19,7 @@
 
         <!-- Module cards grid -->
         <v-row dense>
-          <v-col cols="12" sm="6" md="4" v-for="module in modules" :key="module.key">
+          <v-col cols="12" sm="6" md="4" v-for="module in availableModules" :key="module.key">
             <v-card
               rounded="xl"
               elevation="2"
@@ -54,6 +54,8 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
+const { isAdmin } = useAuth()
+
 const modules = [
   {
     key: 'vehicle',
@@ -71,7 +73,8 @@ const modules = [
     icon: 'mdi-qrcode',
     color1: '#8b5cf6',
     color2: '#7c3aed',
-    action: () => navigateTo('/modules/qr-codes')
+    action: () => navigateTo('/modules/qr-codes'),
+    adminOnly: true  // Only admins can access QR codes module
   },
   {
     key: 'equipment',
@@ -80,7 +83,7 @@ const modules = [
     icon: 'mdi-toolbox',
     color1: '#f59e0b',
     color2: '#d97706',
-    action: () => {}  // To be implemented
+    action: () => navigateTo('/modules/equipment')
   },
   {
     key: 'cleaning',
@@ -92,6 +95,11 @@ const modules = [
     action: () => {}  // To be implemented
   }
 ]
+
+// Filter modules based on user role - only show admin-only modules to admins
+const availableModules = computed(() => 
+  modules.filter(module => !module.adminOnly || isAdmin.value)
+)
 </script>
 
 <style scoped>

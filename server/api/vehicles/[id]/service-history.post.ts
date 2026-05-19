@@ -21,20 +21,35 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+  
+  console.log('[API] Received service history request:', JSON.stringify(body, null, 2))
+  
   const {
     serviceDate,
+    serviceDatetime,
     serviceType,
     description,
+    repairCompleted,
     cost,
     odometerReading,
     performedBy,
     notes
   } = body
 
-  if (!serviceDate || !serviceType) {
+  // Support both old format (serviceDate) and new format (serviceDatetime)
+  const finalServiceDatetime = serviceDatetime || (serviceDate ? `${serviceDate}T12:00:00` : null)
+  const finalRepairCompleted = repairCompleted || description || serviceType || ''
+  
+  console.log('[API] Processed values:', {
+    finalServiceDatetime,
+    finalRepairCompleted,
+    performedBy
+  })
+
+  if (!finalServiceDatetime || !finalRepairCompleted) {
     throw createError({ 
       statusCode: 400, 
-      message: 'Service date and type are required.' 
+      message: 'Service date/time and repair description are required.' 
     })
   }
 
@@ -71,26 +86,63 @@ export default defineEventHandler(async (event) => {
     }
 
     // Add service history entry
+    console.log('[API] About to insert into database...')
+    
+    const insertBody = {
+      vehicle_id: parseInt(id),
+      service_date: finalServiceDatetime.split('T')[0],
+      service_datetime: finalServiceDatetime,
+      service_type: serviceType || repairCompleted || 'Service',
+      description: description || repairCompleted || '',
+      repair_completed: finalRepairCompleted,
+      cost: cost ? parseFloat(cost) : null,
+      odometer_reading: odometerReading ? parseInt(odometerReading) : null,
+      performed_by: performedBy || '',
+      notes: notes || ''
+    }
+    
+    console.log('[API] Insert body:', JSON.stringify(insertBody, null, 2))
+    
     const entry = await pgrestAdmin<any>('/vehicle_service_history', {
       method: 'POST',
-      body: {
-        vehicle_id: parseInt(id),
-        service_date: serviceDate,
-        service_type: serviceType,
-        description: description || '',
-        cost: cost ? parseFloat(cost) : null,
-        odometer_reading: odometerReading ? parseInt(odometerReading) : null,
-        performed_by: performedBy || '',
-        notes: notes || ''
+      body: insertBody,
+      extraHeaders: {
+        'Prefer': 'return=representation'
       }
     })
+    
+    console.log('[API] Successfully created entry:', entry)
     
     return entry
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) {
       throw error
     }
-    console.error('[API] Failed to add service history:', error)
-    throw createError({ statusCode: 500, message: 'Failed to add service history.' })
+    console.error('[API] ========================================')
+    console.error('[API] ERROR: Failed to add service history')
+    console.error('[API] ========================================')
+    console.error('[API] Error object:', error)
+    
+    // Try to extract more details from the error
+    if (error && typeof error === 'object') {
+      const errObj = error as any
+      console.error('[API] Error statusCode:', errObj.statusCode)
+      console.error('[API] Error statusMessage:', errObj.statusMessage)
+      console.error('[API] Error message:', errObj.message)
+      console.error('[API] Error data:', errObj.data)
+      console.error('[API] Error cause:', errObj.cause)
+      
+      // If it's a fetch error, try to get response details
+      if (errObj.data) {
+        console.error('[API] Response data:', JSON.stringify(errObj.data, null, 2))
+      }
+    }
+    
+    console.error('[API] Error message:', (error as Error).message)
+    console.error('[API] Error stack:', (error as Error).stack)
+    console.error('[API] Request body was:', JSON.stringify(body, null, 2))
+    console.error('[API] Final datetime:', finalServiceDatetime)
+    console.error('[API] ========================================')
+    throw createError({ statusCode: 500, message: 'Failed to add service history. Check server logs for details.' })
   }
 })

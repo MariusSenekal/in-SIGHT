@@ -301,22 +301,26 @@
                 No QR records assigned to this user yet.
               </v-alert>
 
-              <v-row v-if="selectedUser.role === 'user' && filteredUserRecords.length > 0" dense>
-                <v-col cols="12" v-for="record in filteredUserRecords" :key="record.id">
+              <v-row v-if="filteredUserRecords.length > 0" dense>
+                <v-col cols="12" v-for="record in filteredUserRecords" :key="`${record.itemType}-${record.id}`">
                   <v-card rounded="lg" variant="tonal" class="pa-2 pa-md-3">
                     <v-row>
                       <v-col cols="12" md="8">
                         <div class="d-flex flex-wrap align-center ga-2 mb-1">
-                          <h3 class="text-h6 font-weight-bold">{{ record.name }}</h3>
+                          <h3 class="text-h6 font-weight-bold">{{ record.displayName || record.name }}</h3>
                           <v-chip size="x-small" color="primary" variant="flat">{{ record.code }}</v-chip>
-                          <v-chip size="x-small" color="info" variant="tonal">{{ record.type }}</v-chip>
+                          <v-chip v-if="record.itemType === 'record'" size="x-small" color="info" variant="tonal">{{ record.type }}</v-chip>
+                          <v-chip v-if="record.itemType === 'vehicle'" size="x-small" color="blue" variant="tonal">Vehicle</v-chip>
+                          <v-chip v-if="record.itemType === 'equipment'" size="x-small" color="orange" variant="tonal">Equipment</v-chip>
                           <v-spacer />
-                          <v-btn size="x-small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(record)" />
-                          <v-btn size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(record)" />
+                          <v-btn v-if="record.itemType === 'record'" size="x-small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(record as any)" />
+                          <v-btn v-if="record.itemType === 'record'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(record as any)" />
+                          <v-btn v-if="record.itemType === 'vehicle'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteVehicle(record)" />
+                          <v-btn v-if="record.itemType === 'equipment'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteEquipment(record)" />
                         </div>
-                        <p class="text-medium-emphasis mb-3">Site / Room: {{ record.location }}</p>
+                        <p class="text-medium-emphasis mb-3">{{ record.displayLocation || record.location }}</p>
 
-                        <v-card variant="outlined" rounded="lg" class="mb-3">
+                        <v-card v-if="record.itemType === 'record'" variant="outlined" rounded="lg" class="mb-3">
                           <v-card-title class="text-subtitle-1 font-weight-bold">Schedule Checklist (Admin)</v-card-title>
                           <v-card-text>
                             <p class="text-medium-emphasis mb-2">Add tasks with buttons, then save. Staff will tick these in Service Details.</p>
@@ -511,13 +515,17 @@
               </v-alert>
 
               <v-row v-else dense>
-                <v-col cols="12" sm="6" v-for="rec in getRecordsByCompany(selectedCompany.id)" :key="rec.id">
+                <v-col cols="12" sm="6" v-for="rec in getRecordsByCompany(selectedCompany.id)" :key="`${rec.itemType}-${rec.id}`">
                   <v-card variant="tonal" rounded="lg" class="pa-3">
                     <div class="d-flex align-center justify-space-between mb-2">
                       <div>
-                        <div class="font-weight-bold">{{ rec.name }}</div>
-                        <div class="text-medium-emphasis text-caption">{{ rec.location }}</div>
-                        <v-chip size="x-small" color="primary" variant="flat" class="mt-1">{{ rec.code }}</v-chip>
+                        <div class="font-weight-bold">{{ rec.displayName || rec.name }}</div>
+                        <div class="text-medium-emphasis text-caption">{{ rec.displayLocation || rec.location }}</div>
+                        <div class="d-flex ga-1 mt-1">
+                          <v-chip size="x-small" color="primary" variant="flat">{{ rec.code }}</v-chip>
+                          <v-chip v-if="rec.itemType === 'vehicle'" size="x-small" color="blue" variant="tonal">Vehicle</v-chip>
+                          <v-chip v-if="rec.itemType === 'equipment'" size="x-small" color="orange" variant="tonal">Equipment</v-chip>
+                        </div>
                       </div>
                       <QrcodeVue :value="toScanUrl(rec)" :size="80" level="H" render-as="svg" />
                     </div>
@@ -525,8 +533,10 @@
                       <v-btn :to="`/scan/${rec.code}`" size="small" color="primary" variant="tonal" prepend-icon="mdi-open-in-new" class="flex-grow-1">
                         Open Tracking Page
                       </v-btn>
-                      <v-btn size="small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(rec)" />
-                      <v-btn size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(rec)" />
+                      <v-btn v-if="rec.itemType === 'record'" size="small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(rec as any)" />
+                      <v-btn v-if="rec.itemType === 'record'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(rec as any)" />
+                      <v-btn v-if="rec.itemType === 'vehicle'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteVehicle(rec)" />
+                      <v-btn v-if="rec.itemType === 'equipment'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteEquipment(rec)" />
                     </div>
                   </v-card>
                 </v-col>
@@ -832,6 +842,48 @@
     </v-card>
   </v-dialog>
 
+  <!-- ── Delete Vehicle Confirm Dialog ────────────────────────────────────── -->
+  <v-dialog v-model="showDeleteVehicleDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-car-off" />
+        Delete Vehicle
+      </v-card-title>
+      <v-card-text>
+        <p>Delete vehicle <strong>{{ deleteVehicleTarget?.code }}</strong>?</p>
+        <p class="text-medium-emphasis">{{ deleteVehicleTarget?.displayName || deleteVehicleTarget?.name }}</p>
+        <p class="text-medium-emphasis text-caption mt-2">This action cannot be undone.</p>
+        <v-alert v-if="deleteVehicleError" type="error" variant="tonal" density="compact" class="mt-3">{{ deleteVehicleError }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleteVehicleLoading" @click="showDeleteVehicleDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" :loading="deleteVehicleLoading" @click="submitDeleteVehicle">Delete Permanently</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ── Delete Equipment Confirm Dialog ───────────────────────────────────── -->
+  <v-dialog v-model="showDeleteEquipmentDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-toolbox-outline" />
+        Delete Equipment
+      </v-card-title>
+      <v-card-text>
+        <p>Delete equipment <strong>{{ deleteEquipmentTarget?.code }}</strong>?</p>
+        <p class="text-medium-emphasis">{{ deleteEquipmentTarget?.displayName || deleteEquipmentTarget?.name }}</p>
+        <p class="text-medium-emphasis text-caption mt-2">This action cannot be undone.</p>
+        <v-alert v-if="deleteEquipmentError" type="error" variant="tonal" density="compact" class="mt-3">{{ deleteEquipmentError }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleteEquipmentLoading" @click="showDeleteEquipmentDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" :loading="deleteEquipmentLoading" @click="submitDeleteEquipment">Delete Permanently</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- ── Create Company Dialog ───────────────────────────────────────────── -->
   <v-dialog v-model="showCreateCompanyDialog" max-width="380" persistent>
     <v-card rounded="lg">
@@ -863,12 +915,60 @@
 import QrcodeVue from 'qrcode.vue'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany } = useAuth()
+const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany, authToken } = useAuth()
 const { goBack } = useAppNavigation()
 const { records: managementRecords, loadRecords, addRecord, updateRecord, deleteRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
 const { connect, disconnect } = useSocket()
+
+// Load vehicles and equipment
+const vehicles = ref<any[]>([])
+const equipment = ref<any[]>([])
+
+const loadVehicles = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/vehicles', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    vehicles.value = response || []
+  } catch (error) {
+    console.error('Failed to load vehicles:', error)
+    vehicles.value = []
+  }
+}
+
+const loadEquipment = async () => {
+  if (!authToken.value) return
+  try {
+    const response = await $fetch<any[]>('/api/equipment', {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    equipment.value = response || []
+  } catch (error) {
+    console.error('Failed to load equipment:', error)
+    equipment.value = []
+  }
+}
+
+const deleteVehicle = async (id: number) => {
+  if (!authToken.value) throw new Error('Not authenticated')
+  await $fetch(`/api/vehicles/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${authToken.value}` }
+  })
+  vehicles.value = vehicles.value.filter(v => v.id !== id)
+}
+
+const deleteEquipment = async (id: number) => {
+  if (!authToken.value) throw new Error('Not authenticated')
+  await $fetch(`/api/equipment/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${authToken.value}` }
+  })
+  equipment.value = equipment.value.filter(e => e.id !== id)
+}
 
 // ── Live request notifications ────────────────────────────────────────────────
 const liveRequestSnack = ref(false)
@@ -894,7 +994,40 @@ const createQrError = ref('')
 const createQrSuccess = ref('')
 
 const getRecordsByCompany = (companyId: number) => {
-  return getRecordsByCompanyFn(companyId)
+  const recordItems = getRecordsByCompanyFn(companyId).map(r => ({
+    ...r,
+    itemType: 'record' as const,
+    displayName: r.name,
+    displayLocation: r.location
+  }))
+
+  const vehicleItems = vehicles.value
+    .filter(v => v.owner_company_id === companyId)
+    .map(v => ({
+      id: v.id,
+      code: v.code,
+      name: `${v.make} ${v.model} (${v.year})`,
+      location: v.registration_number || '',
+      type: 'Vehicle',
+      itemType: 'vehicle' as const,
+      displayName: `${v.make} ${v.model} (${v.year})`,
+      displayLocation: v.registration_number || ''
+    }))
+
+  const equipmentItems = equipment.value
+    .filter(e => e.owner_company_id === companyId)
+    .map(e => ({
+      id: e.id,
+      code: e.code,
+      name: e.name,
+      location: e.location || '',
+      type: e.category || 'Equipment',
+      itemType: 'equipment' as const,
+      displayName: e.name,
+      displayLocation: e.location || ''
+    }))
+
+  return [...recordItems, ...vehicleItems, ...equipmentItems]
 }
 
 const getCompanyNameById = (companyId: number) => {
@@ -1191,6 +1324,60 @@ const submitDeleteRecord = async () => {
   }
 }
 
+// ── Delete Vehicle ────────────────────────────────────────────────────────────
+const showDeleteVehicleDialog = ref(false)
+const deleteVehicleTarget     = ref<any>(null)
+const deleteVehicleError      = ref('')
+const deleteVehicleLoading    = ref(false)
+
+const openDeleteVehicle = (vehicle: any) => {
+  deleteVehicleTarget.value     = vehicle
+  deleteVehicleError.value      = ''
+  showDeleteVehicleDialog.value = true
+}
+
+const submitDeleteVehicle = async () => {
+  if (!deleteVehicleTarget.value) return
+  deleteVehicleError.value   = ''
+  deleteVehicleLoading.value = true
+  try {
+    await deleteVehicle(deleteVehicleTarget.value.id)
+    showDeleteVehicleDialog.value = false
+    deleteVehicleTarget.value     = null
+  } catch {
+    deleteVehicleError.value = 'Delete failed.'
+  } finally {
+    deleteVehicleLoading.value = false
+  }
+}
+
+// ── Delete Equipment ──────────────────────────────────────────────────────────
+const showDeleteEquipmentDialog = ref(false)
+const deleteEquipmentTarget     = ref<any>(null)
+const deleteEquipmentError      = ref('')
+const deleteEquipmentLoading    = ref(false)
+
+const openDeleteEquipment = (equip: any) => {
+  deleteEquipmentTarget.value     = equip
+  deleteEquipmentError.value      = ''
+  showDeleteEquipmentDialog.value = true
+}
+
+const submitDeleteEquipment = async () => {
+  if (!deleteEquipmentTarget.value) return
+  deleteEquipmentError.value   = ''
+  deleteEquipmentLoading.value = true
+  try {
+    await deleteEquipment(deleteEquipmentTarget.value.id)
+    showDeleteEquipmentDialog.value = false
+    deleteEquipmentTarget.value     = null
+  } catch {
+    deleteEquipmentError.value = 'Delete failed.'
+  } finally {
+    deleteEquipmentLoading.value = false
+  }
+}
+
 // ── Companies ─────────────────────────────────────────────────────────────────
 const showCreateCompanyDialog = ref(false)
 const createCompanyForm = reactive({ name: '' })
@@ -1355,16 +1542,58 @@ const selectedUser = computed(() => {
 })
 
 const recordsForSelectedUser = computed(() => {
-  if (!selectedUser.value || selectedUser.value.role !== 'user') {
+  if (!selectedUser.value) {
     return []
   }
 
-  return allRecords.value.filter(record => record.ownerUserId === selectedUser.value?.id)
+  const userId = selectedUser.value.id
+
+  // Combine records, vehicles, and equipment into a unified list
+  const recordItems = managementRecords.value
+    .filter(r => r.ownerUserId === userId)
+    .map(r => ({
+      ...r,
+      itemType: 'record' as const,
+      displayName: r.name,
+      displayLocation: r.location
+    }))
+
+  const vehicleItems = vehicles.value
+    .filter(v => v.owner_user_id === userId)
+    .map(v => ({
+      id: v.id,
+      code: v.code,
+      name: `${v.make} ${v.model} (${v.year})`,
+      location: v.registration_number || '',
+      type: 'Vehicle',
+      ownerUserId: v.owner_user_id,
+      ownerCompanyId: v.owner_company_id,
+      itemType: 'vehicle' as const,
+      displayName: `${v.make} ${v.model} (${v.year})`,
+      displayLocation: v.registration_number || ''
+    }))
+
+  const equipmentItems = equipment.value
+    .filter(e => e.owner_user_id === userId)
+    .map(e => ({
+      id: e.id,
+      code: e.code,
+      name: e.name,
+      location: e.location || '',
+      type: e.category || 'Equipment',
+      ownerUserId: e.owner_user_id,
+      ownerCompanyId: e.owner_company_id,
+      itemType: 'equipment' as const,
+      displayName: e.name,
+      displayLocation: e.location || ''
+    }))
+
+  return [...recordItems, ...vehicleItems, ...equipmentItems]
 })
 
 const siteOptions = computed(() => {
-  const options = new Set(recordsForSelectedUser.value.map(record => record.location))
-  return [...options].sort((a, b) => a.localeCompare(b))
+  const options = new Set(recordsForSelectedUser.value.map(item => item.displayLocation || item.location))
+  return [...options].filter(Boolean).sort((a, b) => a.localeCompare(b))
 })
 
 const siteFilterItems = computed(() => {
@@ -1377,8 +1606,9 @@ const siteFilterItems = computed(() => {
 const filteredUserRecords = computed(() => {
   const term = recordSearch.value.trim().toLowerCase()
 
-  return recordsForSelectedUser.value.filter(record => {
-    const siteMatch = siteFilter.value === 'all' || record.location === siteFilter.value
+  return recordsForSelectedUser.value.filter(item => {
+    const locationToMatch = item.displayLocation || item.location
+    const siteMatch = siteFilter.value === 'all' || locationToMatch === siteFilter.value
 
     if (!siteMatch) {
       return false
@@ -1388,8 +1618,8 @@ const filteredUserRecords = computed(() => {
       return true
     }
 
-    return [record.code, record.name, record.type, record.location]
-      .some(value => value.toLowerCase().includes(term))
+    return [item.code, item.displayName || item.name, item.type, locationToMatch]
+      .some(value => value?.toLowerCase().includes(term))
   })
 })
 
@@ -1487,11 +1717,10 @@ const formatDateTime = (iso: string) => {
 }
 
 const getRecordCountForUser = (user: (typeof users.value)[number]) => {
-  if (user.role !== 'user') {
-    return 0
-  }
-
-  return allRecords.value.filter(record => record.ownerUserId === user.id).length
+  const recordCount = managementRecords.value.filter(r => r.ownerUserId === user.id).length
+  const vehicleCount = vehicles.value.filter(v => v.owner_user_id === user.id).length
+  const equipmentCount = equipment.value.filter(e => e.owner_user_id === user.id).length
+  return recordCount + vehicleCount + equipmentCount
 }
 
 const roleColor = (role: string) => {
@@ -1531,13 +1760,13 @@ watch(selectedUserId, () => {
   recordSearch.value = ''
 })
 
-watch(filteredUserRecords, (records) => {
-  records.forEach(record => seedChecklistItems(record.code))
+watch(filteredUserRecords, (items) => {
+  items.filter(item => item.itemType === 'record').forEach(record => seedChecklistItems(record.code))
 }, { immediate: true })
 
 onMounted(async () => {
   await initAuth()
-  await Promise.all([loadRecords(), loadUsers(), loadCompanies()])
+  await Promise.all([loadRecords(), loadVehicles(), loadEquipment(), loadUsers(), loadCompanies()])
 
   if (!currentUser.value || !isAdmin.value) {
     navigateTo('/')
