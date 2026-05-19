@@ -65,6 +65,15 @@ const modules = [
     action: () => navigateTo('/modules/vehicles')
   },
   {
+    key: 'qr-codes',
+    title: 'QR Codes',
+    description: 'Generate and print QR codes for your records and assets.',
+    icon: 'mdi-qrcode',
+    color1: '#8b5cf6',
+    color2: '#7c3aed',
+    action: () => navigateTo('/modules/qr-codes')
+  },
+  {
     key: 'equipment',
     title: 'Equipment',
     description: 'Manage equipment inventory, maintenance schedules, and tracking.',
