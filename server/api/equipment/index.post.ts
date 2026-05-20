@@ -18,22 +18,25 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const {
     name,
-    description,
+    make,
+    model,
+    year,
+    colour,
+    serialNumber,
+    unitAllocation,
+    nextServiceDue,
     category,
-    manufacturer,
-    model_number,
-    serial_number,
-    purchase_date,
-    purchase_cost,
-    warranty_expiry,
     location,
-    status
+    status,
+    notes
   } = body
 
-  if (!name) {
+  // Make is required (or fallback to name for backwards compatibility)
+  const equipmentMake = make || name
+  if (!equipmentMake) {
     throw createError({ 
       statusCode: 400, 
-      message: 'Equipment name is required.' 
+      message: 'Equipment make is required.' 
     })
   }
 
@@ -55,17 +58,18 @@ export default defineEventHandler(async (event) => {
       body: {
         owner_user_id: payload.sub,
         owner_company_id: ownerCompanyId,
-        name,
-        description: description || '',
+        name: name || equipmentMake,
+        make: equipmentMake,
+        model: model || '',
+        year: year || null,
+        colour: colour || '',
+        serial_number: serialNumber || '',
+        unit_allocation: unitAllocation || '',
+        next_service_due: nextServiceDue || null,
         category: category || '',
-        manufacturer: manufacturer || '',
-        model_number: model_number || '',
-        serial_number: serial_number || '',
-        purchase_date: purchase_date || null,
-        purchase_cost: purchase_cost ? parseFloat(purchase_cost) : null,
-        warranty_expiry: warranty_expiry || null,
         location: location || '',
-        status: status || 'active'
+        status: status || 'active',
+        notes: notes || ''
       }
     })
 

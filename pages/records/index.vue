@@ -202,14 +202,14 @@
               
               <!-- Vehicles: tracking page -->
               <template v-else-if="record.type === 'vehicle'">
-                <v-btn :to="`/modules/vehicles/${record.id}`" size="small" color="blue" variant="tonal" prepend-icon="mdi-car" class="flex-grow-1">
+                <v-btn :to="`/modules/vehicles/${record.id}?from=records`" size="small" color="blue" variant="tonal" prepend-icon="mdi-car" class="flex-grow-1">
                   View Vehicle
                 </v-btn>
               </template>
               
               <!-- Equipment: tracking page -->
               <template v-else-if="record.type === 'equipment'">
-                <v-btn :to="`/modules/equipment/${record.id}`" size="small" color="orange" variant="tonal" prepend-icon="mdi-toolbox" class="flex-grow-1">
+                <v-btn :to="`/modules/equipment/${record.id}?from=records`" size="small" color="orange" variant="tonal" prepend-icon="mdi-toolbox" class="flex-grow-1">
                   View Equipment
                 </v-btn>
               </template>

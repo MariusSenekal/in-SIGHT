@@ -739,6 +739,11 @@ const handleBack = () => {
     navigateTo('/dashboard/management')
     return
   }
+  // If admin came from records dashboard, route back to records
+  if (isAdmin.value && route.query.from === 'records') {
+    navigateTo('/records')
+    return
+  }
   // Otherwise go to vehicles list
   navigateTo('/modules/vehicles')
 }

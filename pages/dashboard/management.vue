@@ -257,7 +257,9 @@
                           <v-spacer />
                           <v-btn v-if="record.itemType === 'record'" size="x-small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(record as any)" />
                           <v-btn v-if="record.itemType === 'record'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(record as any)" />
+                          <v-btn v-if="record.itemType === 'vehicle'" :to="`/modules/vehicles/${record.id}?from=management`" size="x-small" color="blue" variant="tonal" icon="mdi-eye-outline" />
                           <v-btn v-if="record.itemType === 'vehicle'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteVehicle(record)" />
+                          <v-btn v-if="record.itemType === 'equipment'" :to="`/modules/equipment/${record.id}?from=management`" size="x-small" color="orange" variant="tonal" icon="mdi-eye-outline" />
                           <v-btn v-if="record.itemType === 'equipment'" size="x-small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteEquipment(record)" />
                         </div>
                         <p class="text-medium-emphasis mb-3">{{ record.displayLocation || record.location }}</p>
@@ -477,7 +479,9 @@
                       </v-btn>
                       <v-btn v-if="rec.itemType === 'record'" size="small" color="primary" variant="tonal" icon="mdi-pencil-outline" @click="openEditRecord(rec as any)" />
                       <v-btn v-if="rec.itemType === 'record'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteRecord(rec as any)" />
+                      <v-btn v-if="rec.itemType === 'vehicle'" :to="`/modules/vehicles/${rec.id}?from=management`" size="small" color="blue" variant="tonal" icon="mdi-eye-outline" />
                       <v-btn v-if="rec.itemType === 'vehicle'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteVehicle(rec)" />
+                      <v-btn v-if="rec.itemType === 'equipment'" :to="`/modules/equipment/${rec.id}?from=management`" size="small" color="orange" variant="tonal" icon="mdi-eye-outline" />
                       <v-btn v-if="rec.itemType === 'equipment'" size="small" color="error" variant="tonal" icon="mdi-delete-outline" @click="openDeleteEquipment(rec)" />
                     </div>
                   </v-card>

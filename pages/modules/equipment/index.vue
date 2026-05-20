@@ -37,44 +37,53 @@
             <v-card
               rounded="xl"
               elevation="2"
-              class="equipment-card"
+              class="equipment-card cursor-pointer"
+              @click="navigateTo(`/modules/equipment/${item.id}`)"
             >
               <div class="equipment-card__header">
                 <v-icon icon="mdi-toolbox" size="32" color="primary" />
               </div>
               <v-card-text class="pa-4">
                 <h3 class="text-h6 font-weight-bold mb-1">
-                  {{ item.name }}
+                  {{ item.make }} {{ item.model || item.name }}
                 </h3>
-                <p class="text-body-2 text-medium-emphasis mb-3">{{ item.category || 'Uncategorized' }}</p>
+                <p class="text-body-2 text-medium-emphasis mb-3">{{ item.year || item.category || 'Equipment' }}</p>
                 
                 <div class="d-flex flex-column ga-2">
-                  <div class="d-flex align-center ga-2">
+                  <div v-if="item.code" class="d-flex align-center ga-2">
                     <v-icon icon="mdi-qrcode" size="16" color="grey" />
-                    <span class="text-body-2">{{ item.code }}</span>
+                    <span class="text-body-2 font-weight-medium">{{ item.code }}</span>
                   </div>
                   <div v-if="item.serial_number" class="d-flex align-center ga-2">
                     <v-icon icon="mdi-barcode" size="16" color="grey" />
-                    <span class="text-body-2">SN: {{ item.serial_number }}</span>
+                    <span class="text-body-2">{{ item.serial_number }}</span>
                   </div>
-                  <div v-if="item.location" class="d-flex align-center ga-2">
-                    <v-icon icon="mdi-map-marker" size="16" color="grey" />
-                    <span class="text-body-2">{{ item.location }}</span>
+                  <div v-if="item.colour" class="d-flex align-center ga-2">
+                    <v-icon icon="mdi-palette" size="16" color="grey" />
+                    <span class="text-body-2">{{ item.colour }}</span>
                   </div>
-                  <div class="d-flex align-center ga-2">
-                    <v-icon icon="mdi-circle" size="12" :color="getStatusColor(item.status)" />
-                    <span class="text-body-2">{{ item.status || 'Active' }}</span>
+                  <div v-if="item.unit_allocation" class="d-flex align-center ga-2">
+                    <v-icon icon="mdi-office-building" size="16" color="grey" />
+                    <span class="text-body-2">{{ item.unit_allocation }}</span>
                   </div>
                 </div>
               </v-card-text>
               <v-card-actions class="px-4 pb-4">
+                <v-btn 
+                  variant="text" 
+                  color="primary" 
+                  size="small"
+                  @click.stop="navigateTo(`/modules/equipment/${item.id}`)"
+                >
+                  View Details
+                </v-btn>
                 <v-spacer />
                 <v-btn 
                   variant="text" 
                   color="error" 
                   size="small"
                   icon="mdi-delete"
-                  @click="openDeleteDialog(item)"
+                  @click.stop="openDeleteDialog(item)"
                 />
               </v-card-actions>
             </v-card>
@@ -93,11 +102,11 @@
         <v-card-text class="pa-5 pt-1">
           <v-form ref="addForm" @submit.prevent="submitAddEquipment">
             <v-row dense>
-              <v-col cols="12">
+              <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="newEquipment.name"
-                  label="Equipment Name *"
-                  prepend-inner-icon="mdi-toolbox"
+                  v-model="newEquipment.make"
+                  label="Make *"
+                  prepend-inner-icon="mdi-tag"
                   variant="outlined"
                   density="comfortable"
                   required
@@ -105,47 +114,27 @@
               </v-col>
               <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="newEquipment.category"
-                  label="Category"
-                  prepend-inner-icon="mdi-tag"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="newEquipment.status"
-                  :items="statusItems"
-                  label="Status"
-                  prepend-inner-icon="mdi-circle"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-textarea
-                  v-model="newEquipment.description"
-                  label="Description"
-                  prepend-inner-icon="mdi-text"
-                  variant="outlined"
-                  density="comfortable"
-                  rows="2"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newEquipment.manufacturer"
-                  label="Manufacturer"
-                  prepend-inner-icon="mdi-factory"
+                  v-model="newEquipment.model"
+                  label="Model"
                   variant="outlined"
                   density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="newEquipment.modelNumber"
-                  label="Model Number"
-                  prepend-inner-icon="mdi-format-list-numbered"
+                  v-model="newEquipment.year"
+                  label="Year"
+                  type="number"
+                  prepend-inner-icon="mdi-calendar"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="newEquipment.colour"
+                  label="Colour"
+                  prepend-inner-icon="mdi-palette"
                   variant="outlined"
                   density="comfortable"
                 />
@@ -161,40 +150,19 @@
               </v-col>
               <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="newEquipment.location"
-                  label="Location"
-                  prepend-inner-icon="mdi-map-marker"
+                  v-model="newEquipment.unitAllocation"
+                  label="Unit Allocation"
+                  prepend-inner-icon="mdi-office-building"
                   variant="outlined"
                   density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="newEquipment.purchaseDate"
-                  label="Purchase Date"
+                  v-model="newEquipment.nextServiceDue"
+                  label="Next Service Due"
                   type="date"
-                  prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newEquipment.purchaseCost"
-                  label="Purchase Cost"
-                  type="number"
-                  step="0.01"
-                  prepend-inner-icon="mdi-currency-usd"
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="newEquipment.warrantyExpiry"
-                  label="Warranty Expiry"
-                  type="date"
-                  prepend-inner-icon="mdi-shield-check"
+                  prepend-inner-icon="mdi-wrench-clock"
                   variant="outlined"
                   density="comfortable"
                 />
@@ -231,7 +199,7 @@
           </div>
         </v-card-title>
         <v-card-text class="pa-5 pt-1">
-          <p>Are you sure you want to delete <strong>{{ deleteTarget?.name }}</strong>?</p>
+          <p>Are you sure you want to delete <strong>{{ deleteTarget?.make }} {{ deleteTarget?.model || deleteTarget?.name }}</strong>?</p>
           <p class="text-medium-emphasis text-caption mt-2">This action cannot be undone.</p>
           <v-alert v-if="deleteFeedback" :type="deleteFeedbackType" variant="tonal" density="compact" class="mt-3">
             {{ deleteFeedback }}
@@ -278,31 +246,15 @@ const deleteLoading = ref(false)
 const deleteFeedback = ref('')
 const deleteFeedbackType = ref<'success' | 'error'>('success')
 
-const statusItems = ['active', 'maintenance', 'retired', 'damaged']
-
-const newEquipment = ref({
-  name: '',
-  description: '',
-  category: '',
-  manufacturer: '',
-  modelNumber: '',
+const newEquipment = reactive({
+  make: '',
+  model: '',
+  year: null as number | null,
+  colour: '',
   serialNumber: '',
-  purchaseDate: '',
-  purchaseCost: '',
-  warrantyExpiry: '',
-  location: '',
-  status: 'active'
+  unitAllocation: '',
+  nextServiceDue: ''
 })
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    active: 'success',
-    maintenance: 'warning',
-    retired: 'grey',
-    damaged: 'error'
-  }
-  return colors[status] || 'grey'
-}
 
 const loadEquipment = async () => {
   if (!authToken.value) return
@@ -321,8 +273,8 @@ const loadEquipment = async () => {
 }
 
 const submitAddEquipment = async () => {
-  if (!newEquipment.value.name) {
-    addFeedback.value = 'Please enter equipment name'
+  if (!newEquipment.make) {
+    addFeedback.value = 'Please enter equipment make (required)'
     addFeedbackType.value = 'error'
     return
   }
@@ -335,17 +287,13 @@ const submitAddEquipment = async () => {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
-        name: newEquipment.value.name,
-        description: newEquipment.value.description,
-        category: newEquipment.value.category,
-        manufacturer: newEquipment.value.manufacturer,
-        model_number: newEquipment.value.modelNumber,
-        serial_number: newEquipment.value.serialNumber,
-        purchase_date: newEquipment.value.purchaseDate || null,
-        purchase_cost: newEquipment.value.purchaseCost ? parseFloat(newEquipment.value.purchaseCost) : null,
-        warranty_expiry: newEquipment.value.warrantyExpiry || null,
-        location: newEquipment.value.location,
-        status: newEquipment.value.status
+        make: newEquipment.make,
+        model: newEquipment.model,
+        year: newEquipment.year || null,
+        colour: newEquipment.colour,
+        serialNumber: newEquipment.serialNumber,
+        unitAllocation: newEquipment.unitAllocation,
+        nextServiceDue: newEquipment.nextServiceDue || null
       }
     })
 
@@ -353,19 +301,13 @@ const submitAddEquipment = async () => {
     addFeedbackType.value = 'success'
 
     // Reset form
-    newEquipment.value = {
-      name: '',
-      description: '',
-      category: '',
-      manufacturer: '',
-      modelNumber: '',
-      serialNumber: '',
-      purchaseDate: '',
-      purchaseCost: '',
-      warrantyExpiry: '',
-      location: '',
-      status: 'active'
-    }
+    newEquipment.make = ''
+    newEquipment.model = ''
+    newEquipment.year = null
+    newEquipment.colour = ''
+    newEquipment.serialNumber = ''
+    newEquipment.unitAllocation = ''
+    newEquipment.nextServiceDue = ''
 
     // Reload equipment list
     await loadEquipment()
@@ -426,20 +368,25 @@ onMounted(() => {
 
 <style scoped>
 .equipment-card {
+  position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
 }
 
 .equipment-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
 }
 
 .equipment-card__header {
+  padding: 20px 16px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .btn-gradient {

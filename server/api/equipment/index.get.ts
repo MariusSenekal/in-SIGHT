@@ -30,15 +30,36 @@ export default defineEventHandler(async (event) => {
       return equipment || []
     }
 
-    // RLS will filter equipment based on user's company
-    const equipment = await pgrest<any[]>('/equipment', {
-      token,
+    // Check if user has a company (client role) - use admin token for company_users query
+    const userCompanies = await pgrestAdmin<any[]>('/company_users', {
       query: {
-        select: '*',
-        order: 'created_at.desc'
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
       }
     })
 
+    let equipment
+    if (userCompanies && userCompanies.length > 0) {
+      // User belongs to a company - get all equipment for that company
+      const companyId = userCompanies[0].company_id
+      equipment = await pgrestAdmin<any[]>('/equipment', {
+        query: {
+          select: '*',
+          owner_company_id: `eq.${companyId}`,
+          order: 'created_at.desc'
+        }
+      })
+    } else {
+      // Regular user - get only their own equipment
+      equipment = await pgrestAdmin<any[]>('/equipment', {
+        query: {
+          select: '*',
+          owner_user_id: `eq.${payload.sub}`,
+          order: 'created_at.desc'
+        }
+      })
+    }
+    
     return equipment || []
   } catch (error: unknown) {
     console.error('[API] Failed to fetch equipment:', error)
