@@ -109,8 +109,11 @@
       <!-- Hero panel -->
       <div class="auth-split__hero">
         <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
-        <h2>Clean Operations.<br />Smart Records.</h2>
-        <p>
+        <h2 class="hero-heading">
+          <span class="hero-heading__line">Clean Operations.</span>
+          <span class="hero-heading__line">Smart Records.</span>
+        </h2>
+        <p class="hero-subtitle">
           in-SIGHT keeps your team's cleaning schedules, photo evidence
           and QR check-ins in one place — accessible from any device.
         </p>
@@ -226,33 +229,37 @@
         <!-- Welcome header card -->
         <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
           <div class="welcome-hero">
-            <div class="welcome-hero__content">
+            <div class="welcome-hero__logo-section">
               <img :src="logoUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
-              <div class="welcome-hero__avatar">
-                <v-icon icon="mdi-account" size="28" color="white" />
-              </div>
-              <div>
-                <h1 class="text-h5 text-sm-h4 font-weight-bold text-white">
-                  Welcome back, {{ currentUser.profile?.displayName || currentUser.name }}
-                </h1>
-              </div>
             </div>
-            <div class="welcome-hero__actions">
-              <v-btn
-                icon="mdi-account-circle-outline"
-                variant="tonal"
-                color="white"
-                size="small"
-                class="mr-1"
-                @click="showProfileModal = true"
-              />
-              <v-btn
-                color="white"
-                variant="outlined"
-                prepend-icon="mdi-logout"
-                size="small"
-                @click="logout"
-              >Log Out</v-btn>
+            <div class="welcome-hero__main">
+              <div class="welcome-hero__content">
+                <div class="welcome-hero__avatar">
+                  <v-icon icon="mdi-account" size="32" color="white" />
+                </div>
+                <div class="welcome-hero__text">
+                  <p class="welcome-hero__greeting">Welcome back,</p>
+                  <h1 class="welcome-hero__name">
+                    {{ currentUser.profile?.displayName || currentUser.name }}
+                  </h1>
+                </div>
+              </div>
+              <div class="welcome-hero__actions">
+                <v-btn
+                  prepend-icon="mdi-account-circle-outline"
+                  variant="tonal"
+                  color="white"
+                  size="small"
+                  @click="showProfileModal = true"
+                >Profile</v-btn>
+                <v-btn
+                  color="white"
+                  variant="outlined"
+                  prepend-icon="mdi-logout"
+                  size="small"
+                  @click="logout"
+                >Log Out</v-btn>
+              </div>
             </div>
           </div>
         </v-card>
@@ -366,7 +373,7 @@ definePageMeta({ ssr: false })
 type AuthMode = 'login' | 'signup'
 
 const logoUrl = `${useRuntimeConfig().app.baseURL}branding/login-logo-slide1-trimmed.png`
-const { currentUser, isAdmin, isClientAdmin, initAuth, login, signup, logout } = useAuth()
+const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, signup, logout } = useAuth()
 const { addRequest } = useServiceRequests()
 const { getRecords } = useRecords()
 
@@ -444,7 +451,8 @@ const allActions = computed(() => [
     color2: 'rgb(var(--v-theme-secondary))',
     action: () => navigateTo('/scan'),
     adminOnly: false,
-    clientAdminOnly: false
+    clientAdminOnly: false,
+    showToClientTechnician: true
   },
   {
     key: 'upload',
@@ -455,7 +463,8 @@ const allActions = computed(() => [
     color2: '#0891b2',
     action: () => navigateTo('/upload'),
     adminOnly: false,
-    clientAdminOnly: false
+    clientAdminOnly: false,
+    showToClientTechnician: true
   },
   {
     key: 'modules',
@@ -466,7 +475,8 @@ const allActions = computed(() => [
     color2: '#059669',
     action: () => navigateTo('/modules'),
     adminOnly: false,
-    clientAdminOnly: true
+    clientAdminOnly: true,
+    showToClientTechnician: false
   },
   {
     key: 'dashboard',
@@ -477,7 +487,8 @@ const allActions = computed(() => [
     color2: '#6d28d9',
     action: () => navigateTo('/dashboard'),
     adminOnly: true,
-    clientAdminOnly: false
+    clientAdminOnly: false,
+    showToClientTechnician: false
   },
   {
     key: 'maintenance',
@@ -488,12 +499,18 @@ const allActions = computed(() => [
     color2: '#c2410c',
     action: () => { showMaintenanceDialog.value = true },
     adminOnly: false,
-    clientAdminOnly: false
+    clientAdminOnly: false,
+    showToClientTechnician: false
   },
 ])
 
 const visibleActions = computed(() =>
   allActions.value.filter(a => {
+    // For client technicians, only show actions marked for them
+    if (isClientTechnician.value) {
+      return a.showToClientTechnician === true
+    }
+    // For other roles, use the original filtering logic
     if (a.adminOnly && !isAdmin.value) return false
     if (a.clientAdminOnly && !isClientAdmin.value) return false
     return true
@@ -615,32 +632,92 @@ const goToProfilePage = () => {
 
 /* Welcome hero */
 .welcome-hero {
+  position: relative;
+  min-height: 80px;
+  overflow: hidden;
+}
+
+.welcome-hero__logo-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: white;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.12);
+  z-index: 2;
+  border-radius: 0 0 12px 0;
+}
+
+.welcome-hero__main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 24px 28px;
+  gap: 12px;
+  padding: 12px 24px 16px 24px;
   background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
-  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+}
+
+.welcome-hero__main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
 .welcome-hero__content {
   display: flex;
   align-items: center;
   gap: 16px;
+  position: relative;
+  z-index: 1;
+  padding-left: 150px;
 }
 
 .welcome-hero__avatar {
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  display: flex;
+  background: rgba(255,255,255,0.25);
+  display: none;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  border: 3px solid rgba(255,255,255,0.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.welcome-hero__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.welcome-hero__greeting {
+  color: rgba(255,255,255,0.85);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.welcome-hero__name {
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .welcome-hero__sub {
@@ -650,15 +727,20 @@ const goToProfilePage = () => {
 }
 
 .welcome-hero__logo {
-  height: 44px;
+  height: 40px;
   width: auto;
+  max-width: 140px;
   object-fit: contain;
-  flex-shrink: 0;
-  mix-blend-mode: multiply;
-  opacity: 0.92;
+  display: block;
 }
 
-.welcome-hero__actions { display: flex; align-items: center; gap: 8px; }
+.welcome-hero__actions { 
+  display: flex; 
+  align-items: center; 
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
 
 /* Action cards */
 .action-home-card {
@@ -684,7 +766,86 @@ const goToProfilePage = () => {
 }
 
 @media (max-width: 599px) {
-  .welcome-hero { padding: 18px 16px; }
-  .welcome-hero__avatar { width: 42px; height: 42px; }
+  .welcome-hero { 
+    min-height: auto;
+  }
+  .welcome-hero__logo-section {
+    padding: 10px 14px;
+  }
+  .welcome-hero__logo { 
+    height: 38px;
+    max-width: 120px;
+  }
+  .welcome-hero__main {
+    padding: 16px 14px 18px 14px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .welcome-hero__content { 
+    gap: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 0;
+    padding-top: 55px;
+    width: auto;
+    flex: 1;
+    flex-wrap: nowrap;
+  }
+  .welcome-hero__avatar { 
+    display: none;
+  }
+  .welcome-hero__text {
+    text-align: left;
+    flex: 0;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+  .welcome-hero__greeting { 
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+  }
+  .welcome-hero__name { 
+    font-size: 1.35rem;
+    word-break: break-word;
+    line-height: 1.2;
+  }
+  .welcome-hero__actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: auto;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 0;
+    flex-direction: row;
+    padding-top: 0;
+  }
+  .welcome-hero__actions .v-btn {
+    width: auto;
+    min-width: auto;
+    font-size: 0.75rem;
+    padding: 0 10px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 960px) {
+  .welcome-hero {
+    padding: 28px 24px;
+  }
+  .welcome-hero__content {
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .welcome-hero__logo {
+    height: 46px;
+  }
+  .welcome-hero__avatar {
+    width: 56px;
+    height: 56px;
+  }
 }
 </style>
