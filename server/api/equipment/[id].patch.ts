@@ -24,11 +24,16 @@ export default defineEventHandler(async (event) => {
   const updates: Record<string, unknown> = {}
 
   if (body.name) updates.name = body.name
-  if (body.category !== undefined) updates.category = body.category
+  if (body.make) updates.make = body.make
+  if (body.model !== undefined) updates.model = body.model
+  if (body.year !== undefined) updates.year = body.year || null
+  if (body.colour !== undefined) updates.colour = body.colour
   if (body.serialNumber !== undefined) updates.serial_number = body.serialNumber
+  if (body.unitAllocation !== undefined) updates.unit_allocation = body.unitAllocation
+  if (body.nextServiceDue !== undefined) updates.next_service_due = body.nextServiceDue || null
+  if (body.category !== undefined) updates.category = body.category
   if (body.location !== undefined) updates.location = body.location
   if (body.status !== undefined) updates.status = body.status
-  if (body.purchaseDate !== undefined) updates.purchase_date = body.purchaseDate || null
   if (body.notes !== undefined) updates.notes = body.notes
 
   try {
