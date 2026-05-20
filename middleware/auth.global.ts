@@ -34,8 +34,21 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/modules')
   }
 
+  // Client technicians: Allow ONLY vehicle and equipment tracking pages
+  if (isClientTechnician.value && to.path.startsWith('/modules')) {
+    const isVehicleOrEquipmentPage = to.path.startsWith('/modules/vehicles/') || to.path.startsWith('/modules/equipment/')
+    if (!isVehicleOrEquipmentPage) {
+      return navigateTo('/')
+    }
+  }
+
   // Block modules routes for users who are not client admins/technicians
   if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value) {
+    return navigateTo('/')
+  }
+
+  // Block /records browsing page for client technicians - they can only view via scan
+  if (to.path === '/records' && isClientTechnician.value) {
     return navigateTo('/')
   }
 })

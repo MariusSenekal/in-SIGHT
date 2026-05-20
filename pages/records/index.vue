@@ -108,6 +108,9 @@
                   <v-btn size="x-small" icon="mdi-pencil-outline" variant="text" color="primary" @click.stop="openEditRecordById(record.id)" />
                   <v-btn size="x-small" icon="mdi-delete-outline" variant="text" color="error" @click.stop="openDeleteRecordById(record.id)" />
                 </template>
+                <template v-else-if="!isAdmin && !isClientTechnician && record.type === 'record'">
+                  <v-btn size="x-small" icon="mdi-pencil-outline" variant="text" color="primary" @click.stop="openEditRecordById(record.id)" />
+                </template>
               </div>
             </v-card-title>
 
@@ -307,7 +310,7 @@
 import type { Record as QrRecord } from '~/composables/useRecords'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { isAdmin, initAuth, users, companies, loadUsers, loadCompanies, authToken } = useAuth()
+const { isAdmin, isClientTechnician, initAuth, users, companies, loadUsers, loadCompanies, authToken } = useAuth()
 const { records, loadRecords, addRecord, updateRecord, deleteRecord } = useRecords()
 const { requests, loadRequests } = useServiceRequests()
 

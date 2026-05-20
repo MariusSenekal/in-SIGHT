@@ -556,7 +556,6 @@
           hint="Client roles must be assigned to a company"
           persistent-hint
         />
-        />
         <v-alert v-if="createUserError" type="error" variant="tonal" density="compact" class="mt-2">{{ createUserError }}</v-alert>
         <v-alert v-if="createUserSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createUserSuccess }}</v-alert>
       </v-card-text>
