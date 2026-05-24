@@ -34,7 +34,6 @@ export default defineEventHandler(async (event) => {
   if (body.category !== undefined) updates.category = body.category
   if (body.location !== undefined) updates.location = body.location
   if (body.status !== undefined) updates.status = body.status
-  if (body.notes !== undefined) updates.notes = body.notes
 
   try {
     // Check if user is an admin - admins can update any equipment

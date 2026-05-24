@@ -273,7 +273,10 @@ const loadEquipment = async () => {
 }
 
 const submitAddEquipment = async () => {
-  if (!newEquipment.make) {
+  // Trim the make field
+  const trimmedMake = newEquipment.make?.trim() || ''
+  
+  if (!trimmedMake) {
     addFeedback.value = 'Please enter equipment make (required)'
     addFeedbackType.value = 'error'
     return
@@ -287,13 +290,17 @@ const submitAddEquipment = async () => {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
-        make: newEquipment.make,
-        model: newEquipment.model,
+        name: trimmedMake, // Include name field for API compatibility
+        make: trimmedMake,
+        model: newEquipment.model?.trim() || '',
         year: newEquipment.year || null,
-        colour: newEquipment.colour,
-        serialNumber: newEquipment.serialNumber,
-        unitAllocation: newEquipment.unitAllocation,
-        nextServiceDue: newEquipment.nextServiceDue || null
+        colour: newEquipment.colour?.trim() || '',
+        serialNumber: newEquipment.serialNumber?.trim() || '',
+        unitAllocation: newEquipment.unitAllocation?.trim() || '',
+        nextServiceDue: newEquipment.nextServiceDue || null,
+        category: '',
+        location: '',
+        status: 'active'
       }
     })
 

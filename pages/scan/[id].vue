@@ -56,7 +56,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="entry in serviceHistory"
+                v-for="entry in paginatedServiceHistory"
                 :key="entry.id"
                 class="clickable-row"
                 @click="openHistoryDetail(entry)"
@@ -93,6 +93,41 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="totalPages > 1" class="pagination-container">
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === 1"
+            @click="prevPage"
+          >
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          
+          <div class="pagination-info">
+            <span class="page-numbers">
+              <button 
+                v-for="page in totalPages" 
+                :key="page"
+                class="page-number-btn"
+                :class="{ active: page === currentPage }"
+                @click="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            </span>
+            <span class="page-text">Page {{ currentPage }} of {{ totalPages }}</span>
+            <span class="records-text">{{ serviceHistory.length }} total records</span>
+          </div>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="currentPage === totalPages"
+            @click="nextPage"
+          >
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
         </div>
       </div>
 
@@ -565,6 +600,41 @@ const recordCode = computed(() => String(route.params.id || '').trim().toUpperCa
 const record = ref<{ id: number; code: string; name: string; location: string; description: string; type: string; ownerUserId: number | null; ownerCompanyId: number | null; createdAt: string } | null>(null)
 const serviceHistory = ref<ServiceEntry[]>([])
 const pageLoading = ref(true)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 8
+const totalPages = computed(() => Math.ceil(serviceHistory.value.length / itemsPerPage))
+const paginatedServiceHistory = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return serviceHistory.value.slice(start, end)
+})
+
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
+}
+
+// Reset to first page when service history data changes
+watch(() => serviceHistory.value.length, () => {
+  if (currentPage.value > totalPages.value && totalPages.value > 0) {
+    currentPage.value = 1
+  }
+})
 
 const authHeaders = computed((): Record<string, string> =>
   authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
@@ -2156,6 +2226,99 @@ textarea.request-input {
   font-size: 1.2rem;
 }
 
+/* Pagination Controls */
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8fbff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--brand);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--brand);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 27, 62, 0.15);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.pagination-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.page-number-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  color: var(--brand);
+  font-size: 0.9rem;
+}
+
+.page-number-btn:hover {
+  background: var(--brand-light);
+  border-color: var(--brand);
+}
+
+.page-number-btn.active {
+  background: var(--brand);
+  color: white;
+  border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(13, 27, 62, 0.2);
+}
+
+.page-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+.records-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 /* Back Link */
 .back-link-container {
   text-align: center;
@@ -2355,6 +2518,36 @@ textarea.request-input {
 
   .time-item {
     min-width: 100%;
+  }
+
+  /* Pagination responsive */
+  .pagination-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .page-numbers {
+    order: -1;
+  }
+
+  .page-number-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .pagination-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .page-text {
+    font-size: 0.85rem;
+  }
+
+  .records-text {
+    font-size: 0.8rem;
   }
 }
 

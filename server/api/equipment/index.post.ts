@@ -27,8 +27,7 @@ export default defineEventHandler(async (event) => {
     nextServiceDue,
     category,
     location,
-    status,
-    notes
+    status
   } = body
 
   // Make is required (or fallback to name for backwards compatibility)
@@ -68,8 +67,7 @@ export default defineEventHandler(async (event) => {
         next_service_due: nextServiceDue || null,
         category: category || '',
         location: location || '',
-        status: status || 'active',
-        notes: notes || ''
+        status: status || 'active'
       }
     })
 

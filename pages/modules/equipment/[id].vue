@@ -513,7 +513,7 @@ interface Equipment {
   category: string
   location: string
   status: string
-  notes: string
+  description: string
 }
 
 interface ServiceHistory {
