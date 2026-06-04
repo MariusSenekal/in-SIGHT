@@ -101,7 +101,7 @@
           </div>
         </v-card-title>
         <v-card-text class="pa-5 pt-1">
-          <v-form ref="editForm" @submit.prevent="submitEdit">
+          <v-form ref="editFormEl" @submit.prevent="submitEdit">
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field

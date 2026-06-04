@@ -80,6 +80,13 @@
                 <v-spacer />
                 <v-btn 
                   variant="text" 
+                  color="primary" 
+                  size="small"
+                  icon="mdi-pencil"
+                  @click.stop="openEditDialog(item)"
+                />
+                <v-btn 
+                  variant="text" 
                   color="error" 
                   size="small"
                   icon="mdi-delete"
@@ -189,6 +196,105 @@
       </v-card>
     </v-dialog>
 
+    <!-- Edit Equipment Dialog -->
+    <v-dialog v-model="showEditDialog" max-width="700">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3">
+          <div class="d-flex align-center ga-2">
+            <v-icon icon="mdi-pencil" color="primary" />
+            Edit Equipment
+          </div>
+        </v-card-title>
+        <v-card-text class="pa-5 pt-1">
+          <v-form ref="editFormRef" @submit.prevent="submitEditEquipment">
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.make"
+                  label="Make *"
+                  prepend-inner-icon="mdi-tag"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.model"
+                  label="Model"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.year"
+                  label="Year"
+                  type="number"
+                  prepend-inner-icon="mdi-calendar"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.colour"
+                  label="Colour"
+                  prepend-inner-icon="mdi-palette"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.serialNumber"
+                  label="Serial Number"
+                  prepend-inner-icon="mdi-barcode"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.unitAllocation"
+                  label="Unit Allocation"
+                  prepend-inner-icon="mdi-office-building"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editEquipment.nextServiceDue"
+                  label="Next Service Due"
+                  type="date"
+                  prepend-inner-icon="mdi-wrench-clock"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+            </v-row>
+            <v-alert v-if="editFeedback" :type="editFeedbackType" variant="tonal" density="compact" class="mt-3">
+              {{ editFeedback }}
+            </v-alert>
+          </v-form>
+        </v-card-text>
+        <v-card-actions class="px-5 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showEditDialog = false">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            prepend-icon="mdi-check"
+            @click="submitEditEquipment"
+            :loading="editLoading"
+          >
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Delete Equipment Dialog -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card rounded="xl">
@@ -239,6 +345,22 @@ const showAddDialog = ref(false)
 const addLoading = ref(false)
 const addFeedback = ref('')
 const addFeedbackType = ref<'success' | 'error'>('success')
+
+const showEditDialog = ref(false)
+const editTarget = ref<any>(null)
+const editLoading = ref(false)
+const editFeedback = ref('')
+const editFeedbackType = ref<'success' | 'error'>('success')
+
+const editEquipment = reactive({
+  make: '',
+  model: '',
+  year: null as number | null,
+  colour: '',
+  serialNumber: '',
+  unitAllocation: '',
+  nextServiceDue: ''
+})
 
 const showDeleteDialog = ref(false)
 const deleteTarget = ref<any>(null)
@@ -331,6 +453,60 @@ const submitAddEquipment = async () => {
     addFeedbackType.value = 'error'
   } finally {
     addLoading.value = false
+  }
+}
+
+const openEditDialog = (item: any) => {
+  editTarget.value = item
+  editEquipment.make = item.make || ''
+  editEquipment.model = item.model || ''
+  editEquipment.year = item.year || null
+  editEquipment.colour = item.colour || ''
+  editEquipment.serialNumber = item.serial_number || ''
+  editEquipment.unitAllocation = item.unit_allocation || ''
+  editEquipment.nextServiceDue = item.next_service_due || ''
+  editFeedback.value = ''
+  showEditDialog.value = true
+}
+
+const submitEditEquipment = async () => {
+  const trimmedMake = editEquipment.make?.trim() || ''
+  if (!trimmedMake) {
+    editFeedback.value = 'Please enter equipment make (required).'
+    editFeedbackType.value = 'error'
+    return
+  }
+
+  editLoading.value = true
+  editFeedback.value = ''
+
+  try {
+    await $fetch(`/api/equipment/${editTarget.value.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: {
+        make: trimmedMake,
+        model: editEquipment.model?.trim() || '',
+        year: editEquipment.year || null,
+        colour: editEquipment.colour?.trim() || '',
+        serialNumber: editEquipment.serialNumber?.trim() || '',
+        unitAllocation: editEquipment.unitAllocation?.trim() || '',
+        nextServiceDue: editEquipment.nextServiceDue || null
+      }
+    })
+    editFeedback.value = 'Equipment updated successfully!'
+    editFeedbackType.value = 'success'
+
+    setTimeout(async () => {
+      showEditDialog.value = false
+      await loadEquipment()
+      editFeedback.value = ''
+    }, 1500)
+  } catch (error: any) {
+    editFeedback.value = error.data?.message || 'Failed to update equipment. Please try again.'
+    editFeedbackType.value = 'error'
+  } finally {
+    editLoading.value = false
   }
 }
 

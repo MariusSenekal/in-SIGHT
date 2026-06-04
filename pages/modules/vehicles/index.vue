@@ -80,6 +80,13 @@
                 <v-spacer />
                 <v-btn 
                   variant="text" 
+                  color="primary" 
+                  size="small"
+                  icon="mdi-pencil"
+                  @click.stop="openEditDialog(vehicle)"
+                />
+                <v-btn 
+                  variant="text" 
                   color="error" 
                   size="small"
                   icon="mdi-delete"
@@ -202,6 +209,118 @@
       </v-card>
     </v-dialog>
 
+    <!-- Edit Vehicle Dialog -->
+    <v-dialog v-model="showEditDialog" max-width="600">
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3">
+          <div class="d-flex align-center ga-2">
+            <v-icon icon="mdi-pencil" color="primary" />
+            Edit Vehicle
+          </div>
+        </v-card-title>
+        <v-card-text class="pa-5 pt-1">
+          <v-form ref="editFormRef" @submit.prevent="submitEditVehicle">
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.make"
+                  label="Make *"
+                  prepend-inner-icon="mdi-car"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.model"
+                  label="Model *"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.year"
+                  label="Year *"
+                  type="number"
+                  prepend-inner-icon="mdi-calendar"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.colour"
+                  label="Colour"
+                  prepend-inner-icon="mdi-palette"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.registrationNumber"
+                  label="Registration Number *"
+                  prepend-inner-icon="mdi-card-text"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.vinNumber"
+                  label="VIN #"
+                  prepend-inner-icon="mdi-barcode"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.licenseDiscRenewal"
+                  label="License Disc Renewal"
+                  type="date"
+                  prepend-inner-icon="mdi-calendar-clock"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editVehicle.nextServiceDueKm"
+                  label="Next Service Due (km)"
+                  type="number"
+                  prepend-inner-icon="mdi-wrench"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+            </v-row>
+            <v-alert v-if="editFeedback" :type="editFeedbackType" variant="tonal" density="compact" class="mt-3">
+              {{ editFeedback }}
+            </v-alert>
+          </v-form>
+        </v-card-text>
+        <v-card-actions class="px-5 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showEditDialog = false">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            prepend-icon="mdi-check"
+            @click="submitEditVehicle"
+            :loading="editLoading"
+          >
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Delete Vehicle Dialog -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card rounded="xl">
@@ -264,6 +383,23 @@ const showAddDialog = ref(false)
 const addLoading = ref(false)
 const addFeedback = ref('')
 const addFeedbackType = ref<'success' | 'error'>('success')
+
+const showEditDialog = ref(false)
+const editTarget = ref<Vehicle | null>(null)
+const editLoading = ref(false)
+const editFeedback = ref('')
+const editFeedbackType = ref<'success' | 'error'>('success')
+
+const editVehicle = reactive({
+  make: '',
+  model: '',
+  year: new Date().getFullYear(),
+  colour: '',
+  registrationNumber: '',
+  vinNumber: '',
+  licenseDiscRenewal: '',
+  nextServiceDueKm: null as number | null
+})
 
 const showDeleteDialog = ref(false)
 const deleteTarget = ref<Vehicle | null>(null)
@@ -337,6 +473,52 @@ const submitAddVehicle = async () => {
     addFeedbackType.value = 'error'
   } finally {
     addLoading.value = false
+  }
+}
+
+const openEditDialog = (vehicle: Vehicle) => {
+  editTarget.value = vehicle
+  editVehicle.make = vehicle.make
+  editVehicle.model = vehicle.model
+  editVehicle.year = vehicle.year
+  editVehicle.colour = vehicle.colour
+  editVehicle.registrationNumber = vehicle.registration_number
+  editVehicle.vinNumber = vehicle.vin_number
+  editVehicle.licenseDiscRenewal = vehicle.license_disc_renewal || ''
+  editVehicle.nextServiceDueKm = vehicle.next_service_due_km
+  editFeedback.value = ''
+  showEditDialog.value = true
+}
+
+const submitEditVehicle = async () => {
+  if (!editVehicle.make || !editVehicle.model || !editVehicle.year || !editVehicle.registrationNumber) {
+    editFeedback.value = 'Please fill in all required fields.'
+    editFeedbackType.value = 'error'
+    return
+  }
+
+  editLoading.value = true
+  editFeedback.value = ''
+
+  try {
+    await $fetch(`/api/vehicles/${editTarget.value!.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: editVehicle
+    })
+    editFeedback.value = 'Vehicle updated successfully!'
+    editFeedbackType.value = 'success'
+
+    setTimeout(async () => {
+      showEditDialog.value = false
+      await loadVehicles()
+      editFeedback.value = ''
+    }, 1500)
+  } catch (error) {
+    editFeedback.value = 'Failed to update vehicle. Please try again.'
+    editFeedbackType.value = 'error'
+  } finally {
+    editLoading.value = false
   }
 }
 

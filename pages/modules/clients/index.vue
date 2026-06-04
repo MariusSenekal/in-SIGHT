@@ -31,6 +31,11 @@
       <v-progress-circular indeterminate color="primary" size="64" />
     </div>
 
+    <!-- Error state -->
+    <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-4" rounded="xl">
+      {{ loadError }}
+    </v-alert>
+
     <!-- Empty state -->
     <v-card v-else-if="filteredClients.length === 0" rounded="xl" elevation="2" class="pa-8 text-center">
       <v-icon icon="mdi-account-off" size="64" color="grey-lighten-1" class="mb-4" />
@@ -130,7 +135,7 @@
         </v-card-title>
         <v-divider />
         <v-card-text class="pa-5">
-          <v-form ref="clientForm">
+          <v-form ref="clientFormEl">
             <!-- Company info -->
             <p class="text-overline text-medium-emphasis mb-2">Company Information</p>
             <v-row dense>
@@ -708,14 +713,17 @@ const statusColor = (status: string) => {
 }
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
+const loadError = ref('')
 const loadClients = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     clients.value = await $fetch<Client[]>('/api/clients', {
       headers: { Authorization: `Bearer ${authToken.value}` }
     })
-  } catch {
+  } catch (err: any) {
     clients.value = []
+    loadError.value = err?.data?.message || err?.message || 'Failed to load clients.'
   } finally {
     loading.value = false
   }

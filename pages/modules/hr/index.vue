@@ -38,6 +38,11 @@
       <v-progress-circular indeterminate color="primary" size="64" />
     </div>
 
+    <!-- Error state -->
+    <v-alert v-else-if="loadError" type="error" variant="tonal" class="mb-4" rounded="xl">
+      {{ loadError }}
+    </v-alert>
+
     <!-- Empty state -->
     <v-card v-else-if="filteredStaff.length === 0" rounded="xl" elevation="2" class="pa-8 text-center">
       <v-icon icon="mdi-account-off" size="64" color="grey-lighten-1" class="mb-4" />
@@ -504,14 +509,17 @@ const isOverdue = (date: string | null) => {
 }
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
+const loadError = ref('')
 const loadStaff = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     staff.value = await $fetch<StaffMember[]>('/api/staff', {
       headers: { Authorization: `Bearer ${authToken.value}` }
     })
-  } catch {
+  } catch (err: any) {
     staff.value = []
+    loadError.value = err?.data?.message || err?.message || 'Failed to load staff.'
   } finally {
     loading.value = false
   }

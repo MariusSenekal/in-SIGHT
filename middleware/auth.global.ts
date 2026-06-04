@@ -34,6 +34,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/modules')
   }
 
+  // Block clients and HR modules - only admins can manage internal resources
+  if ((to.path.startsWith('/modules/clients') || to.path.startsWith('/modules/hr')) && !isAdmin.value) {
+    return navigateTo('/modules')
+  }
+
   // Client technicians: Allow ONLY vehicle and equipment tracking pages
   if (isClientTechnician.value && to.path.startsWith('/modules')) {
     const isVehicleOrEquipmentPage = to.path.startsWith('/modules/vehicles/') || to.path.startsWith('/modules/equipment/')
