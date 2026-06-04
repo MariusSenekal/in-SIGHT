@@ -103,6 +103,24 @@ const modules = [
     color1: '#10b981',
     color2: '#059669',
     action: () => {}  // To be implemented
+  },
+  {
+    key: 'clients',
+    title: 'Clients',
+    description: 'Manage client information and relationships.',
+    icon: 'mdi-account-tie',
+    color1: '#0ea5e9',
+    color2: '#0284c7',
+    action: () => navigateTo('/modules/clients')
+  },
+  {
+    key: 'hr',
+    title: 'HR',
+    description: 'Manage staff information and records.',
+    icon: 'mdi-account-group',
+    color1: '#8b5cf6',
+    color2: '#6d28d9',
+    action: () => navigateTo('/modules/hr')
   }
 ]
 
