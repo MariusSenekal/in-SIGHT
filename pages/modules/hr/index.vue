@@ -107,7 +107,7 @@
           <v-card-actions class="px-4 pb-4 pt-0">
             <v-spacer />
             <v-btn
-              v-if="isAdmin"
+              v-if="isAdmin || isClientAdmin"
               variant="text"
               color="secondary"
               size="small"
@@ -115,7 +115,7 @@
               @click="openEditStaffDialog(member)"
             />
             <v-btn
-              v-if="isAdmin"
+              v-if="isAdmin || isClientAdmin"
               variant="text"
               color="error"
               size="small"
@@ -400,7 +400,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { authToken, isAdmin, initAuth } = useAuth()
+const { authToken, isAdmin, isClientAdmin, initAuth } = useAuth()
 initAuth()
 
 // ─── Types ───────────────────────────────────────────────────────────────────

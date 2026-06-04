@@ -12,7 +12,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   currentPath.value = to.fullPath
 
-  const { initAuth, ensureValidSession, isAdmin, isClientAdmin, isClientTechnician } = useAuth()
+  const { initAuth, ensureValidSession, isAdmin, isStaff, isClientAdmin, isClientTechnician } = useAuth()
   initAuth()
 
   const isPublicRoute = to.path === '/' || to.path.startsWith('/scan')
@@ -34,11 +34,6 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/modules')
   }
 
-  // Block clients and HR modules - only admins can manage internal resources
-  if ((to.path.startsWith('/modules/clients') || to.path.startsWith('/modules/hr')) && !isAdmin.value) {
-    return navigateTo('/modules')
-  }
-
   // Client technicians: Allow ONLY vehicle and equipment tracking pages
   if (isClientTechnician.value && to.path.startsWith('/modules')) {
     const isVehicleOrEquipmentPage = to.path.startsWith('/modules/vehicles/') || to.path.startsWith('/modules/equipment/')
@@ -47,8 +42,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
     }
   }
 
-  // Block modules routes for users who are not client admins/technicians
-  if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value) {
+  // Block modules routes for users who are not client admins/technicians/staff
+  if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value && !isStaff.value) {
     return navigateTo('/')
   }
 

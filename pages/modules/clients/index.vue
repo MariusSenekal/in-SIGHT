@@ -104,7 +104,7 @@
             </v-btn>
             <v-spacer />
             <v-btn
-              v-if="isAdmin"
+              v-if="isAdmin || isClientAdmin"
               variant="text"
               color="secondary"
               size="small"
@@ -112,7 +112,7 @@
               @click="openEditClientDialog(client)"
             />
             <v-btn
-              v-if="isAdmin"
+              v-if="isAdmin || isClientAdmin"
               variant="text"
               color="error"
               size="small"
@@ -379,7 +379,7 @@
               <span>Service History — {{ serviceHistoryClient?.company_name }}</span>
             </div>
             <v-btn
-              v-if="isAdmin"
+              v-if="isAdmin || isClientAdmin"
               color="primary"
               size="small"
               prepend-icon="mdi-plus"
@@ -425,7 +425,7 @@
               <template #append>
                 <div class="d-flex ga-1">
                   <v-btn
-                    v-if="isAdmin"
+                    v-if="isAdmin || isClientAdmin"
                     icon="mdi-pencil"
                     size="x-small"
                     variant="text"
@@ -433,7 +433,7 @@
                     @click="openEditServiceHistoryDialog(entry)"
                   />
                   <v-btn
-                    v-if="isAdmin"
+                    v-if="isAdmin || isClientAdmin"
                     icon="mdi-delete"
                     size="x-small"
                     variant="text"
@@ -567,7 +567,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { authToken, isAdmin, initAuth } = useAuth()
+const { authToken, isAdmin, isClientAdmin, initAuth } = useAuth()
 initAuth()
 
 // ─── Types ───────────────────────────────────────────────────────────────────

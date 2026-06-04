@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid or expired token.' })
   }
 
-  const isAdminOrStaff = payload.app_role === 'admin' || payload.app_role === 'staff'
+  const isAdminOrStaff = payload.app_role === 'admin' || payload.app_role === 'staff' || payload.app_role === 'client_admin'
   if (!isAdminOrStaff) {
     throw createError({ statusCode: 403, message: 'Access denied.' })
   }

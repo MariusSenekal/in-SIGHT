@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid or expired token.' })
   }
 
-  if (payload.app_role !== 'admin') {
+  if (payload.app_role !== 'admin' && payload.app_role !== 'client_admin') {
     throw createError({ statusCode: 403, message: 'Only admins can update service history.' })
   }
 
