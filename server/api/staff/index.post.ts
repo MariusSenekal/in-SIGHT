@@ -55,6 +55,7 @@ export default defineEventHandler(async (event) => {
     return Array.isArray(member) ? member[0] : member
   } catch (error: unknown) {
     console.error('[API] Failed to create staff member:', error)
-    throw createError({ statusCode: 500, message: 'Failed to create staff member.' })
+    const msg = (error as any)?.data?.message || (error as any)?.message || 'Failed to create staff member.'
+    throw createError({ statusCode: 500, message: msg })
   }
 })

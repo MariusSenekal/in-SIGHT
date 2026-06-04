@@ -611,8 +611,8 @@ const submitStaffForm = async () => {
     staffFeedbackType.value = 'success'
     await loadStaff()
     setTimeout(() => { showStaffDialog.value = false }, 800)
-  } catch {
-    staffFeedback.value = 'Something went wrong. Please try again.'
+  } catch (err: any) {
+    staffFeedback.value = err?.data?.message || err?.message || 'Something went wrong. Please try again.'
     staffFeedbackType.value = 'error'
   } finally {
     staffLoading.value = false
