@@ -47,8 +47,4 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/')
   }
 
-  // Block /records browsing page for client technicians - they can only view via scan
-  if (to.path === '/records' && isClientTechnician.value) {
-    return navigateTo('/')
-  }
 })

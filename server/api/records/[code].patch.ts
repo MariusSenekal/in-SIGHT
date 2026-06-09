@@ -1,9 +1,10 @@
 // PATCH /api/records/:id
 // Admin/staff updates a QR record's details.
-import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
+import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
+  const token = getBearerToken(event)!
   // Segment is keyed 'code' since this file is [code].patch.ts
   const rawId = getRouterParam(event, 'code')
   const id = parseInt(rawId ?? '', 10)
@@ -35,8 +36,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    await pgrestAdmin('/records', {
+    await pgrest('/records', {
       method: 'PATCH',
+      token,
       query: { id: `eq.${id}` },
       body: patch,
       extraHeaders: { Prefer: 'return=minimal' }

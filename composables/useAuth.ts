@@ -76,11 +76,20 @@ export const useAuth = () => {
   // Shared reactive user + company lists (populated by loadUsers/loadCompanies)
   const users = useState<AppUser[]>('auth-users', () => [])
   const companies = useState<Company[]>('auth-companies', () => [])
+  const records = useState<any[]>('records', () => [])
+  const serviceRequests = useState<any[]>('service-requests', () => [])
 
   const clearAuthState = () => {
     currentUser.value = null
     authToken.value = null
     if (import.meta.client) localStorage.removeItem(AUTH_TOKEN_KEY)
+  }
+
+  const clearDomainState = () => {
+    users.value = []
+    companies.value = []
+    records.value = []
+    serviceRequests.value = []
   }
 
   const applyStoredToken = (token: string): boolean => {
@@ -118,6 +127,7 @@ export const useAuth = () => {
 
   const login = async (username: string, password: string): Promise<AuthResult> => {
     try {
+      clearDomainState()
       const { token, user } = await $fetch<{ token: string; user: AppUser }>('/api/auth/login', {
         method: 'POST',
         body: { username, password }
@@ -135,6 +145,7 @@ export const useAuth = () => {
 
   const signup = async (name: string, username: string, password: string): Promise<AuthResult> => {
     try {
+      clearDomainState()
       const { token, user } = await $fetch<{ token: string; user: AppUser }>('/api/auth/register', {
         method: 'POST',
         body: { name, username, password }
@@ -164,8 +175,7 @@ export const useAuth = () => {
     clearAuthState()
     
     // Clear any cached data
-    users.value = []
-    companies.value = []
+    clearDomainState()
     initialized.value = false
     
     // Clear session storage if on client

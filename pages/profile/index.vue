@@ -216,8 +216,8 @@ onMounted(() => {
   profileForm.bio = currentUser.value.profile?.bio || ''
 })
 
-const saveProfile = () => {
-  const result = updateProfile({
+const saveProfile = async () => {
+  const result = await updateProfile({
     displayName: profileForm.displayName,
     phone: profileForm.phone,
     location: profileForm.location,

@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
 
   if (body.serviceDate !== undefined)      updates.service_date = body.serviceDate
   if (body.serviceTime !== undefined)      updates.service_time = body.serviceTime
+  if (body.serviceCompletedText !== undefined) updates.service_completed_text = body.serviceCompletedText
   if (body.serviceCompleted !== undefined) updates.service_completed = body.serviceCompleted
   if (body.staffOnSite !== undefined)      updates.staff_on_site = body.staffOnSite
   if (body.additionalInfo !== undefined)   updates.additional_info = body.additionalInfo

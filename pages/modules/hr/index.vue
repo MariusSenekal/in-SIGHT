@@ -105,6 +105,15 @@
             </div>
           </v-card-text>
           <v-card-actions class="px-4 pb-4 pt-0">
+            <v-btn
+              variant="text"
+              color="info"
+              size="small"
+              prepend-icon="mdi-eye"
+              @click="openViewStaffDialog(member)"
+            >
+              View Details
+            </v-btn>
             <v-spacer />
             <v-btn
               v-if="isAdmin || isClientAdmin"
@@ -169,6 +178,19 @@
                   prepend-inner-icon="mdi-card-account-details"
                   variant="outlined"
                   density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-file-input
+                  :model-value="selectedIdPhoto"
+                  label="Upload ID Photo"
+                  prepend-inner-icon="mdi-camera"
+                  prepend-icon=""
+                  accept="image/*"
+                  variant="outlined"
+                  density="comfortable"
+                  show-size
+                  @update:model-value="handleIdPhotoSelection"
                 />
               </v-col>
               <v-col cols="12" sm="6">
@@ -353,6 +375,9 @@
           <v-alert v-if="staffFeedback" :type="staffFeedbackType" variant="tonal" density="compact" class="mt-3">
             {{ staffFeedback }}
           </v-alert>
+          <v-alert v-if="photoUploadMessage" :type="photoUploadMessageType" variant="tonal" density="compact" class="mt-3">
+            {{ photoUploadMessage }}
+          </v-alert>
         </v-card-text>
         <v-divider />
         <v-card-actions class="px-5 py-4">
@@ -367,6 +392,111 @@
           >
             {{ editingStaff ? 'Save Changes' : 'Add Staff Member' }}
           </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ─── View Staff Details Dialog ─── -->
+    <v-dialog v-model="showViewStaffDialog" max-width="760" scrollable>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3 d-flex align-center ga-2">
+          <v-icon icon="mdi-card-account-details-outline" color="info" />
+          Staff Record Details
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-0" v-if="viewStaffTarget">
+          <div class="staff-details-hero pa-5">
+            <div class="d-flex align-start justify-space-between ga-3 flex-wrap">
+              <div class="d-flex align-center ga-3">
+                <v-avatar size="44" color="white" variant="tonal">
+                  <span class="text-body-1 font-weight-bold text-info">
+                    {{ initials(viewStaffTarget.name, viewStaffTarget.surname) }}
+                  </span>
+                </v-avatar>
+                <div>
+                  <h3 class="text-h6 font-weight-bold mb-1">{{ viewStaffTarget.name }} {{ viewStaffTarget.surname }}</h3>
+                  <p class="text-body-2 text-medium-emphasis mb-0">
+                    {{ viewStaffTarget.role || 'No role assigned' }}
+                  </p>
+                </div>
+              </div>
+              <div class="d-flex ga-2 flex-wrap">
+                <v-chip :color="viewStaffTarget.is_active ? 'success' : 'default'" variant="tonal" size="small">
+                  {{ viewStaffTarget.is_active ? 'Active' : 'Inactive' }}
+                </v-chip>
+                <v-chip color="info" variant="outlined" size="small">
+                  {{ viewStaffTarget.team_allocation || 'No team allocated' }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
+
+          <div class="pa-5 pt-4">
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-account-box-outline" size="18" color="primary" class="mr-1" />
+                    Personal Information
+                  </div>
+                  <div class="details-row"><span class="details-label">ID Number</span><span class="details-value">{{ viewStaffTarget.id_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Gender</span><span class="details-value">{{ viewStaffTarget.gender || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Address</span><span class="details-value">{{ viewStaffTarget.address || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-phone-outline" size="18" color="secondary" class="mr-1" />
+                    Contact Details
+                  </div>
+                  <div class="details-row"><span class="details-label">Email</span><span class="details-value">{{ viewStaffTarget.email || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Mobile</span><span class="details-value">{{ viewStaffTarget.mobile_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Landline</span><span class="details-value">{{ viewStaffTarget.landline_number || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-briefcase-outline" size="18" color="success" class="mr-1" />
+                    Employment Details
+                  </div>
+                  <div class="details-row"><span class="details-label">Role</span><span class="details-value">{{ viewStaffTarget.role || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Date Joined</span><span class="details-value">{{ formatDate(viewStaffTarget.date_joined) }}</span></div>
+                  <div class="details-row"><span class="details-label">Contract Renewal</span><span class="details-value">{{ formatDate(viewStaffTarget.contract_renewal_date) }}</span></div>
+                  <div class="details-row"><span class="details-label">Salary</span><span class="details-value">{{ viewStaffTarget.salary ?? '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Frequency Paid</span><span class="details-value">{{ viewStaffTarget.frequency_paid || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-shield-account-outline" size="18" color="warning" class="mr-1" />
+                    Compliance / IDs
+                  </div>
+                  <div class="details-row"><span class="details-label">TRax Number</span><span class="details-value">{{ viewStaffTarget.trax_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">UIF Number</span><span class="details-value">{{ viewStaffTarget.uif_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Next Of Kin</span><span class="details-value">{{ viewStaffTarget.next_of_kin || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Next Of Kin Mobile</span><span class="details-value">{{ viewStaffTarget.next_of_kin_mobile || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card variant="tonal" color="info" rounded="lg" class="pa-4">
+                  <div class="text-overline mb-1">Additional Information</div>
+                  <div class="text-body-2">{{ viewStaffTarget.additional_information || 'No additional information provided.' }}</div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="px-5 py-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showViewStaffDialog = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -460,6 +590,11 @@ const editingStaff = ref<StaffMember | null>(null)
 const staffLoading = ref(false)
 const staffFeedback = ref('')
 const staffFeedbackType = ref<'success' | 'error'>('success')
+const showViewStaffDialog = ref(false)
+const viewStaffTarget = ref<StaffMember | null>(null)
+const selectedIdPhoto = ref<File | File[] | null>(null)
+const photoUploadMessage = ref('')
+const photoUploadMessageType = ref<'info' | 'success' | 'error'>('info')
 
 const defaultStaffForm = () => ({
   name: '',
@@ -530,6 +665,8 @@ const openAddStaffDialog = () => {
   editingStaff.value = null
   Object.assign(staffForm, defaultStaffForm())
   staffFeedback.value = ''
+  selectedIdPhoto.value = null
+  photoUploadMessage.value = ''
   showStaffDialog.value = true
 }
 
@@ -558,7 +695,27 @@ const openEditStaffDialog = (member: StaffMember) => {
     isActive: member.is_active
   })
   staffFeedback.value = ''
+  selectedIdPhoto.value = null
+  photoUploadMessage.value = ''
   showStaffDialog.value = true
+}
+
+const openViewStaffDialog = (member: StaffMember) => {
+  viewStaffTarget.value = member
+  showViewStaffDialog.value = true
+}
+
+const handleIdPhotoSelection = (value: File | File[] | null) => {
+  selectedIdPhoto.value = value
+
+  const hasSelection = Array.isArray(value)
+    ? value.length > 0
+    : !!value
+
+  photoUploadMessage.value = hasSelection
+    ? 'Cloud storage still being planned and implimented.'
+    : ''
+  photoUploadMessageType.value = 'info'
 }
 
 const submitStaffForm = async () => {
@@ -669,5 +826,46 @@ onMounted(loadStaff)
 
 .strip--inactive {
   background: linear-gradient(90deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.staff-details-hero {
+  background: linear-gradient(135deg, rgba(var(--v-theme-info), 0.12) 0%, rgba(var(--v-theme-primary), 0.06) 100%);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.details-section-card {
+  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+}
+
+.details-section-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  display: flex;
+  align-items: center;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.details-row:last-child {
+  border-bottom: 0;
+}
+
+.details-label {
+  font-size: 0.82rem;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+}
+
+.details-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: right;
 }
 </style>

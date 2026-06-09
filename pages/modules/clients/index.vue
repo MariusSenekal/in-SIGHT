@@ -95,6 +95,15 @@
           <v-card-actions class="px-4 pb-4 pt-0">
             <v-btn
               variant="text"
+              color="info"
+              size="small"
+              prepend-icon="mdi-eye"
+              @click="openViewClientDialog(client)"
+            >
+              View Details
+            </v-btn>
+            <v-btn
+              variant="text"
               color="primary"
               size="small"
               prepend-icon="mdi-history"
@@ -345,6 +354,114 @@
       </v-card>
     </v-dialog>
 
+    <!-- ─── View Client Details Dialog ─── -->
+    <v-dialog v-model="showViewClientDialog" max-width="760" scrollable>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3 d-flex align-center ga-2">
+          <v-icon icon="mdi-file-document-outline" color="info" />
+          Client Record Details
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-0" v-if="viewClientTarget">
+          <div class="client-details-hero pa-5">
+            <div class="d-flex align-start justify-space-between ga-3 flex-wrap">
+              <div class="d-flex align-center ga-3">
+                <v-avatar size="44" color="white" variant="tonal">
+                  <v-icon icon="mdi-domain" color="info" />
+                </v-avatar>
+                <div>
+                  <h3 class="text-h6 font-weight-bold mb-1">{{ viewClientTarget.company_name }}</h3>
+                  <p class="text-body-2 text-medium-emphasis mb-0">
+                    {{ [viewClientTarget.name, viewClientTarget.surname].filter(Boolean).join(' ') || 'No contact person listed' }}
+                  </p>
+                </div>
+              </div>
+              <div class="d-flex ga-2 flex-wrap">
+                <v-chip :color="statusColor(viewClientTarget.status)" variant="tonal" size="small">
+                  {{ viewClientTarget.status }}
+                </v-chip>
+                <v-chip color="info" variant="outlined" size="small">
+                  {{ viewClientTarget.service_type || 'No service type' }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
+
+          <div class="pa-5 pt-4">
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-office-building" size="18" color="primary" class="mr-1" />
+                    Company Information
+                  </div>
+                  <div class="details-row"><span class="details-label">Industry</span><span class="details-value">{{ viewClientTarget.industry || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Registration</span><span class="details-value">{{ viewClientTarget.company_registration || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Relationship</span><span class="details-value">{{ viewClientTarget.relationship_allocation || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Annual Revenue</span><span class="details-value">{{ formatCurrency(viewClientTarget.annual_revenue) }}</span></div>
+                  <div class="details-row"><span class="details-label">Address</span><span class="details-value">{{ viewClientTarget.address || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-account-box-outline" size="18" color="secondary" class="mr-1" />
+                    Contact Details
+                  </div>
+                  <div class="details-row"><span class="details-label">Email</span><span class="details-value">{{ viewClientTarget.email || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Mobile</span><span class="details-value">{{ viewClientTarget.mobile_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Landline</span><span class="details-value">{{ viewClientTarget.landline_number || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-tools" size="18" color="success" class="mr-1" />
+                    Service Details
+                  </div>
+                  <v-row dense>
+                    <v-col cols="12" sm="6">
+                      <div class="details-row"><span class="details-label">Last Serviced</span><span class="details-value">{{ formatDate(viewClientTarget.last_serviced) }}</span></div>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <div class="details-row"><span class="details-label">Next Service Due</span><span class="details-value">{{ formatDate(viewClientTarget.next_service_due) }}</span></div>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <div class="details-row"><span class="details-label">Contract Renewal</span><span class="details-value">{{ formatDate(viewClientTarget.contract_renewal_date) }}</span></div>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <div class="details-row"><span class="details-label">Service Type</span><span class="details-value">{{ viewClientTarget.service_type || '—' }}</span></div>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card variant="tonal" color="warning" rounded="lg" class="pa-4 mb-2">
+                  <div class="text-overline mb-1">Special Requirements</div>
+                  <div class="text-body-2">{{ viewClientTarget.special_requirements || 'None listed' }}</div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card variant="tonal" color="error" rounded="lg" class="pa-4">
+                  <div class="text-overline mb-1">Red Flags / Notes</div>
+                  <div class="text-body-2">{{ viewClientTarget.reg_flags_notes || 'No red flags or notes' }}</div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="px-5 py-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showViewClientDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- ─── Delete Client Dialog ─── -->
     <v-dialog v-model="showDeleteClientDialog" max-width="400">
       <v-card rounded="xl">
@@ -409,8 +526,8 @@
             >
               <template #prepend>
                 <v-icon
-                  :icon="entry.service_completed ? 'mdi-check-circle' : 'mdi-clock-outline'"
-                  :color="entry.service_completed ? 'success' : 'warning'"
+                  :icon="entry.service_completed_text?.trim() ? 'mdi-check-circle' : 'mdi-clock-outline'"
+                  :color="entry.service_completed_text?.trim() ? 'success' : 'warning'"
                   size="28"
                 />
               </template>
@@ -418,9 +535,11 @@
                 {{ formatDate(entry.service_date) }} at {{ formatTime(entry.service_time) }}
               </v-list-item-title>
               <v-list-item-subtitle>
+                <span v-if="entry.service_completed_text">Completed: {{ entry.service_completed_text }}</span>
+                <span v-if="entry.service_completed_text && entry.staff_on_site"> · </span>
                 <span v-if="entry.staff_on_site">Staff: {{ entry.staff_on_site }}</span>
-                <span v-if="entry.staff_on_site && entry.additional_info"> · </span>
-                <span v-if="entry.additional_info">{{ entry.additional_info }}</span>
+                <span v-if="(entry.service_completed_text || entry.staff_on_site) && entry.additional_info"> · </span>
+                <span v-if="entry.additional_info">Additional: {{ entry.additional_info }}</span>
               </v-list-item-subtitle>
               <template #append>
                 <div class="d-flex ga-1">
@@ -489,22 +608,25 @@
                 />
               </v-col>
               <v-col cols="12">
-                <v-switch
-                  v-model="serviceEntryForm.serviceCompleted"
-                  label="Service Completed"
-                  color="success"
-                  hide-details
+                <v-textarea
+                  v-model="serviceEntryForm.serviceCompletedText"
+                  label="Service Completed Description"
+                  prepend-inner-icon="mdi-check-circle-outline"
+                  variant="outlined"
                   density="comfortable"
-                  inset
+                  rows="3"
+                  auto-grow
                 />
               </v-col>
               <v-col cols="12">
-                <v-text-field
+                <v-textarea
                   v-model="serviceEntryForm.staffOnSite"
                   label="Staff on Site"
                   prepend-inner-icon="mdi-account-group"
                   variant="outlined"
                   density="comfortable"
+                  rows="3"
+                  auto-grow
                 />
               </v-col>
               <v-col cols="12">
@@ -598,7 +720,7 @@ interface ServiceHistoryEntry {
   client_id: number
   service_date: string
   service_time: string
-  service_completed: boolean
+  service_completed_text: string
   staff_on_site: string
   additional_info: string
 }
@@ -658,6 +780,8 @@ const deleteClientTarget = ref<Client | null>(null)
 const deleteClientLoading = ref(false)
 const deleteClientFeedback = ref('')
 const deleteClientFeedbackType = ref<'success' | 'error'>('success')
+const showViewClientDialog = ref(false)
+const viewClientTarget = ref<Client | null>(null)
 
 // ─── Service history state ───────────────────────────────────────────────────
 const showServiceHistoryDialog = ref(false)
@@ -675,7 +799,7 @@ const serviceEntryFeedbackType = ref<'success' | 'error'>('success')
 const defaultServiceEntryForm = () => ({
   serviceDate: '',
   serviceTime: '',
-  serviceCompleted: false,
+  serviceCompletedText: '',
   staffOnSite: '',
   additionalInfo: ''
 })
@@ -695,6 +819,15 @@ const formatDate = (date: string | null) => {
 const formatTime = (time: string | null) => {
   if (!time) return '—'
   return time.substring(0, 5)
+}
+
+const formatCurrency = (value: number | null) => {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    maximumFractionDigits: 2
+  }).format(value)
 }
 
 const isOverdue = (date: string | null) => {
@@ -838,6 +971,11 @@ const openDeleteClientDialog = (client: Client) => {
   showDeleteClientDialog.value = true
 }
 
+const openViewClientDialog = (client: Client) => {
+  viewClientTarget.value = client
+  showViewClientDialog.value = true
+}
+
 const submitDeleteClient = async () => {
   if (!deleteClientTarget.value) return
   deleteClientLoading.value = true
@@ -875,7 +1013,7 @@ const openEditServiceHistoryDialog = (entry: ServiceHistoryEntry) => {
   Object.assign(serviceEntryForm, {
     serviceDate: entry.service_date,
     serviceTime: entry.service_time.substring(0, 5),
-    serviceCompleted: entry.service_completed,
+    serviceCompletedText: entry.service_completed_text || '',
     staffOnSite: entry.staff_on_site,
     additionalInfo: entry.additional_info
   })
@@ -895,7 +1033,7 @@ const submitServiceEntryForm = async () => {
     const body = {
       serviceDate: serviceEntryForm.serviceDate,
       serviceTime: serviceEntryForm.serviceTime,
-      serviceCompleted: serviceEntryForm.serviceCompleted,
+      serviceCompletedText: serviceEntryForm.serviceCompletedText,
       staffOnSite: serviceEntryForm.staffOnSite,
       additionalInfo: serviceEntryForm.additionalInfo
     }
@@ -965,5 +1103,46 @@ onMounted(loadClients)
 .client-card__strip {
   height: 4px;
   background: linear-gradient(90deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+}
+
+.client-details-hero {
+  background: linear-gradient(135deg, rgba(var(--v-theme-info), 0.12) 0%, rgba(var(--v-theme-primary), 0.06) 100%);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.details-section-card {
+  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+}
+
+.details-section-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  display: flex;
+  align-items: center;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.details-row:last-child {
+  border-bottom: 0;
+}
+
+.details-label {
+  font-size: 0.82rem;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+}
+
+.details-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: right;
 }
 </style>

@@ -24,7 +24,27 @@ export default defineEventHandler(async (event) => {
     const clients = await pgrestAdmin<any[]>('/clients', {
       query: { select: '*', order: 'company_name.asc' }
     })
-    return clients
+
+    if (payload.app_role !== 'client_admin') return clients
+
+    const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
+      query: {
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
+      }
+    })
+    const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
+    if (!companyIds.length) return []
+
+    const companies = await pgrestAdmin<Array<{ id: number; name: string }>>('/companies', {
+      query: {
+        id: `in.(${companyIds.join(',')})`,
+        select: 'id,name'
+      }
+    })
+    const allowedCompanyNames = new Set((companies ?? []).map(c => String(c.name || '').trim().toLowerCase()).filter(Boolean))
+
+    return (clients ?? []).filter((c: any) => allowedCompanyNames.has(String(c.company_name || '').trim().toLowerCase()))
   } catch (error: unknown) {
     console.error('[API] Failed to fetch clients:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch clients.' })

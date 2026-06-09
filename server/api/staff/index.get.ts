@@ -24,7 +24,27 @@ export default defineEventHandler(async (event) => {
     const staff = await pgrestAdmin<any[]>('/staff_members', {
       query: { select: '*', order: 'surname.asc,name.asc' }
     })
-    return staff
+
+    if (payload.app_role !== 'client_admin') return staff
+
+    const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
+      query: {
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
+      }
+    })
+    const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
+    if (!companyIds.length) return []
+
+    const companies = await pgrestAdmin<Array<{ id: number; name: string }>>('/companies', {
+      query: {
+        id: `in.(${companyIds.join(',')})`,
+        select: 'id,name'
+      }
+    })
+    const allowedCompanyNames = new Set((companies ?? []).map(c => String(c.name || '').trim().toLowerCase()).filter(Boolean))
+
+    return (staff ?? []).filter((member: any) => allowedCompanyNames.has(String(member.team_allocation || '').trim().toLowerCase()))
   } catch (error: unknown) {
     console.error('[API] Failed to fetch staff members:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch staff members.' })

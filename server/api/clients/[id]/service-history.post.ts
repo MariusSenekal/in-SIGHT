@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
         client_id: Number(id),
         service_date: body.serviceDate,
         service_time: body.serviceTime,
+        service_completed_text: body.serviceCompletedText || '',
         service_completed: body.serviceCompleted ?? false,
         staff_on_site: body.staffOnSite || '',
         additional_info: body.additionalInfo || ''
