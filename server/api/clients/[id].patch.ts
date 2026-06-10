@@ -25,6 +25,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+  const annualRevenueValue = body.annualRevenue
+  const annualRevenue = annualRevenueValue === '' || annualRevenueValue == null
+    ? null
+    : Number(annualRevenueValue)
   const updates: Record<string, unknown> = {}
 
   if (body.companyName !== undefined)           updates.company_name = body.companyName
@@ -34,7 +38,7 @@ export default defineEventHandler(async (event) => {
   if (body.email !== undefined)                 updates.email = body.email
   if (body.industry !== undefined)              updates.industry = body.industry
   if (body.relationshipAllocation !== undefined) updates.relationship_allocation = body.relationshipAllocation
-  if (body.annualRevenue !== undefined)         updates.annual_revenue = body.annualRevenue ?? null
+  if (body.annualRevenue !== undefined)         updates.annual_revenue = Number.isFinite(annualRevenue) ? annualRevenue : null
   if (body.specialRequirements !== undefined)   updates.special_requirements = body.specialRequirements
   if (body.lastServiced !== undefined)          updates.last_serviced = body.lastServiced || null
   if (body.companyRegistration !== undefined)   updates.company_registration = body.companyRegistration

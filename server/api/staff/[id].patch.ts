@@ -25,6 +25,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+  const salaryValue = body.salary
+  const salary = salaryValue === '' || salaryValue == null
+    ? null
+    : Number(salaryValue)
   const updates: Record<string, unknown> = {}
 
   if (body.name !== undefined)                  updates.name = body.name
@@ -43,7 +47,7 @@ export default defineEventHandler(async (event) => {
   if (body.uifNumber !== undefined)             updates.uif_number = body.uifNumber
   if (body.role !== undefined)                  updates.role = body.role
   if (body.teamAllocation !== undefined)        updates.team_allocation = body.teamAllocation
-  if (body.salary !== undefined)                updates.salary = body.salary ?? null
+  if (body.salary !== undefined)                updates.salary = Number.isFinite(salary) ? salary : null
   if (body.frequencyPaid !== undefined)         updates.frequency_paid = body.frequencyPaid
   if (body.additionalInformation !== undefined) updates.additional_information = body.additionalInformation
   if (body.isActive !== undefined)              updates.is_active = body.isActive

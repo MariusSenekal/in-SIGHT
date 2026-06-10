@@ -20,6 +20,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+  const salaryValue = body.salary
+  const salary = salaryValue === '' || salaryValue == null
+    ? null
+    : Number(salaryValue)
 
   if (!body.name || !body.surname) {
     throw createError({ statusCode: 400, message: 'Name and surname are required.' })
@@ -59,7 +63,7 @@ export default defineEventHandler(async (event) => {
         uif_number: body.uifNumber || '',
         role: body.role || '',
         team_allocation: body.teamAllocation || '',
-        salary: body.salary ?? null,
+        salary: Number.isFinite(salary) ? salary : null,
         frequency_paid: body.frequencyPaid || '',
         additional_information: body.additionalInformation || '',
         is_active: body.isActive !== undefined ? body.isActive : true

@@ -20,6 +20,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+  const annualRevenueValue = body.annualRevenue
+  const annualRevenue = annualRevenueValue === '' || annualRevenueValue == null
+    ? null
+    : Number(annualRevenueValue)
 
   if (!body.companyName) {
     throw createError({ statusCode: 400, message: 'Company name is required.' })
@@ -50,7 +54,7 @@ export default defineEventHandler(async (event) => {
         email: body.email || '',
         industry: body.industry || '',
         relationship_allocation: body.relationshipAllocation || '',
-        annual_revenue: body.annualRevenue ?? null,
+        annual_revenue: Number.isFinite(annualRevenue) ? annualRevenue : null,
         special_requirements: body.specialRequirements || '',
         last_serviced: body.lastServiced || null,
         company_registration: body.companyRegistration || '',
