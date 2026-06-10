@@ -34,17 +34,20 @@ export default defineEventHandler(async (event) => {
       }
     })
     const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
-    if (!companyIds.length) return []
+    const currentUserId = Number(payload.sub)
 
-    const companies = await pgrestAdmin<Array<{ id: number; name: string }>>('/companies', {
-      query: {
-        id: `in.(${companyIds.join(',')})`,
-        select: 'id,name'
+    return (clients ?? []).filter((c: any) => {
+      const ownerUserId = c.owner_user_id == null ? null : Number(c.owner_user_id)
+      const ownerCompanyId = c.owner_company_id == null ? null : Number(c.owner_company_id)
+
+      if (companyIds.length > 0) {
+        return (ownerUserId != null && ownerUserId === currentUserId)
+          || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
       }
-    })
-    const allowedCompanyNames = new Set((companies ?? []).map(c => String(c.name || '').trim().toLowerCase()).filter(Boolean))
 
-    return (clients ?? []).filter((c: any) => allowedCompanyNames.has(String(c.company_name || '').trim().toLowerCase()))
+      return (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerUserId == null && ownerCompanyId == null)
+    })
   } catch (error: unknown) {
     console.error('[API] Failed to fetch clients:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch clients.' })

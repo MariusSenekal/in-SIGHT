@@ -26,9 +26,23 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    let ownerCompanyId: number | null = null
+    const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
+      query: {
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
+      }
+    })
+
+    if (memberships?.length) {
+      ownerCompanyId = Number(memberships[0].company_id)
+    }
+
     const member = await pgrestAdmin<any>('/staff_members', {
       method: 'POST',
       body: {
+        owner_user_id: Number(payload.sub),
+        owner_company_id: ownerCompanyId,
         name: body.name,
         surname: body.surname,
         address: body.address || '',

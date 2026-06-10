@@ -34,17 +34,20 @@ export default defineEventHandler(async (event) => {
       }
     })
     const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
-    if (!companyIds.length) return []
+    const currentUserId = Number(payload.sub)
 
-    const companies = await pgrestAdmin<Array<{ id: number; name: string }>>('/companies', {
-      query: {
-        id: `in.(${companyIds.join(',')})`,
-        select: 'id,name'
+    return (staff ?? []).filter((member: any) => {
+      const ownerUserId = member.owner_user_id == null ? null : Number(member.owner_user_id)
+      const ownerCompanyId = member.owner_company_id == null ? null : Number(member.owner_company_id)
+
+      if (companyIds.length > 0) {
+        return (ownerUserId != null && ownerUserId === currentUserId)
+          || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
       }
-    })
-    const allowedCompanyNames = new Set((companies ?? []).map(c => String(c.name || '').trim().toLowerCase()).filter(Boolean))
 
-    return (staff ?? []).filter((member: any) => allowedCompanyNames.has(String(member.team_allocation || '').trim().toLowerCase()))
+      return (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerUserId == null && ownerCompanyId == null)
+    })
   } catch (error: unknown) {
     console.error('[API] Failed to fetch staff members:', error)
     throw createError({ statusCode: 500, message: 'Failed to fetch staff members.' })
