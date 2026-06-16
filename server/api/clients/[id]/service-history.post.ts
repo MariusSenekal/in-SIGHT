@@ -30,40 +30,42 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Service date and time are required.' })
   }
 
-  try {
-    if (payload.app_role === 'client_admin') {
-      const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
-        query: {
-          user_id: `eq.${payload.sub}`,
-          select: 'company_id'
-        }
-      })
-      const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
-      const currentUserId = Number(payload.sub)
-
-      const clients = await pgrestAdmin<any[]>('/clients', {
-        query: { id: `eq.${id}`, select: 'id,owner_user_id,owner_company_id' }
-      })
-
-      if (!clients?.length) {
-        throw createError({ statusCode: 404, message: 'Client not found.' })
+  // ── Ownership check for client_admin ───────────────────────────────────────
+  if (payload.app_role === 'client_admin') {
+    const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
+      query: {
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
       }
+    })
+    const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
+    const currentUserId = Number(payload.sub)
 
-      const client = clients[0]
-      const ownerUserId = client.owner_user_id == null ? null : Number(client.owner_user_id)
-      const ownerCompanyId = client.owner_company_id == null ? null : Number(client.owner_company_id)
-      const canAccess = companyIds.length > 0
-        ? (ownerUserId != null && ownerUserId === currentUserId)
-          || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
-        : (ownerUserId != null && ownerUserId === currentUserId)
-          || (ownerUserId == null && ownerCompanyId == null)
+    const clients = await pgrestAdmin<any[]>('/clients', {
+      query: { id: `eq.${id}`, select: 'id,owner_user_id,owner_company_id' }
+    })
 
-      if (!canAccess) {
-        throw createError({ statusCode: 404, message: 'Client not found.' })
-      }
+    if (!clients?.length) {
+      throw createError({ statusCode: 404, message: 'Client not found.' })
     }
 
-    const entry = await pgrestAdmin<any>('/client_service_history', {
+    const client = clients[0]
+    const ownerUserId = client.owner_user_id == null ? null : Number(client.owner_user_id)
+    const ownerCompanyId = client.owner_company_id == null ? null : Number(client.owner_company_id)
+    const canAccess = companyIds.length > 0
+      ? (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
+      : (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerUserId == null && ownerCompanyId == null)
+
+    if (!canAccess) {
+      throw createError({ statusCode: 403, message: 'You do not have permission to add history for this client.' })
+    }
+  }
+
+  // ── Insert ───────────────────────────────────────────────────────────────────
+  try {
+    const rows = await pgrestAdmin<any[]>('/client_service_history', {
       method: 'POST',
       body: {
         client_id: Number(id),
@@ -74,9 +76,10 @@ export default defineEventHandler(async (event) => {
         staff_on_site: body.staffOnSite || '',
         additional_info: body.additionalInfo || ''
       },
-      query: { select: '*' }
+      query: { select: '*' },
+      extraHeaders: { 'Prefer': 'return=representation' }
     })
-    return Array.isArray(entry) ? entry[0] : entry
+    return Array.isArray(rows) ? rows[0] : rows
   } catch (error: unknown) {
     console.error('[API] Failed to add service history:', error)
     throw createError({ statusCode: 500, message: 'Failed to add service history.' })

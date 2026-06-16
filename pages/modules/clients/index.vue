@@ -544,6 +544,13 @@
               <template #append>
                 <div class="d-flex ga-1">
                   <v-btn
+                    icon="mdi-eye"
+                    size="x-small"
+                    variant="text"
+                    color="info"
+                    @click="openViewServiceHistoryDialog(entry)"
+                  />
+                  <v-btn
                     v-if="isAdmin || isClientAdmin"
                     icon="mdi-pencil"
                     size="x-small"
@@ -583,7 +590,7 @@
         </v-card-title>
         <v-divider />
         <v-card-text class="pa-5">
-          <v-form ref="serviceEntryForm">
+          <v-form ref="serviceEntryFormEl">
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field
@@ -659,6 +666,79 @@
           >
             {{ editingServiceEntry ? 'Save Changes' : 'Add Entry' }}
           </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ─── View Service History Entry Dialog ─── -->
+    <v-dialog v-model="showViewServiceHistoryDialog" max-width="520" scrollable>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3">
+          <div class="d-flex align-center ga-2">
+            <v-icon icon="mdi-file-document-outline" color="info" />
+            Service Entry Details
+          </div>
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-5" v-if="viewServiceHistoryTarget">
+          <div class="d-flex align-center ga-3 mb-4">
+            <v-icon
+              :icon="viewServiceHistoryTarget.service_completed_text?.trim() ? 'mdi-check-circle' : 'mdi-clock-outline'"
+              :color="viewServiceHistoryTarget.service_completed_text?.trim() ? 'success' : 'warning'"
+              size="40"
+            />
+            <div>
+              <div class="text-h6 font-weight-bold">
+                {{ formatDate(viewServiceHistoryTarget.service_date) }}
+              </div>
+              <div class="text-body-2 text-medium-emphasis">
+                {{ formatTime(viewServiceHistoryTarget.service_time) }}
+              </div>
+            </div>
+          </div>
+
+          <v-divider class="mb-4" />
+
+          <div class="d-flex flex-column ga-3">
+            <div>
+              <div class="text-overline text-medium-emphasis mb-1">Service Completed</div>
+              <div class="text-body-1">
+                {{ viewServiceHistoryTarget.service_completed_text?.trim() || 'Not recorded' }}
+              </div>
+            </div>
+
+            <v-divider />
+
+            <div>
+              <div class="text-overline text-medium-emphasis mb-1">Staff on Site</div>
+              <div class="text-body-1" style="white-space: pre-wrap;">
+                {{ viewServiceHistoryTarget.staff_on_site?.trim() || 'Not recorded' }}
+              </div>
+            </div>
+
+            <v-divider />
+
+            <div>
+              <div class="text-overline text-medium-emphasis mb-1">Additional Information</div>
+              <div class="text-body-1" style="white-space: pre-wrap;">
+                {{ viewServiceHistoryTarget.additional_info?.trim() || 'None' }}
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="px-5 py-4">
+          <v-btn
+            v-if="isAdmin || isClientAdmin"
+            color="secondary"
+            variant="tonal"
+            prepend-icon="mdi-pencil"
+            @click="openEditServiceHistoryDialog(viewServiceHistoryTarget!); showViewServiceHistoryDialog = false"
+          >
+            Edit
+          </v-btn>
+          <v-spacer />
+          <v-btn variant="text" @click="showViewServiceHistoryDialog = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -809,6 +889,10 @@ const serviceEntryForm = reactive(defaultServiceEntryForm())
 const showDeleteServiceEntryDialog = ref(false)
 const deleteServiceEntryTarget = ref<ServiceHistoryEntry | null>(null)
 const deleteServiceEntryLoading = ref(false)
+
+// ─── View service history entry state ────────────────────────────────────────
+const showViewServiceHistoryDialog = ref(false)
+const viewServiceHistoryTarget = ref<ServiceHistoryEntry | null>(null)
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const formatDate = (date: string | null) => {
@@ -1055,12 +1139,17 @@ const submitServiceEntryForm = async () => {
     serviceEntryFeedbackType.value = 'success'
     await loadServiceHistory(serviceHistoryClient.value!.id)
     setTimeout(() => { showServiceEntryDialog.value = false }, 700)
-  } catch {
-    serviceEntryFeedback.value = 'Something went wrong. Please try again.'
+  } catch (err: any) {
+    serviceEntryFeedback.value = err?.data?.message || err?.message || 'Something went wrong. Please try again.'
     serviceEntryFeedbackType.value = 'error'
   } finally {
     serviceEntryLoading.value = false
   }
+}
+
+const openViewServiceHistoryDialog = (entry: ServiceHistoryEntry) => {
+  viewServiceHistoryTarget.value = entry
+  showViewServiceHistoryDialog.value = true
 }
 
 const openDeleteServiceHistoryDialog = (entry: ServiceHistoryEntry) => {

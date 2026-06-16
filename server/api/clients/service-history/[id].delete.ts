@@ -24,47 +24,49 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid service history ID.' })
   }
 
-  try {
-    if (payload.app_role === 'client_admin') {
-      const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
-        query: {
-          user_id: `eq.${payload.sub}`,
-          select: 'company_id'
-        }
-      })
-      const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
-      const currentUserId = Number(payload.sub)
-
-      const entries = await pgrestAdmin<any[]>('/client_service_history', {
-        query: { id: `eq.${id}`, select: 'id,client_id' }
-      })
-
-      if (!entries?.length) {
-        throw createError({ statusCode: 404, message: 'Service history entry not found.' })
+  // ── Ownership check for client_admin ───────────────────────────────────────
+  if (payload.app_role === 'client_admin') {
+    const memberships = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
+      query: {
+        user_id: `eq.${payload.sub}`,
+        select: 'company_id'
       }
+    })
+    const companyIds = (memberships ?? []).map(m => Number(m.company_id)).filter(Number.isFinite)
+    const currentUserId = Number(payload.sub)
 
-      const clients = await pgrestAdmin<any[]>('/clients', {
-        query: { id: `eq.${entries[0].client_id}`, select: 'id,owner_user_id,owner_company_id' }
-      })
+    const entries = await pgrestAdmin<any[]>('/client_service_history', {
+      query: { id: `eq.${id}`, select: 'id,client_id' }
+    })
 
-      if (!clients?.length) {
-        throw createError({ statusCode: 404, message: 'Client not found.' })
-      }
-
-      const client = clients[0]
-      const ownerUserId = client.owner_user_id == null ? null : Number(client.owner_user_id)
-      const ownerCompanyId = client.owner_company_id == null ? null : Number(client.owner_company_id)
-      const canAccess = companyIds.length > 0
-        ? (ownerUserId != null && ownerUserId === currentUserId)
-          || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
-        : (ownerUserId != null && ownerUserId === currentUserId)
-          || (ownerUserId == null && ownerCompanyId == null)
-
-      if (!canAccess) {
-        throw createError({ statusCode: 404, message: 'Service history entry not found.' })
-      }
+    if (!entries?.length) {
+      throw createError({ statusCode: 404, message: 'Service history entry not found.' })
     }
 
+    const clients = await pgrestAdmin<any[]>('/clients', {
+      query: { id: `eq.${entries[0].client_id}`, select: 'id,owner_user_id,owner_company_id' }
+    })
+
+    if (!clients?.length) {
+      throw createError({ statusCode: 404, message: 'Client not found.' })
+    }
+
+    const client = clients[0]
+    const ownerUserId = client.owner_user_id == null ? null : Number(client.owner_user_id)
+    const ownerCompanyId = client.owner_company_id == null ? null : Number(client.owner_company_id)
+    const canAccess = companyIds.length > 0
+      ? (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
+      : (ownerUserId != null && ownerUserId === currentUserId)
+        || (ownerUserId == null && ownerCompanyId == null)
+
+    if (!canAccess) {
+      throw createError({ statusCode: 403, message: 'You do not have permission to delete this service history entry.' })
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────────────────────
+  try {
     await pgrestAdmin('/client_service_history', {
       method: 'DELETE',
       query: { id: `eq.${id}` }
