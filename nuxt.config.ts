@@ -58,8 +58,10 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
       link: [
-        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
-        { rel: 'icon', type: 'image/png', href: '/icons/pwa-192x192.png' }
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/icons/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icons/favicon-32x32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icons/favicon-16x16.png' },
+        { rel: 'shortcut icon', href: '/favicon.ico' }
       ]
     }
   },
