@@ -23,25 +23,25 @@ export default defineNuxtConfig({
       start_url: '/login/',
       icons: [
         {
-          src: '/icons/pwa-192x192.png',
+          src: 'icons/pwa-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/icons/pwa-512x512.png',
+          src: 'icons/pwa-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/icons/pwa-maskable-192x192.png',
+          src: 'icons/pwa-maskable-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'maskable'
         },
         {
-          src: '/icons/pwa-maskable-512x512.png',
+          src: 'icons/pwa-maskable-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable'
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/',
+      navigateFallback: '/login/',
       globPatterns: ['**/*.{js,css,html,ico,png,svg,json,txt,woff2}']
     },
     devOptions: {
@@ -69,12 +69,7 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
-      link: [
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/icons/apple-touch-icon.png' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icons/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icons/favicon-16x16.png' },
-        { rel: 'shortcut icon', href: '/favicon.ico' }
-      ]
+      link: []
     }
   },
   nitro: {
