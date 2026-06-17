@@ -19,55 +19,32 @@ export default defineNuxtConfig({
       display: 'fullscreen',
       display_override: ['fullscreen', 'standalone'],
       orientation: 'portrait-primary',
-      scope: '/',
+      scope: '/login/',
       start_url: '/login/',
-      badge: 'icons/badge-72x72.png',
-      categories: ['productivity'],
       icons: [
         {
-          src: 'icons/pwa-192x192.png',
+          src: '/login/icons/pwa-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: 'icons/pwa-512x512.png',
+          src: '/login/icons/pwa-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: 'icons/pwa-maskable-192x192.png',
+          src: '/login/icons/pwa-maskable-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'maskable'
         },
         {
-          src: 'icons/pwa-maskable-512x512.png',
+          src: '/login/icons/pwa-maskable-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable'
-        },
-        {
-          src: 'icons/badge-72x72.png',
-          sizes: '72x72',
-          type: 'image/png',
-          purpose: 'badge'
-        }
-      ],
-      shortcuts: [
-        {
-          name: 'Dashboard',
-          short_name: 'Dashboard',
-          description: 'Open the dashboard',
-          url: '/dashboard/?mode=launch',
-          icons: [
-            {
-              src: 'icons/pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            }
-          ]
         }
       ]
     },
@@ -84,7 +61,7 @@ export default defineNuxtConfig({
     }
   },
   app: {
-    baseURL: '/',
+    baseURL: '/login/',
     head: {
       title: 'in-SIGHT - Record Manager',
       meta: [
@@ -102,9 +79,9 @@ export default defineNuxtConfig({
         { name: 'google-site-verification', content: '' }
       ],
       link: [
-        { rel: 'icon', href: '/icons/pwa-192x192.png' },
-        { rel: 'apple-touch-icon', href: '/icons/pwa-192x192.png' },
-        { rel: 'manifest', href: '/manifest.webmanifest' }
+        { rel: 'icon', href: '/login/icons/pwa-192x192.png' },
+        { rel: 'apple-touch-icon', href: '/login/icons/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/login/manifest.webmanifest' }
       ]
     }
   },
