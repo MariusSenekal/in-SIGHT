@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     injectRegister: 'auto',
     manifest: {
-      name: 'in-SIGHT Cleaning Medic',
+      name: 'in-SIGHT',
       short_name: 'in-SIGHT',
       description: 'QR-based cleaning records, schedule tracking, and management tools.',
       theme_color: '#1d4ed8',
