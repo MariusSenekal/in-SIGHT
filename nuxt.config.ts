@@ -16,11 +16,13 @@ export default defineNuxtConfig({
       description: 'QR-based cleaning records, schedule tracking, and management tools.',
       theme_color: '#1d4ed8',
       background_color: '#ecf4ff',
-      display: 'standalone',
-      display_override: ['fullscreen', 'standalone', 'minimal-ui'],
-      orientation: 'portrait',
-      scope: '/login/',
+      display: 'fullscreen',
+      display_override: ['fullscreen', 'standalone'],
+      orientation: 'portrait-primary',
+      scope: '/',
       start_url: '/login/',
+      badge: 'icons/badge-72x72.png',
+      categories: ['productivity'],
       icons: [
         {
           src: 'icons/pwa-192x192.png',
@@ -45,12 +47,36 @@ export default defineNuxtConfig({
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable'
+        },
+        {
+          src: 'icons/badge-72x72.png',
+          sizes: '72x72',
+          type: 'image/png',
+          purpose: 'badge'
+        }
+      ],
+      shortcuts: [
+        {
+          name: 'Dashboard',
+          short_name: 'Dashboard',
+          description: 'Open the dashboard',
+          url: '/dashboard/?mode=launch',
+          icons: [
+            {
+              src: 'icons/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            }
+          ]
         }
       ]
     },
     workbox: {
       navigateFallback: '/login/',
       globPatterns: ['**/*.{js,css,html,ico,png,svg,json,txt,woff2}']
+    },
+    client: {
+      periodicSyncForUpdates: 3600
     },
     devOptions: {
       enabled: true,
@@ -63,13 +89,23 @@ export default defineNuxtConfig({
       title: 'in-SIGHT - Record Manager',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no' },
         { name: 'theme-color', content: '#1d4ed8' },
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'in-SIGHT' },
+        { name: 'format-detection', content: 'telephone=no' },
+        { name: 'msapplication-TileColor', content: '#1d4ed8' },
+        { name: 'msapplication-config', content: '/browserconfig.xml' },
+        { name: 'application-name', content: 'in-SIGHT Cleaning Medic' },
+        { name: 'google-site-verification', content: '' }
       ],
-      link: []
+      link: [
+        { rel: 'icon', href: '/icons/pwa-192x192.png' },
+        { rel: 'apple-touch-icon', href: '/icons/pwa-192x192.png' },
+        { rel: 'manifest', href: '/manifest.webmanifest' }
+      ]
     }
   },
   nitro: {
