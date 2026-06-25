@@ -75,7 +75,7 @@ export default defineNuxtConfig({
         { name: 'format-detection', content: 'telephone=no' },
         { name: 'msapplication-TileColor', content: '#1d4ed8' },
         { name: 'msapplication-config', content: '/browserconfig.xml' },
-        { name: 'application-name', content: 'in-SIGHT Cleaning Medic' },
+        { name: 'application-name', content: 'in-SIGHT' },
         { name: 'google-site-verification', content: '' }
       ],
       link: [
