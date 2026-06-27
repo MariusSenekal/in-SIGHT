@@ -3,19 +3,29 @@
   <div v-if="!currentUser" class="auth-page-wrap">
     <!-- Mobile: stacked card layout -->
     <div class="auth-mobile-wrap">
-      <v-container class="py-6">
+      <v-container class="py-8">
         <v-row justify="center">
-          <v-col cols="12" sm="9">
-            <div class="d-flex flex-column align-center mb-5">
-              <img :src="logoUrl" alt="in-SIGHT logo" class="heading-search-icon" />
-              <p class="text-medium-emphasis text-center mt-2 text-body-2">
-                Professional cleaning management platform
+          <v-col cols="12" sm="9" md="7">
+            <div class="d-flex flex-column align-center mb-6">
+              <div class="mobile-logo-container mb-4">
+                <img :src="logoUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
+              </div>
+              <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
+                in-FORMATION Visibility, Accessibility & Security
+              </h1>
+              <p class="text-body-1 text-center px-3 mobile-hero-subtitle">
+                We manage what matters by ensuring in-FORMATION is visible, accessible and secure for the real world
               </p>
             </div>
-            <v-card rounded="xl" elevation="4" class="pa-5">
-              <h3 class="text-h6 font-weight-bold mb-4">
-                {{ mode === 'login' ? 'Sign in to your account' : 'Create an account' }}
-              </h3>
+            <v-card rounded="xl" elevation="8" class="pa-6 pa-sm-7 mobile-login-card">
+              <div class="d-flex align-center ga-2 mb-5">
+                <div class="mobile-form-icon">
+                  <v-icon :icon="mode === 'login' ? 'mdi-login' : 'mdi-account-plus'" size="24" />
+                </div>
+                <h3 class="text-h5 font-weight-bold mb-0">
+                  {{ mode === 'login' ? 'Sign in to your account' : 'Create an account' }}
+                </h3>
+              </div>
 
               <v-form v-if="mode === 'login'" @submit.prevent="submitLogin">
                 <v-row dense>
@@ -110,12 +120,11 @@
       <div class="auth-split__hero">
         <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
         <h2 class="hero-heading">
-          <span class="hero-heading__line">Clean Operations.</span>
-          <span class="hero-heading__line">Smart Records.</span>
+          <span class="hero-heading__line">in-FORMATION Visibility,</span>
+          <span class="hero-heading__line">Accessibility & Security</span>
         </h2>
         <p class="hero-subtitle">
-          in-SIGHT keeps your team's cleaning schedules, photo evidence
-          and QR check-ins in one place — accessible from any device.
+          We manage what matters by ensuring in-FORMATION is visible, accessible and secure for the real world
         </p>
         <div class="auth-hero-features">
           <div v-for="f in heroFeatures" :key="f.icon" class="auth-hero-feature">
@@ -581,11 +590,79 @@ const goToProfilePage = () => {
 
 <style scoped>
 /* Auth page wrapper */
-.auth-page-wrap { min-height: 100vh; }
+.auth-page-wrap { 
+  min-height: 100vh; 
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.03) 0%, rgba(var(--v-theme-secondary), 0.05) 100%);
+}
 
 /* Mobile card: hidden on md+ */
 .auth-mobile-wrap { display: block; }
 @media (min-width: 960px) { .auth-mobile-wrap { display: none; } }
+
+/* Mobile login styling */
+.mobile-logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-login-logo {
+  height: 80px;
+  width: auto;
+  max-width: 240px;
+  display: block;
+  object-fit: contain;
+}
+
+.mobile-hero-title {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.mobile-hero-subtitle {
+  color: rgb(var(--v-theme-on-surface));
+  opacity: 0.75;
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+.mobile-login-card {
+  background: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
+}
+
+.mobile-form-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Button gradient styling */
+.btn-gradient {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%) !important;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-gradient:hover {
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.5) !important;
+  transform: translateY(-1px);
+}
 
 /* Desktop split: hidden on mobile, shown as grid on md+ */
 .auth-split {
@@ -846,6 +923,45 @@ const goToProfilePage = () => {
   .welcome-hero__avatar {
     width: 56px;
     height: 56px;
+  }
+}
+
+/* Mobile login responsive improvements */
+@media (max-width: 599px) {
+  .mobile-logo-container {
+    padding: 16px;
+  }
+  .mobile-login-logo {
+    height: 60px;
+    max-width: 200px;
+  }
+  .mobile-hero-title {
+    font-size: 1.25rem !important;
+    line-height: 1.4;
+  }
+  .mobile-hero-subtitle {
+    font-size: 0.9rem;
+    padding: 0 8px;
+  }
+  .mobile-login-card {
+    padding: 20px !important;
+  }
+  .mobile-form-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-mobile-wrap .py-8 {
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+  }
+  .mobile-hero-title {
+    font-size: 1.1rem !important;
+  }
+  .mobile-hero-subtitle {
+    font-size: 0.85rem;
   }
 }
 </style>
