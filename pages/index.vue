@@ -11,10 +11,11 @@
                 <img :src="logoUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
               </div>
               <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
-                in-FORMATION Visibility, Accessibility & Security
+                <span class="no-break">in-FORMATION</span> Visibility,<br>
+                Accessibility & Security
               </h1>
               <p class="text-body-1 text-center px-3 mobile-hero-subtitle">
-                We manage what matters by ensuring in-FORMATION is visible, accessible and secure for the real world
+                We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
               </p>
             </div>
             <v-card rounded="xl" elevation="8" class="pa-6 pa-sm-7 mobile-login-card">
@@ -120,18 +121,18 @@
       <div class="auth-split__hero">
         <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
         <h2 class="hero-heading">
-          <span class="hero-heading__line">in-FORMATION Visibility,</span>
+          <span class="hero-heading__line"><span class="no-break">in-FORMATION</span> Visibility,</span>
           <span class="hero-heading__line">Accessibility & Security</span>
         </h2>
         <p class="hero-subtitle">
-          We manage what matters by ensuring in-FORMATION is visible, accessible and secure for the real world
+          We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
         </p>
-        <div class="auth-hero-features">
+        <!-- <div class="auth-hero-features">
           <div v-for="f in heroFeatures" :key="f.icon" class="auth-hero-feature">
             <v-icon :icon="f.icon" size="18" class="mr-2" />
             <span>{{ f.label }}</span>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <!-- Form panel -->
@@ -397,12 +398,12 @@ const signupLoading = ref(false)
 const loginForm = reactive({ username: '', password: '' })
 const signupForm = reactive({ name: '', username: '', password: '' })
 
-const heroFeatures = [
-  { icon: 'mdi-qrcode-scan',    label: 'Instant QR code check-ins' },
-  { icon: 'mdi-camera',         label: 'Photo evidence uploads' },
-  { icon: 'mdi-check-all',      label: 'Checklist management' },
-  { icon: 'mdi-chart-bar',      label: 'Reporting & history' },
-]
+// const heroFeatures = [
+//   { icon: 'mdi-qrcode-scan',    label: 'Instant QR code check-ins' },
+//   { icon: 'mdi-camera',         label: 'Photo evidence uploads' },
+//   { icon: 'mdi-check-all',      label: 'Checklist management' },
+//   { icon: 'mdi-chart-bar',      label: 'Reporting & history' },
+// ]
 
 // ── Maintenance ───────────────────────────────────────────────────────────────
 const showMaintenanceDialog = ref(false)
@@ -593,6 +594,12 @@ const goToProfilePage = () => {
 .auth-page-wrap { 
   min-height: 100vh; 
   background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.03) 0%, rgba(var(--v-theme-secondary), 0.05) 100%);
+}
+
+/* Prevent word breaking */
+.no-break {
+  white-space: nowrap;
+  display: inline-block;
 }
 
 /* Mobile card: hidden on md+ */
