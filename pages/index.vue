@@ -11,8 +11,8 @@
                 <img :src="logoUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
               </div>
               <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
-                <span class="no-break">in-FORMATION</span> Visibility,<br>
-                Accessibility & Security
+                <span class="no-break">in-FORMATION</span><br>
+                Visibility, Accessibility & Security
               </h1>
               <p class="text-body-1 text-center px-3 mobile-hero-subtitle">
                 We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
@@ -121,18 +121,18 @@
       <div class="auth-split__hero">
         <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
         <h2 class="hero-heading">
-          <span class="hero-heading__line"><span class="no-break">in-FORMATION</span> Visibility,</span>
-          <span class="hero-heading__line">Accessibility & Security</span>
+          <span class="hero-heading__line"><span class="no-break">in-FORMATION</span></span>
+          <span class="hero-heading__line">Visibility, Accessibility & Security</span>
         </h2>
         <p class="hero-subtitle">
           We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
         </p>
-        <!-- <div class="auth-hero-features">
+        <div class="auth-hero-features">
           <div v-for="f in heroFeatures" :key="f.icon" class="auth-hero-feature">
             <v-icon :icon="f.icon" size="18" class="mr-2" />
             <span>{{ f.label }}</span>
           </div>
-        </div> -->
+        </div>
       </div>
 
       <!-- Form panel -->
