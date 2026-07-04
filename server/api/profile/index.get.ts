@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     token,
     query: {
       id: `eq.${payload.sub}`,
-      select: 'id,name,username,role,is_active,created_at,user_profiles(display_name,phone,location,bio,created_at)'
+      select: 'id,name,username,role,is_active,created_at,user_profiles(display_name,phone,location,bio,theme,created_at)'
     }
   })
 
@@ -30,8 +30,9 @@ export default defineEventHandler(async (event) => {
           phone: r.user_profiles.phone ?? '',
           location: r.user_profiles.location ?? '',
           bio: r.user_profiles.bio ?? '',
+          theme: r.user_profiles.theme ?? 'arctic',
           createdAt: r.user_profiles.created_at ?? r.created_at
         }
-      : { displayName: r.name, phone: '', location: '', bio: '', createdAt: r.created_at }
+      : { displayName: r.name, phone: '', location: '', bio: '', theme: 'arctic', createdAt: r.created_at }
   }
 })

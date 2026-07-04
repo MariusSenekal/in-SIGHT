@@ -239,10 +239,10 @@
         <!-- Welcome header card -->
         <v-card rounded="xl" elevation="3" class="mb-5 overflow-hidden">
           <div class="welcome-hero">
-            <div class="welcome-hero__logo-section">
-              <img :src="logoUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
-            </div>
             <div class="welcome-hero__main">
+              <div class="welcome-hero__logo-section">
+                <img :src="logoIconUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
+              </div>
               <div class="welcome-hero__content">
                 <div class="welcome-hero__avatar">
                   <v-icon icon="mdi-account" size="32" color="white" />
@@ -382,7 +382,8 @@ definePageMeta({ ssr: false })
 
 type AuthMode = 'login' | 'signup'
 
-const logoUrl = `${useRuntimeConfig().app.baseURL}branding/login-logo-slide1-trimmed.png`
+const logoUrl = `${useRuntimeConfig().app.baseURL}branding/logo-full.png`
+const logoIconUrl = `${useRuntimeConfig().app.baseURL}branding/logo-icon.png`
 const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, signup, logout } = useAuth()
 const { addRequest } = useServiceRequests()
 const { getRecords } = useRecords()
@@ -611,16 +612,16 @@ const goToProfilePage = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   background: white;
   border-radius: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .mobile-login-logo {
-  height: 80px;
+  height: 180px;
   width: auto;
-  max-width: 240px;
+  max-width: 400px;
   display: block;
   object-fit: contain;
 }
@@ -630,7 +631,7 @@ const goToProfilePage = () => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  line-height: 1.3;
+  line-height: 1.4;
   letter-spacing: -0.02em;
 }
 
@@ -690,13 +691,12 @@ const goToProfilePage = () => {
 .auth-split__form-inner { width: 100%; max-width: 400px; }
 
 .auth-hero-logo {
-  height: clamp(70px, 9vw, 120px);
+  height: clamp(234px, 23vw, 364px);
   width: auto;
-  max-width: 280px;
+  max-width: 676px;
   display: block;
   object-fit: contain;
-  mix-blend-mode: multiply;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 
 .auth-hero-features {
@@ -717,22 +717,16 @@ const goToProfilePage = () => {
 /* Welcome hero */
 .welcome-hero {
   position: relative;
-  min-height: 80px;
+  min-height: 110px;
   overflow: hidden;
 }
 
 .welcome-hero__logo-section {
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: white;
-  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 2px 2px 8px rgba(0,0,0,0.12);
-  z-index: 2;
-  border-radius: 0 0 12px 0;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
 .welcome-hero__main {
@@ -740,12 +734,12 @@ const goToProfilePage = () => {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 24px 16px 24px;
+  gap: 20px;
+  padding: 20px 24px;
   background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
   position: relative;
   overflow: hidden;
-  min-height: 80px;
+  min-height: 110px;
 }
 
 .welcome-hero__main::before {
@@ -756,13 +750,22 @@ const goToProfilePage = () => {
   pointer-events: none;
 }
 
+.welcome-hero__main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(29, 78, 216, 0.35) 0%, transparent 30%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .welcome-hero__content {
   display: flex;
   align-items: center;
   gap: 16px;
   position: relative;
   z-index: 1;
-  padding-left: 150px;
+  flex: 1;
 }
 
 .welcome-hero__avatar {
@@ -811,9 +814,9 @@ const goToProfilePage = () => {
 }
 
 .welcome-hero__logo {
-  height: 40px;
+  height: 126px;
   width: auto;
-  max-width: 140px;
+  max-width: 126px;
   object-fit: contain;
   display: block;
 }
@@ -854,37 +857,40 @@ const goToProfilePage = () => {
     min-height: auto;
   }
   .welcome-hero__logo-section {
-    padding: 10px 14px;
+    order: 0;
+    position: absolute;
+    top: 16px;
+    left: 16px;
   }
   .welcome-hero__logo { 
-    height: 38px;
-    max-width: 120px;
+    height: 134px;
+    max-width: 134px;
   }
   .welcome-hero__main {
-    padding: 16px 14px 18px 14px;
-    min-height: 100px;
+    padding: 20px 16px;
+    min-height: auto;
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .welcome-hero__content { 
-    gap: 0;
     flex-direction: column;
     align-items: flex-start;
-    padding-left: 0;
-    padding-top: 55px;
+    justify-content: flex-start;
+    gap: 0;
+    position: relative;
+  }
+  .welcome-hero__content { 
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
     width: auto;
-    flex: 1;
-    flex-wrap: nowrap;
+    padding-top: 155px;
+    padding-left: 0;
+    flex: 0;
   }
   .welcome-hero__avatar { 
     display: none;
   }
   .welcome-hero__text {
     text-align: left;
-    flex: 0;
+    flex: 1;
     min-width: 0;
     margin-bottom: 0;
   }
@@ -899,14 +905,12 @@ const goToProfilePage = () => {
   }
   .welcome-hero__actions {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 16px;
+    right: 16px;
     width: auto;
     justify-content: flex-end;
-    gap: 6px;
-    margin-top: 0;
+    gap: 8px;
     flex-direction: row;
-    padding-top: 0;
   }
   .welcome-hero__actions .v-btn {
     width: auto;
@@ -917,15 +921,12 @@ const goToProfilePage = () => {
 }
 
 @media (min-width: 600px) and (max-width: 960px) {
-  .welcome-hero {
-    padding: 28px 24px;
-  }
   .welcome-hero__content {
     gap: 18px;
-    flex-wrap: wrap;
   }
   .welcome-hero__logo {
-    height: 46px;
+    height: 119px;
+    max-width: 119px;
   }
   .welcome-hero__avatar {
     width: 56px;
@@ -936,11 +937,11 @@ const goToProfilePage = () => {
 /* Mobile login responsive improvements */
 @media (max-width: 599px) {
   .mobile-logo-container {
-    padding: 16px;
+    padding: 20px;
   }
   .mobile-login-logo {
-    height: 60px;
-    max-width: 200px;
+    height: 140px;
+    max-width: 320px;
   }
   .mobile-hero-title {
     font-size: 1.25rem !important;

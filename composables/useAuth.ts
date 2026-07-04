@@ -5,6 +5,7 @@ export interface UserProfile {
   phone: string
   location: string
   bio: string
+  theme: string
   createdAt: string
 }
 
@@ -62,6 +63,7 @@ const buildUserFromPayload = (payload: Record<string, unknown>): AppUser => ({
     phone: '',
     location: '',
     bio: '',
+    theme: 'arctic',
     createdAt: new Date().toISOString()
   }
 })
@@ -101,11 +103,25 @@ export const useAuth = () => {
     return true
   }
 
-  const initAuth = () => {
+  const initAuth = async () => {
     if (!import.meta.client || initialized.value) return
     const stored = localStorage.getItem(AUTH_TOKEN_KEY)
     if (stored && applyStoredToken(stored)) {
-      // token is valid — keep it
+      // Token is valid, load profile to get theme
+      try {
+        const profile = await $fetch<AppUser>('/api/profile')
+        if (profile && currentUser.value) {
+          currentUser.value.profile = profile.profile
+          // Initialize theme from profile
+          if (profile.profile?.theme) {
+            const { initTheme } = useAppTheme()
+            initTheme(profile.profile.theme)
+          }
+        }
+      } catch (error) {
+        // If profile fetch fails, continue with token-based auth
+        console.warn('Could not load profile on init:', error)
+      }
     } else {
       clearAuthState()
     }
@@ -136,6 +152,13 @@ export const useAuth = () => {
       if (import.meta.client) localStorage.setItem(AUTH_TOKEN_KEY, token)
       const payload = decodeTokenPayload(token) ?? {}
       currentUser.value = { ...user, profile: buildUserFromPayload(payload).profile }
+      
+      // Initialize theme from user profile
+      if (import.meta.client && user.profile?.theme) {
+        const { initTheme } = useAppTheme()
+        initTheme(user.profile.theme)
+      }
+      
       return { ok: true, message: 'Login successful.' }
     } catch (err: unknown) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Invalid username or password.'

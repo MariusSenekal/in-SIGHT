@@ -1,7 +1,7 @@
 import { useTheme } from 'vuetify'
 
 const THEME_KEY = 'insight-app-theme'
-const DEFAULT_THEME = 'ocean'
+const DEFAULT_THEME = 'arctic'
 
 export const themeOptions = [
   // Light themes
@@ -29,18 +29,32 @@ export const useAppTheme = () => {
 
   const currentThemeName = useState<string>('appTheme', () => DEFAULT_THEME)
 
-  const applyTheme = (name: string) => {
+  const applyTheme = async (name: string, saveToServer: boolean = true) => {
     theme.change(name)
     currentThemeName.value = name
     if (import.meta.client) {
       localStorage.setItem(THEME_KEY, name)
+      
+      // Save to user profile if logged in
+      if (saveToServer) {
+        try {
+          await $fetch('/api/profile/theme', {
+            method: 'PATCH',
+            body: { theme: name }
+          })
+        } catch (error) {
+          // Silently fail if not authenticated or server error
+          console.warn('Could not save theme to profile:', error)
+        }
+      }
     }
   }
 
-  const initTheme = () => {
+  const initTheme = (userTheme?: string) => {
     if (import.meta.client) {
-      const saved = localStorage.getItem(THEME_KEY) || DEFAULT_THEME
-      applyTheme(saved)
+      // Priority: user profile theme > localStorage > default
+      const themeToApply = userTheme || localStorage.getItem(THEME_KEY) || DEFAULT_THEME
+      applyTheme(themeToApply, false) // Don't save to server during init
     }
   }
 
