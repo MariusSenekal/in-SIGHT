@@ -109,7 +109,7 @@
               prepend-icon="mdi-history"
               @click="openServiceHistoryDialog(client)"
             >
-              Service History
+              History
             </v-btn>
             <v-spacer />
             <v-btn
@@ -146,12 +146,12 @@
         <v-card-text class="pa-5">
           <v-form ref="clientFormEl">
             <!-- Company info -->
-            <p class="text-overline text-medium-emphasis mb-2">Company Information</p>
+            <p class="text-overline text-medium-emphasis mb-2">Client Information</p>
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="clientForm.companyName"
-                  label="Company Name *"
+                  label="Name *"
                   prepend-inner-icon="mdi-domain"
                   variant="outlined"
                   density="comfortable"
@@ -161,7 +161,7 @@
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="clientForm.companyRegistration"
-                  label="Company Registration"
+                  label="Registration / ID"
                   prepend-inner-icon="mdi-file-document"
                   variant="outlined"
                   density="comfortable"
@@ -170,7 +170,7 @@
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="clientForm.industry"
-                  label="Industry"
+                  label="Type"
                   prepend-inner-icon="mdi-briefcase"
                   variant="outlined"
                   density="comfortable"
@@ -217,7 +217,7 @@
             </v-row>
 
             <!-- Contact info -->
-            <p class="text-overline text-medium-emphasis mt-3 mb-2">Contact Person</p>
+            <p class="text-overline text-medium-emphasis mt-3 mb-2">Contact Person 1</p>
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field
@@ -259,6 +259,57 @@
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="clientForm.landlineNumber"
+                  label="Landline Number"
+                  prepend-inner-icon="mdi-phone-classic"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+            </v-row>
+
+            <!-- Contact Person 2 -->
+            <p class="text-overline text-medium-emphasis mt-3 mb-2">Contact Person 2</p>
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="clientForm.contactPerson2Name"
+                  label="Name"
+                  prepend-inner-icon="mdi-account"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="clientForm.contactPerson2Surname"
+                  label="Surname"
+                  prepend-inner-icon="mdi-account"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="clientForm.contactPerson2Email"
+                  label="Email"
+                  type="email"
+                  prepend-inner-icon="mdi-email"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="clientForm.contactPerson2Mobile"
+                  label="Mobile Number"
+                  prepend-inner-icon="mdi-cellphone"
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="clientForm.contactPerson2Landline"
                   label="Landline Number"
                   prepend-inner-icon="mdi-phone-classic"
                   variant="outlined"
@@ -393,7 +444,7 @@
                 <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
                   <div class="details-section-title mb-3">
                     <v-icon icon="mdi-office-building" size="18" color="primary" class="mr-1" />
-                    Company Information
+                    Client Information
                   </div>
                   <div class="details-row"><span class="details-label">Industry</span><span class="details-value">{{ viewClientTarget.industry || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Registration</span><span class="details-value">{{ viewClientTarget.company_registration || '—' }}</span></div>
@@ -407,11 +458,25 @@
                 <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
                   <div class="details-section-title mb-3">
                     <v-icon icon="mdi-account-box-outline" size="18" color="secondary" class="mr-1" />
-                    Contact Details
+                    Contact Person 1
                   </div>
+                  <div class="details-row"><span class="details-label">Name</span><span class="details-value">{{ [viewClientTarget.name, viewClientTarget.surname].filter(Boolean).join(' ') || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Email</span><span class="details-value">{{ viewClientTarget.email || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Mobile</span><span class="details-value">{{ viewClientTarget.mobile_number || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Landline</span><span class="details-value">{{ viewClientTarget.landline_number || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-account-box-outline" size="18" color="secondary" class="mr-1" />
+                    Contact Person 2
+                  </div>
+                  <div class="details-row"><span class="details-label">Name</span><span class="details-value">{{ [viewClientTarget.contact_person_2_name, viewClientTarget.contact_person_2_surname].filter(Boolean).join(' ') || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Email</span><span class="details-value">{{ viewClientTarget.contact_person_2_email || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Mobile</span><span class="details-value">{{ viewClientTarget.contact_person_2_mobile || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Landline</span><span class="details-value">{{ viewClientTarget.contact_person_2_landline || '—' }}</span></div>
                 </v-card>
               </v-col>
 
@@ -473,7 +538,7 @@
         </v-card-title>
         <v-card-text class="pa-5 pt-1">
           <p>Are you sure you want to delete <strong>{{ deleteClientTarget?.company_name }}</strong>?</p>
-          <p class="text-medium-emphasis text-caption mt-2">This will also delete all service history. This action cannot be undone.</p>
+          <p class="text-medium-emphasis text-caption mt-2">This will also delete all history. This action cannot be undone.</p>
           <v-alert v-if="deleteClientFeedback" :type="deleteClientFeedbackType" variant="tonal" density="compact" class="mt-3">
             {{ deleteClientFeedback }}
           </v-alert>
@@ -493,7 +558,7 @@
           <div class="d-flex align-center justify-space-between ga-2 flex-wrap">
             <div class="d-flex align-center ga-2">
               <v-icon icon="mdi-history" color="primary" />
-              <span>Service History — {{ serviceHistoryClient?.company_name }}</span>
+              <span>History — {{ serviceHistoryClient?.company_name }}</span>
             </div>
             <v-btn
               v-if="isAdmin || isClientAdmin"
@@ -503,7 +568,7 @@
               variant="tonal"
               @click="openAddServiceHistoryDialog"
             >
-              Add Service
+              Add History
             </v-btn>
           </div>
         </v-card-title>
@@ -514,7 +579,7 @@
           </div>
 
           <v-alert v-else-if="serviceHistory.length === 0" type="info" variant="tonal" density="compact">
-            No service history recorded yet.
+            No history recorded yet.
           </v-alert>
 
           <v-list v-else lines="two" class="pa-0">
@@ -585,7 +650,7 @@
         <v-card-title class="pa-5 pb-3">
           <div class="d-flex align-center ga-2">
             <v-icon :icon="editingServiceEntry ? 'mdi-pencil' : 'mdi-calendar-plus'" color="primary" />
-            {{ editingServiceEntry ? 'Edit Service Entry' : 'Add Service History' }}
+            {{ editingServiceEntry ? 'Edit History Entry' : 'Add History' }}
           </div>
         </v-card-title>
         <v-divider />
@@ -595,7 +660,7 @@
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="serviceEntryForm.serviceDate"
-                  label="Service Date *"
+                  label="Date *"
                   type="date"
                   prepend-inner-icon="mdi-calendar"
                   variant="outlined"
@@ -606,7 +671,7 @@
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="serviceEntryForm.serviceTime"
-                  label="Service Time *"
+                  label="Time *"
                   type="time"
                   prepend-inner-icon="mdi-clock-outline"
                   variant="outlined"
@@ -617,7 +682,7 @@
               <v-col cols="12">
                 <v-textarea
                   v-model="serviceEntryForm.serviceCompletedText"
-                  label="Service Completed Description"
+                  label="Completed Description"
                   prepend-inner-icon="mdi-check-circle-outline"
                   variant="outlined"
                   density="comfortable"
@@ -670,13 +735,13 @@
       </v-card>
     </v-dialog>
 
-    <!-- ─── View Service History Entry Dialog ─── -->
+    <!-- ─── View History Entry Dialog ─── -->
     <v-dialog v-model="showViewServiceHistoryDialog" max-width="520" scrollable>
       <v-card rounded="xl">
         <v-card-title class="pa-5 pb-3">
           <div class="d-flex align-center ga-2">
             <v-icon icon="mdi-file-document-outline" color="info" />
-            Service Entry Details
+            History Entry Details
           </div>
         </v-card-title>
         <v-divider />
@@ -701,7 +766,7 @@
 
           <div class="d-flex flex-column ga-3">
             <div>
-              <div class="text-overline text-medium-emphasis mb-1">Service Completed</div>
+              <div class="text-overline text-medium-emphasis mb-1">Completed Description</div>
               <div class="text-body-1">
                 {{ viewServiceHistoryTarget.service_completed_text?.trim() || 'Not recorded' }}
               </div>
@@ -743,17 +808,17 @@
       </v-card>
     </v-dialog>
 
-    <!-- ─── Delete Service History Entry Dialog ─── -->
+    <!-- ─── Delete History Entry Dialog ─── -->
     <v-dialog v-model="showDeleteServiceEntryDialog" max-width="400">
       <v-card rounded="xl">
         <v-card-title class="pa-5 pb-3">
           <div class="d-flex align-center ga-2 text-error">
             <v-icon icon="mdi-delete" />
-            Delete Service Entry
+            Delete History Entry
           </div>
         </v-card-title>
         <v-card-text class="pa-5 pt-1">
-          <p>Delete service entry for <strong>{{ deleteServiceEntryTarget ? formatDate(deleteServiceEntryTarget.service_date) : '' }}</strong>?</p>
+          <p>Delete history entry for <strong>{{ deleteServiceEntryTarget ? formatDate(deleteServiceEntryTarget.service_date) : '' }}</strong>?</p>
           <p class="text-medium-emphasis text-caption mt-2">This action cannot be undone.</p>
         </v-card-text>
         <v-card-actions class="px-5 pb-5">
@@ -788,6 +853,11 @@ interface Client {
   company_registration: string
   landline_number: string
   mobile_number: string
+  contact_person_2_name: string
+  contact_person_2_surname: string
+  contact_person_2_email: string
+  contact_person_2_mobile: string
+  contact_person_2_landline: string
   status: string
   service_type: string
   contract_renewal_date: string | null
@@ -844,6 +914,11 @@ const defaultClientForm = () => ({
   email: '',
   mobileNumber: '',
   landlineNumber: '',
+  contactPerson2Name: '',
+  contactPerson2Surname: '',
+  contactPerson2Email: '',
+  contactPerson2Mobile: '',
+  contactPerson2Landline: '',
   serviceType: '',
   lastServiced: '',
   nextServiceDue: '',
@@ -982,6 +1057,11 @@ const openEditClientDialog = (client: Client) => {
     email: client.email,
     mobileNumber: client.mobile_number,
     landlineNumber: client.landline_number,
+    contactPerson2Name: client.contact_person_2_name ?? '',
+    contactPerson2Surname: client.contact_person_2_surname ?? '',
+    contactPerson2Email: client.contact_person_2_email ?? '',
+    contactPerson2Mobile: client.contact_person_2_mobile ?? '',
+    contactPerson2Landline: client.contact_person_2_landline ?? '',
     serviceType: client.service_type,
     lastServiced: client.last_serviced ?? '',
     nextServiceDue: client.next_service_due ?? '',
@@ -1015,6 +1095,11 @@ const submitClientForm = async () => {
       email: clientForm.email,
       mobileNumber: clientForm.mobileNumber,
       landlineNumber: clientForm.landlineNumber,
+      contactPerson2Name: clientForm.contactPerson2Name,
+      contactPerson2Surname: clientForm.contactPerson2Surname,
+      contactPerson2Email: clientForm.contactPerson2Email,
+      contactPerson2Mobile: clientForm.contactPerson2Mobile,
+      contactPerson2Landline: clientForm.contactPerson2Landline,
       serviceType: clientForm.serviceType,
       lastServiced: clientForm.lastServiced || null,
       nextServiceDue: clientForm.nextServiceDue || null,

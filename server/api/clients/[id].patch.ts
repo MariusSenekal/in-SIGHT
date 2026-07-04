@@ -44,6 +44,11 @@ export default defineEventHandler(async (event) => {
   if (body.companyRegistration !== undefined)   updates.company_registration = body.companyRegistration
   if (body.landlineNumber !== undefined)        updates.landline_number = body.landlineNumber
   if (body.mobileNumber !== undefined)          updates.mobile_number = body.mobileNumber
+  if (body.contactPerson2Name !== undefined)    updates.contact_person_2_name = body.contactPerson2Name
+  if (body.contactPerson2Surname !== undefined) updates.contact_person_2_surname = body.contactPerson2Surname
+  if (body.contactPerson2Email !== undefined)   updates.contact_person_2_email = body.contactPerson2Email
+  if (body.contactPerson2Mobile !== undefined)  updates.contact_person_2_mobile = body.contactPerson2Mobile
+  if (body.contactPerson2Landline !== undefined) updates.contact_person_2_landline = body.contactPerson2Landline
   if (body.status !== undefined)                updates.status = body.status
   if (body.serviceType !== undefined)           updates.service_type = body.serviceType
   if (body.contractRenewalDate !== undefined)   updates.contract_renewal_date = body.contractRenewalDate || null
