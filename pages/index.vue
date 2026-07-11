@@ -12,7 +12,7 @@
               </div>
               <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
                 <span class="no-break">in-FORMATION</span><br>
-                Visibility, Accessibility & Security
+                Visible, Accessible & Secure
               </h1>
               <p class="text-body-1 text-center px-3 mobile-hero-subtitle">
                 We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
@@ -122,7 +122,7 @@
         <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
         <h2 class="hero-heading">
           <span class="hero-heading__line"><span class="no-break">in-FORMATION</span></span>
-          <span class="hero-heading__line">Visibility, Accessibility & Security</span>
+          <span class="hero-heading__line">Visible, Accessible & Secure</span>
         </h2>
         <p class="hero-subtitle">
           We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
