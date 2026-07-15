@@ -56,41 +56,47 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { logout } = useAuth()
+const { logout, isAdmin, isClientAdmin } = useAuth()
+const managementRoute = computed(() => (isClientAdmin.value ? '/dashboard/client-management' : '/dashboard/management'))
 
 // Navigation items (static across all pages)
-const navigationItems = [
+const navigationItems = computed(() => [
   {
     to: '/dashboard',
     title: 'Dashboard Home',
     description: 'Overview and quick actions.',
-    icon: 'mdi-view-dashboard-outline'
+    icon: 'mdi-view-dashboard-outline',
+    show: isAdmin.value
   },
   {
-    to: '/dashboard/management',
+    to: managementRoute.value,
     title: 'Management Tools',
-    description: 'Users, companies, and checklists.',
-    icon: 'mdi-account-cog-outline'
+    description: isClientAdmin.value ? 'Manage your company users and modules.' : 'Users, companies, and checklists.',
+    icon: 'mdi-account-cog-outline',
+    show: isAdmin.value || isClientAdmin.value
   },
   {
     to: '/dashboard/qr-codes',
     title: 'QR Code Section',
     description: 'Generate printable QR codes.',
-    icon: 'mdi-qrcode'
+    icon: 'mdi-qrcode',
+    show: isAdmin.value
   },
   {
     to: '/dashboard/requests',
     title: 'Service Requests',
     description: 'Review and resolve requests.',
-    icon: 'mdi-clipboard-list-outline'
+    icon: 'mdi-clipboard-list-outline',
+    show: isAdmin.value
   },
   {
     to: '/records',
     title: 'Records Dashboard',
     description: 'All records and tracking.',
-    icon: 'mdi-folder-multiple-outline'
+    icon: 'mdi-folder-multiple-outline',
+    show: isAdmin.value
   }
-]
+].filter(item => item.show))
 
 // Page configurations for dynamic header
 const pageConfigs: Record<string, { title: string; description: string; icon: string }> = {
@@ -101,7 +107,12 @@ const pageConfigs: Record<string, { title: string; description: string; icon: st
   },
   '/dashboard/management': {
     title: 'Management Tools',
-    description: 'Admin directory, QR records, checklists and service request management.',
+    description: 'Manage users, module permissions, companies, QR records and checklists.',
+    icon: 'mdi-account-cog-outline'
+  },
+  '/dashboard/client-management': {
+    title: 'Client User Management',
+    description: 'Manage your company users and grant module access within your assigned permissions.',
     icon: 'mdi-account-cog-outline'
   },
   '/dashboard/qr-codes': {

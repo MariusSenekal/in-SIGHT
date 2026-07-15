@@ -1,9 +1,14 @@
 // PATCH /api/users/:id
-// Admin updates a user's details, profile, and optionally their password.
-import { requireAuth, pgrestAdmin } from '../../utils/pgrest'
+// Admin or client_admin updates a user's details, profile, and optionally their password.
+// client_admin can only update users in their own company (enforced by RLS)
+import { requireAuth, pgrestAdmin, pgrest, getBearerToken } from '../../utils/pgrest'
+import { verifyJwt } from '../../utils/jwt'
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin'])
+  const payload = requireAuth(event, ['admin', 'client_admin'])
+  const token = getBearerToken(event)!
+  const config = useRuntimeConfig()
+  const authUser = verifyJwt(token, config.jwtSecret as string)
 
   const userId = Number(getRouterParam(event, 'id'))
   if (!userId || Number.isNaN(userId)) {
@@ -23,6 +28,58 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   const allowedRoles = ['user', 'staff', 'admin', 'cleaner', 'uv-hero', 'client_admin', 'client_technician']
+  
+  // client_admin restrictions
+  if (authUser?.app_role === 'client_admin') {
+    // Verify the target user is in client_admin's company
+    try {
+      const targetUserCompanies = await pgrest<any[]>('/company_users', {
+        token,
+        query: {
+          select: 'company_id',
+          user_id: `eq.${userId}`
+        }
+      })
+
+      const adminCompanies = await pgrest<any[]>('/company_users', {
+        token,
+        query: {
+          select: 'company_id',
+          user_id: `eq.${authUser.sub}`
+        }
+      })
+
+      const targetCompanyIds = targetUserCompanies.map(c => c.company_id)
+      const adminCompanyIds = adminCompanies.map(c => c.company_id)
+      
+      const hasSharedCompany = targetCompanyIds.some(id => adminCompanyIds.includes(id))
+      
+      if (!hasSharedCompany) {
+        throw createError({ 
+          statusCode: 403, 
+          message: 'You can only manage users in your own company.' 
+        })
+      }
+    } catch (error: any) {
+      if (error.statusCode === 403) throw error
+      console.error('Error checking company membership:', error)
+      throw createError({ 
+        statusCode: 500, 
+        message: 'Failed to verify company membership.' 
+      })
+    }
+    
+    // client_admin can only assign staff or client_technician roles
+    if (body.role !== undefined) {
+      const clientAdminAllowedRoles = ['staff', 'client_technician']
+      if (!clientAdminAllowedRoles.includes(body.role)) {
+        throw createError({
+          statusCode: 403,
+          message: 'Client admins can only assign Staff or Client Technician roles.'
+        })
+      }
+    }
+  }
 
   // ── Update users table ────────────────────────────────────────────────────
   const userPatch: Record<string, unknown> = {}

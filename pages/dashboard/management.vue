@@ -30,7 +30,7 @@
                 Users
                 <v-chip size="x-small" color="primary" variant="tonal" class="ml-2">{{ users.length }}</v-chip>
               </v-tab>
-              <v-tab value="companies" prepend-icon="mdi-domain">
+              <v-tab v-if="isAdmin" value="companies" prepend-icon="mdi-domain">
                 Companies
                 <v-chip size="x-small" color="secondary" variant="tonal" class="ml-2">{{ companies.length }}</v-chip>
               </v-tab>
@@ -86,7 +86,7 @@
               </v-tabs-window-item>
 
               <!-- Companies tab -->
-              <v-tabs-window-item value="companies">
+              <v-tabs-window-item v-if="isAdmin" value="companies">
                 <v-card-text class="pb-0">
                   <div class="d-flex align-center justify-space-between mb-2">
                     <v-text-field
@@ -171,6 +171,7 @@
                   <v-chip v-else size="x-small" color="default" variant="outlined">Not assigned</v-chip>
                 </div>
                 <v-select
+                  v-if="isAdmin"
                   :model-value="getUserCompanyId(selectedUser.id)"
                   :items="companySelectItems"
                   item-title="title"
@@ -183,6 +184,15 @@
                   placeholder="No company assigned"
                   @update:model-value="(id) => assignUserToCompany(selectedUser.id, id)"
                 />
+                <v-alert
+                  v-else
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mt-2"
+                >
+                  Company assignment is managed by system administrators.
+                </v-alert>
               </v-card>
 
               <!-- Staff / Admin info panel — no QR codes for these roles -->
@@ -388,7 +398,7 @@
           </v-card>
 
           <!-- ── Company detail ── -->
-          <v-card v-else-if="directoryTab === 'companies' && selectedCompany" variant="outlined" rounded="lg">
+          <v-card v-else-if="isAdmin && directoryTab === 'companies' && selectedCompany" variant="outlined" rounded="lg">
             <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-2">
               <div class="d-flex align-center ga-2">
                 <v-avatar color="secondary" variant="tonal" size="40">
@@ -504,7 +514,7 @@
   </DashboardLayout>
 
   <!-- ── Create User Dialog ──────────────────────────────────────────────── -->
-  <v-dialog v-model="showCreateUserDialog" max-width="440" persistent>
+  <v-dialog v-model="showCreateUserDialog" max-width="520" persistent>
     <v-card rounded="lg">
       <v-card-title class="d-flex align-center ga-2">
         <v-icon icon="mdi-account-plus" />
@@ -538,7 +548,7 @@
         />
         <v-select
           v-model="createUserForm.role"
-          :items="roleOptions"
+          :items="isClientAdmin ? roleOptionsForClientAdmin : roleOptions"
           item-title="title"
           item-value="value"
           label="Role"
@@ -548,18 +558,38 @@
           class="mb-2"
         />
         <v-select
-          v-if="isClientRole(createUserForm.role)"
+          v-if="isAdmin && isClientRole(createUserForm.role)"
           v-model="createUserForm.companyId"
-          :items="companySelectItems"
+          :items="companies.map(c => ({ title: c.name, value: c.id }))"
           item-title="title"
           item-value="value"
-          label="Company *"
+          label="Assign to Company"
           prepend-inner-icon="mdi-domain"
           variant="outlined"
           density="comfortable"
-          hint="Client roles must be assigned to a company"
+          :hint="isClientRole(createUserForm.role) ? 'Required for client roles' : ''"
           persistent-hint
+          class="mb-3"
         />
+        <v-divider class="mb-3" />
+        <p class="text-caption text-medium-emphasis mb-2">Module Access Permissions (optional)</p>
+        <div class="d-flex flex-column ga-1">
+          <v-checkbox
+            v-for="module in assignableModuleOptions"
+            :key="module.value"
+            v-model="createUserForm.modules"
+            :value="module.value"
+            density="compact"
+            hide-details
+          >
+            <template #label>
+              <div class="d-flex align-center ga-2">
+                <v-icon :icon="module.icon" size="small" />
+                <span class="text-body-2">{{ module.title }}</span>
+              </div>
+            </template>
+          </v-checkbox>
+        </div>
         <v-alert v-if="createUserError" type="error" variant="tonal" density="compact" class="mt-2">{{ createUserError }}</v-alert>
         <v-alert v-if="createUserSuccess" type="success" variant="tonal" density="compact" class="mt-2">{{ createUserSuccess }}</v-alert>
       </v-card-text>
@@ -667,7 +697,7 @@
           <v-col cols="12" sm="6">
             <v-select
               v-model="editUserForm.role"
-              :items="roleOptions"
+              :items="isClientAdmin ? roleOptionsForClientAdmin : roleOptions"
               item-title="title"
               item-value="value"
               label="Role"
@@ -686,6 +716,36 @@
               rows="2"
               auto-grow
             />
+          </v-col>
+          <v-col v-if="isAdmin || isClientAdmin" cols="12">
+            <v-divider class="mb-3" />
+            <p class="text-subtitle-2 font-weight-bold mb-2">
+              <v-icon icon="mdi-view-grid-outline" size="small" class="mr-1" />
+              Module Access Permissions
+            </p>
+            <p class="text-caption text-medium-emphasis mb-3">
+              Select which modules this user can access. Admin users have full access to all modules.
+            </p>
+            <v-alert v-if="editUserForm.role === 'admin'" type="info" variant="tonal" density="compact" class="mb-3">
+              <strong>Admin users</strong> have access to all modules automatically.
+            </v-alert>
+            <div v-else class="d-flex flex-column ga-1">
+              <v-checkbox
+                v-for="module in assignableModuleOptions"
+                :key="module.value"
+                v-model="editUserForm.modules"
+                :value="module.value"
+                density="compact"
+                hide-details
+              >
+                <template #label>
+                  <div class="d-flex align-center ga-2">
+                    <v-icon :icon="module.icon" size="small" />
+                    <span class="text-body-2">{{ module.title }}</span>
+                  </div>
+                </template>
+              </v-checkbox>
+            </div>
           </v-col>
           <v-col cols="12">
             <v-divider class="mb-3" />
@@ -860,12 +920,76 @@
 import QrcodeVue from 'qrcode.vue'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany, authToken } = useAuth()
+const { currentUser, isAdmin, isClientAdmin, getAvailableModules, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany, authToken, loadUserModules, updateUserModules } = useAuth()
 const { goBack } = useAppNavigation()
 const { records: managementRecords, loadRecords, addRecord, updateRecord, deleteRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
 const { getChecklistTemplate, setChecklistTemplate, getEntriesByRecordCode } = useScheduleTracking()
 const { connect, disconnect } = useSocket()
+
+// Module permissions state
+const userModules = ref<string[]>([])
+const loadingModules = ref(false)
+const moduleOptions = [
+  { title: 'Vehicle Module', value: 'vehicle', icon: 'mdi-car', description: 'Track vehicles and service history' },
+  { title: 'Equipment Module', value: 'equipment', icon: 'mdi-toolbox', description: 'Manage equipment inventory' },
+  { title: 'Cleaning Module', value: 'cleaning', icon: 'mdi-spray-bottle', description: 'Monitor cleaning schedules' },
+  { title: 'QR Codes Module', value: 'qr-codes', icon: 'mdi-qrcode', description: 'Generate and manage QR codes' },
+  { title: 'Clients Module', value: 'clients', icon: 'mdi-account-tie', description: 'Manage client information' },
+  { title: 'HR Module', value: 'hr', icon: 'mdi-account-group', description: 'Manage staff records' }
+]
+
+const assignableModuleOptions = computed(() => {
+  if (isAdmin.value) {
+    return moduleOptions
+  }
+
+  const allowed = new Set((getAvailableModules.value || []).filter(m => m !== 'qr-codes'))
+  return moduleOptions.filter(option => allowed.has(option.value))
+})
+
+const loadModulesForUser = async (userId: number) => {
+  loadingModules.value = true
+  try {
+    const result = await $fetch<{ modules: string[] }>(`/api/users/${userId}/modules`, {
+      headers: { Authorization: `Bearer ${authToken.value}` }
+    })
+    userModules.value = result.modules || []
+  } catch (error) {
+    console.error('Failed to load user modules:', error)
+    userModules.value = []
+  } finally {
+    loadingModules.value = false
+  }
+}
+
+const saveModulesForUser = async (userId: number, modules: string[]) => {
+  try {
+    await $fetch(`/api/users/${userId}/modules`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: { modules }
+    })
+    return { ok: true, message: 'Module permissions updated successfully.' }
+  } catch (error: any) {
+    console.error('Failed to save user modules:', error)
+    return { ok: false, message: error?.data?.message || 'Failed to update module permissions.' }
+  }
+}
+
+const saveUserModules = async () => {
+  if (!selectedUserId.value) return
+  loadingModules.value = true
+  try {
+    const result = await saveModulesForUser(selectedUserId.value, userModules.value)
+    if (result.ok) {
+      // Show success message
+      console.log(result.message)
+    }
+  } finally {
+    loadingModules.value = false
+  }
+}
 
 // Load vehicles and equipment
 const vehicles = ref<any[]>([])
@@ -1041,7 +1165,8 @@ const createUserForm = reactive({
   username: '', 
   password: '', 
   role: 'user' as 'user' | 'admin' | 'staff' | 'cleaner' | 'uv-hero' | 'client_admin' | 'client_technician',
-  companyId: null as number | null
+  companyId: null as number | null,
+  modules: [] as string[]
 })
 const createUserError = ref('')
 const createUserSuccess = ref('')
@@ -1056,6 +1181,9 @@ const roleOptions = [
   { title: 'Client Technician', value: 'client_technician' },
   { title: 'Admin', value: 'admin' }
 ]
+const roleOptionsForClientAdmin = roleOptions.filter(option =>
+  option.value === 'staff' || option.value === 'client_technician'
+)
 
 const isClientRole = (role: string) => {
   return role === 'client_admin' || role === 'client_technician'
@@ -1065,39 +1193,54 @@ const submitCreateUser = async () => {
   createUserError.value = ''
   createUserSuccess.value = ''
   
-  // Validate client roles have a company
-  if (isClientRole(createUserForm.role) && !createUserForm.companyId) {
+  // Validate client roles have a company (admin flow)
+  if (isAdmin.value && isClientRole(createUserForm.role) && !createUserForm.companyId) {
     createUserError.value = 'Client Admin and Client Technician roles must be assigned to a company.'
+    return
+  }
+  
+  // Client admin must provide company ID
+  if (isClientAdmin.value && !createUserForm.companyId) {
+    createUserError.value = 'Company is required.'
     return
   }
   
   createUserLoading.value = true
   try {
-    const result = await createUser(createUserForm.name, createUserForm.username, createUserForm.password, createUserForm.role)
-    if (!result.ok) {
-      createUserError.value = result.message
-      return
-    }
-    
-    // Link user to company if client role
-    if (isClientRole(createUserForm.role) && createUserForm.companyId) {
-      // Get the newly created user's ID from the users array
-      const newUser = users.value.find(u => u.username === createUserForm.username)
-      if (newUser) {
-        await linkUserToCompany(createUserForm.companyId, newUser.id)
+    // Create user with companyId
+    const response = await $fetch<{ id: number; name: string; username: string; role: string }>('/api/users', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken.value}` },
+      body: {
+        name: createUserForm.name,
+        username: createUserForm.username,
+        password: createUserForm.password,
+        role: createUserForm.role,
+        companyId: createUserForm.companyId
       }
+    })
+    
+    // Save module permissions if any were selected
+    if (createUserForm.modules.length > 0 && response.id) {
+      await saveModulesForUser(response.id, createUserForm.modules)
     }
     
-    createUserSuccess.value = result.message
+    // Reload users list
+    await loadUsers()
+    
+    createUserSuccess.value = `User "${response.name}" created successfully.`
     createUserForm.name = ''
     createUserForm.username = ''
     createUserForm.password = ''
     createUserForm.role = 'user'
     createUserForm.companyId = null
+    createUserForm.modules = []
     setTimeout(() => {
       showCreateUserDialog.value = false
       createUserSuccess.value = ''
     }, 1500)
+  } catch (error: any) {
+    createUserError.value = error?.data?.message || error?.message || 'Failed to create user.'
   } finally {
     createUserLoading.value = false
   }
@@ -1114,13 +1257,14 @@ const editUserForm = reactive({
   location: '',
   bio: '',
   role: 'user' as AppUser['role'],
-  newPassword: ''
+  newPassword: '',
+  modules: [] as string[]
 })
 const editUserError = ref('')
 const editUserSuccess = ref('')
 const editUserLoading = ref(false)
 
-const openEditUser = (user: AppUser) => {
+const openEditUser = async (user: AppUser) => {
   editUserTarget.value = user
   editUserForm.name        = user.name
   editUserForm.username    = user.username
@@ -1132,6 +1276,13 @@ const openEditUser = (user: AppUser) => {
   editUserForm.newPassword = ''
   editUserError.value      = ''
   editUserSuccess.value    = ''
+  
+  // Load user's module permissions
+  if (isAdmin.value || isClientAdmin.value) {
+    await loadModulesForUser(user.id)
+    editUserForm.modules = [...userModules.value]
+  }
+  
   showEditUserDialog.value = true
 }
 
@@ -1158,6 +1309,12 @@ const submitEditUser = async () => {
       editUserError.value = result.message
       return
     }
+    
+    // Save module permissions if admin and modules were changed
+    if (isAdmin.value || isClientAdmin.value) {
+      await saveModulesForUser(editUserTarget.value.id, editUserForm.modules)
+    }
+    
     editUserSuccess.value = result.message
     setTimeout(() => {
       showEditUserDialog.value = false
@@ -1405,6 +1562,8 @@ const selectUser = (userId: number) => {
   selectedUserId.value = userId
   siteFilter.value = 'all'
   recordSearch.value = ''
+  // Load module permissions for this user
+  loadModulesForUser(userId)
 }
 
 const selectCompany = (companyId: number) => {

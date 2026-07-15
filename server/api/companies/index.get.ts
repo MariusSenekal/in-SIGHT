@@ -1,9 +1,9 @@
 // GET /api/companies
-// Returns all companies with their linked user IDs. Admin and staff only.
+// Returns visible companies with their linked user IDs.
 import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
+  requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero', 'client_admin'])
   const token = getBearerToken(event)!
 
   const rows = await pgrest<any[]>('/companies', {

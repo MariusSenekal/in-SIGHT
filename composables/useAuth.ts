@@ -80,6 +80,7 @@ export const useAuth = () => {
   const companies = useState<Company[]>('auth-companies', () => [])
   const records = useState<any[]>('records', () => [])
   const serviceRequests = useState<any[]>('service-requests', () => [])
+  const userModulePermissions = useState<string[]>('user-module-permissions', () => [])
 
   const clearAuthState = () => {
     currentUser.value = null
@@ -92,6 +93,7 @@ export const useAuth = () => {
     companies.value = []
     records.value = []
     serviceRequests.value = []
+    userModulePermissions.value = []
   }
 
   const applyStoredToken = (token: string): boolean => {
@@ -117,6 +119,8 @@ export const useAuth = () => {
             const { initTheme } = useAppTheme()
             initTheme(profile.profile.theme)
           }
+          // Load module permissions
+          await loadUserModules()
         }
       } catch (error) {
         // If profile fetch fails, continue with token-based auth
@@ -158,6 +162,9 @@ export const useAuth = () => {
         const { initTheme } = useAppTheme()
         initTheme(user.profile.theme)
       }
+      
+      // Load module permissions
+      await loadUserModules()
       
       return { ok: true, message: 'Login successful.' }
     } catch (err: unknown) {
@@ -269,7 +276,7 @@ export const useAuth = () => {
         ...users.value,
         {
           ...created,
-          profile: { displayName: created.name, phone: '', location: '', bio: '', createdAt: new Date().toISOString() }
+          profile: { displayName: created.name, phone: '', location: '', bio: '', theme: 'arctic', createdAt: new Date().toISOString() }
         }
       ]
       return { ok: true, message: `User "${name}" created successfully.` }
@@ -416,6 +423,71 @@ export const useAuth = () => {
   )
   const isAuthenticated = computed(() => Boolean(currentUser.value && authToken.value))
 
+  // ── Module Permissions ────────────────────────────────────────────────────
+
+  const loadUserModules = async (userId?: number): Promise<void> => {
+    const targetUserId = userId ?? currentUser.value?.id
+    if (!targetUserId) return
+
+    try {
+      const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`, {
+        headers: { Authorization: `Bearer ${authToken.value}` }
+      })
+      userModulePermissions.value = result.modules || []
+    } catch (err) {
+      console.error('Failed to load user modules:', err)
+      userModulePermissions.value = []
+    }
+  }
+
+  const updateUserModules = async (userId: number, modules: string[]): Promise<AuthResult> => {
+    try {
+      await $fetch(`/api/users/${userId}/modules`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${authToken.value}` },
+        body: { modules }
+      })
+      // Refresh current user's permissions if they're the target
+      if (userId === currentUser.value?.id) {
+        await loadUserModules()
+      }
+      return { ok: true, message: 'Module permissions updated successfully.' }
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Update failed.'
+      return { ok: false, message: msg }
+    }
+  }
+
+  const hasModuleAccess = (module: string): boolean => {
+    // Admins have access to all modules
+    if (isAdmin.value) return true
+    
+    // Client technicians have default access to vehicle and equipment
+    if (isClientTechnician.value && (module === 'vehicle' || module === 'equipment')) {
+      return true
+    }
+    
+    // Check explicit permissions for other roles
+    return userModulePermissions.value.includes(module)
+  }
+
+  const getAvailableModules = computed(() => {
+    // Admins have access to all modules
+    if (isAdmin.value) {
+      return ['vehicle', 'equipment', 'cleaning', 'qr-codes', 'clients', 'hr']
+    }
+    
+    // Client technicians have default access to vehicle and equipment
+    if (isClientTechnician.value) {
+      const defaultModules = ['vehicle', 'equipment']
+      // Merge with any additional granted permissions
+      return [...new Set([...defaultModules, ...userModulePermissions.value])]
+    }
+    
+    // For other roles, return only granted permissions
+    return userModulePermissions.value
+  })
+
   return {
     users,
     currentUser,
@@ -445,6 +517,11 @@ export const useAuth = () => {
     loadCompanies,
     createCompany,
     linkUserToCompany,
-    unlinkUserFromCompany
+    unlinkUserFromCompany,
+    userModulePermissions,
+    loadUserModules,
+    updateUserModules,
+    hasModuleAccess,
+    getAvailableModules
   }
 }

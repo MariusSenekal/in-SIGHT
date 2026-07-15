@@ -399,12 +399,12 @@ const signupLoading = ref(false)
 const loginForm = reactive({ username: '', password: '' })
 const signupForm = reactive({ name: '', username: '', password: '' })
 
-// const heroFeatures = [
-//   { icon: 'mdi-qrcode-scan',    label: 'Instant QR code check-ins' },
-//   { icon: 'mdi-camera',         label: 'Photo evidence uploads' },
-//   { icon: 'mdi-check-all',      label: 'Checklist management' },
-//   { icon: 'mdi-chart-bar',      label: 'Reporting & history' },
-// ]
+const heroFeatures = [
+  { icon: 'mdi-qrcode-scan',    label: 'Instant QR code check-ins' },
+  { icon: 'mdi-camera',         label: 'Photo evidence uploads' },
+  { icon: 'mdi-check-all',      label: 'Checklist management' },
+  { icon: 'mdi-chart-bar',      label: 'Reporting & history' },
+]
 
 // ── Maintenance ───────────────────────────────────────────────────────────────
 const showMaintenanceDialog = ref(false)
@@ -490,6 +490,18 @@ const allActions = computed(() => [
     showToClientTechnician: false
   },
   {
+    key: 'management',
+    title: 'User Management',
+    description: 'Manage your company users and module permissions.',
+    icon: 'mdi-account-cog-outline',
+    color1: '#f59e0b',
+    color2: '#d97706',
+    action: () => navigateTo('/dashboard/client-management'),
+    adminOnly: false,
+    clientAdminOnly: true,
+    showToClientTechnician: false
+  },
+  {
     key: 'dashboard',
     title: 'Dashboards & Management',
     description: 'Access admin tools, manage records, run checklists and view reports.',
@@ -549,6 +561,17 @@ const submitLogin = async () => {
     formMessage.value = ''
     loginForm.username = ''
     loginForm.password = ''
+    
+    // Redirect based on role
+    if (isClientAdmin.value) {
+      navigateTo('/dashboard/client-management')
+    } else if (isAdmin.value) {
+      navigateTo('/dashboard')
+    } else if (isClientTechnician.value) {
+      navigateTo('/modules')
+    } else {
+      navigateTo('/')
+    }
   } catch (error) {
     formMessage.value = 'Connection error. Please check your internet and try again.'
   } finally {

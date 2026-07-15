@@ -58,6 +58,8 @@ GRANT EXECUTE ON FUNCTION insight.authenticate(TEXT, TEXT)                   TO 
 GRANT EXECUTE ON FUNCTION insight.change_password(BIGINT, TEXT)              TO insight_staff;
 GRANT EXECUTE ON FUNCTION insight.recompute_entry_status(BIGINT)             TO insight_staff;
 GRANT EXECUTE ON FUNCTION insight.purge_expired_revoked_tokens()             TO insight_staff;
+GRANT EXECUTE ON FUNCTION insight.current_user_id()                          TO insight_staff;
+GRANT EXECUTE ON FUNCTION insight.current_user_role()                        TO insight_staff;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- insight_user – access to own data; can create service requests / messages
@@ -85,6 +87,8 @@ GRANT SELECT        ON insight.checklist_template_tasks  TO insight_user;
 
 GRANT EXECUTE ON FUNCTION insight.authenticate(TEXT, TEXT) TO insight_user;
 GRANT EXECUTE ON FUNCTION insight.change_password(BIGINT, TEXT) TO insight_user;
+GRANT EXECUTE ON FUNCTION insight.current_user_id() TO insight_user;
+GRANT EXECUTE ON FUNCTION insight.current_user_role() TO insight_user;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- anon – no table access; can only call the authenticate and register functions

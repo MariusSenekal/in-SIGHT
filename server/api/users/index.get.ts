@@ -1,10 +1,11 @@
 // GET /api/users
-// Returns all users with embedded profiles. Admin and staff only.
+// Returns all users with embedded profiles. Admin, staff, and client_admin can access.
+// client_admin only sees users in their own company (enforced by RLS)
 import { requireAuth, pgrest } from '../../utils/pgrest'
 import { getBearerToken } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
-  const payload = requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
+  const payload = requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero', 'client_admin'])
   const token = getBearerToken(event)!
 
   const rows = await pgrest<any[]>('/users', {

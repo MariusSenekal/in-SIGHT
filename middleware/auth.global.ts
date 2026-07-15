@@ -24,9 +24,23 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/')
   }
 
-  // Block dashboard routes for non-admin users
-  if (to.path.startsWith('/dashboard') && !isAdmin.value) {
-    return navigateTo('/')
+  // Block dashboard routes for non-admin and non-client_admin users
+  if (to.path.startsWith('/dashboard')) {
+    // Client admins use a dedicated user management page.
+    if (isClientAdmin.value) {
+      if (to.path === '/dashboard/management') {
+        return navigateTo('/dashboard/client-management')
+      }
+
+      if (to.path === '/dashboard/client-management') {
+        return
+      }
+    }
+
+    // Block all other dashboard routes for non-admins
+    if (!isAdmin.value) {
+      return navigateTo('/')
+    }
   }
 
   // Block QR codes module - only admins can access

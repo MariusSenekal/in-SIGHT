@@ -59,7 +59,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { isAdmin, logout } = useAuth()
+const { isAdmin, hasModuleAccess, logout } = useAuth()
 
 const handleLogout = () => {
   logout()
@@ -124,9 +124,17 @@ const modules = [
   }
 ]
 
-// Filter modules based on user role - only show admin-only modules to admins
+// Filter modules based on user role and permissions
 const availableModules = computed(() => 
-  modules.filter(module => !module.adminOnly || isAdmin.value)
+  modules.filter(module => {
+    // Admin-only modules require admin role
+    if (module.adminOnly && !isAdmin.value) {
+      return false
+    }
+    
+    // Check if user has access to this specific module
+    return hasModuleAccess(module.key)
+  })
 )
 </script>
 

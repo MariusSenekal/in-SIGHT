@@ -590,7 +590,18 @@ import type { ServiceEntry } from '~/composables/useScheduleTracking'
 
 const route = useRoute()
 const { goBack } = useAppNavigation()
-const { currentUser, isAdmin, isCleaner, isUvHero, isStaffOrCleaner, authToken } = useAuth()
+const { 
+  currentUser, 
+  isAdmin, 
+  isCleaner, 
+  isUvHero, 
+  isStaffOrCleaner, 
+  isClientAdmin, 
+  isClientTechnician, 
+  isStaff,
+  authToken,
+  getAvailableModules
+} = useAuth()
 const { loadRecords, getRecords } = useRecords()
 const { addRequest } = useServiceRequests()
 const { toggleTask, addMessage, markCompletion, unmarkCompletion } = useScheduleTracking()
@@ -1272,6 +1283,39 @@ const handleBackToWelcome = () => {
   // Check if admin came from management tools - route back to management tools
   if (isAdmin.value && route.query.from === 'management') {
     navigateTo('/dashboard/management')
+    return
+  }
+  
+  // Client Admin: go back to selected module records page
+  if (isClientAdmin.value) {
+    // If they came from a specific module, go back there
+    if (route.query.from && typeof route.query.from === 'string') {
+      navigateTo(route.query.from)
+      return
+    }
+    // Otherwise go to modules selection page
+    navigateTo('/modules')
+    return
+  }
+  
+  // Client Technician: go to modules page (they have access to vehicle & equipment)
+  if (isClientTechnician.value) {
+    navigateTo('/modules')
+    return
+  }
+  
+  // Staff: Check if they have any module permissions
+  if (isStaff.value) {
+    const availableModules = getAvailableModules.value
+    
+    // If they have at least one module, go to modules page
+    if (availableModules.length > 0) {
+      navigateTo('/modules')
+      return
+    }
+    
+    // If no modules granted, go back to camera/scanner
+    navigateTo('/scan')
     return
   }
   
