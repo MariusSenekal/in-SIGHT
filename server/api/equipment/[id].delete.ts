@@ -36,20 +36,31 @@ export default defineEventHandler(async (event) => {
     // Check if user owns the equipment (client users) or is admin
     const userRole = payload.role
     const isAdmin = userRole === 'admin'
+    const currentUserId = Number(payload.sub)
     
     if (!isAdmin) {
-      // Get user's company
-      const userCompanies = await pgrestAdmin<any[]>('/company_users', {
-        query: {
-          user_id: `eq.${payload.sub}`,
-          select: 'company_id'
+      // Allow deletion if user directly owns the equipment
+      const ownerUserId = equipment[0].owner_user_id == null ? null : Number(equipment[0].owner_user_id)
+      if (ownerUserId != null && ownerUserId === currentUserId) {
+        // User owns it directly, allow deletion
+      } else {
+        // Check company ownership
+        const userCompanies = await pgrestAdmin<any[]>('/company_users', {
+          query: {
+            user_id: `eq.${payload.sub}`,
+            select: 'company_id'
+          }
+        })
+        
+        const userCompanyIds = (userCompanies ?? [])
+          .map(uc => Number(uc.company_id))
+          .filter(id => Number.isFinite(id))
+        
+        const ownerCompanyId = equipment[0].owner_company_id == null ? null : Number(equipment[0].owner_company_id)
+        
+        if (userCompanyIds.length === 0 || ownerCompanyId == null || !userCompanyIds.includes(ownerCompanyId)) {
+          throw createError({ statusCode: 403, message: 'You do not have permission to delete this equipment.' })
         }
-      })
-      
-      const userCompanyId = userCompanies && userCompanies.length > 0 ? userCompanies[0].company_id : null
-      
-      if (!userCompanyId || equipment[0].owner_company_id !== userCompanyId) {
-        throw createError({ statusCode: 403, message: 'You do not have permission to delete this equipment.' })
       }
     }
 

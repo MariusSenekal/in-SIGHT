@@ -1289,8 +1289,9 @@ const submitDeleteVehicle = async () => {
     await deleteVehicle(deleteVehicleTarget.value.id)
     showDeleteVehicleDialog.value = false
     deleteVehicleTarget.value     = null
-  } catch {
-    deleteVehicleError.value = 'Delete failed.'
+  } catch (error: any) {
+    console.error('Delete vehicle error:', error)
+    deleteVehicleError.value = error?.data?.message || error?.message || 'Delete failed.'
   } finally {
     deleteVehicleLoading.value = false
   }
@@ -1316,8 +1317,9 @@ const submitDeleteEquipment = async () => {
     await deleteEquipment(deleteEquipmentTarget.value.id)
     showDeleteEquipmentDialog.value = false
     deleteEquipmentTarget.value     = null
-  } catch {
-    deleteEquipmentError.value = 'Delete failed.'
+  } catch (error: any) {
+    console.error('Delete equipment error:', error)
+    deleteEquipmentError.value = error?.data?.message || error?.message || 'Delete failed.'
   } finally {
     deleteEquipmentLoading.value = false
   }

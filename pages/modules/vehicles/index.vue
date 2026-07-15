@@ -548,8 +548,9 @@ const submitDeleteVehicle = async () => {
       deleteTarget.value = null
       deleteFeedback.value = ''
     }, 1500)
-  } catch (error) {
-    deleteFeedback.value = 'Failed to delete vehicle. Please try again.'
+  } catch (error: any) {
+    console.error('Delete vehicle error:', error)
+    deleteFeedback.value = error?.data?.message || error?.message || 'Failed to delete vehicle. Please try again.'
     deleteFeedbackType.value = 'error'
   } finally {
     deleteLoading.value = false

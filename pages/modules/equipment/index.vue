@@ -536,8 +536,9 @@ const submitDeleteEquipment = async () => {
       deleteTarget.value = null
       deleteFeedback.value = ''
     }, 1500)
-  } catch (error) {
-    deleteFeedback.value = 'Failed to delete equipment. Please try again.'
+  } catch (error: any) {
+    console.error('Delete equipment error:', error)
+    deleteFeedback.value = error?.data?.message || error?.message || 'Failed to delete equipment. Please try again.'
     deleteFeedbackType.value = 'error'
   } finally {
     deleteLoading.value = false
