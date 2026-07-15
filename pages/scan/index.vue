@@ -18,7 +18,7 @@
               label="Manual code fallback"
               prepend-inner-icon="mdi-keyboard"
               variant="outlined"
-              placeholder="Paste QR value (e.g. /scan/REC-1A7C9D or REC-1A7C9D)"
+              placeholder="Paste QR value (e.g. /scan/REC-1A7C9D, /modules/vehicles/12, or REC-1A7C9D)"
             />
             <div class="d-flex flex-wrap ga-2">
               <v-btn type="submit" color="primary" prepend-icon="mdi-open-in-new">Open Code</v-btn>
@@ -44,6 +44,53 @@ let scanned = false
 
 const parseToRecordPath = (value: string): string | null => {
   const raw = value.trim()
+
+  if (!raw) {
+    return null
+  }
+
+  const resolvePath = (path: string): string | null => {
+    const normalizedPath = path.replace(/\/+$/, '')
+    const scanMatch = normalizedPath.match(/^\/scan\/([A-Za-z0-9-]+)$/i)
+    if (scanMatch) {
+      return `/scan/${scanMatch[1].toUpperCase()}`
+    }
+
+    const recordMatch = normalizedPath.match(/^\/record\/(\d+)$/i)
+    if (recordMatch) {
+      return `/record/${recordMatch[1]}`
+    }
+
+    const vehicleMatch = normalizedPath.match(/^\/modules\/vehicles\/(\d+)$/i)
+    if (vehicleMatch) {
+      return `/modules/vehicles/${vehicleMatch[1]}`
+    }
+
+    const equipmentMatch = normalizedPath.match(/^\/modules\/equipment\/(\d+)$/i)
+    if (equipmentMatch) {
+      return `/modules/equipment/${equipmentMatch[1]}`
+    }
+
+    return null
+  }
+
+  if (import.meta.client) {
+    try {
+      const parsedUrl = new URL(raw, window.location.origin)
+      const destination = resolvePath(parsedUrl.pathname)
+      if (destination) {
+        return destination
+      }
+    } catch {
+      // Fall back to direct parsing below.
+    }
+  }
+
+  const directPath = resolvePath(raw)
+  if (directPath) {
+    return directPath
+  }
+
   const normalized = raw.toUpperCase()
 
   if (/^[A-Z0-9-]+$/.test(normalized)) {
@@ -54,12 +101,7 @@ const parseToRecordPath = (value: string): string | null => {
     return `/scan/${raw}`
   }
 
-  const localMatch = raw.match(/^\/scan\/([A-Za-z0-9-]+)$/)
-  if (localMatch) {
-    return `/scan/${localMatch[1].toUpperCase()}`
-  }
-
-  const urlMatch = raw.match(/\/scan\/([A-Za-z0-9-]+)/)
+  const urlMatch = raw.match(/\/scan\/([A-Za-z0-9-]+)/i)
   if (urlMatch) {
     return `/scan/${urlMatch[1].toUpperCase()}`
   }
