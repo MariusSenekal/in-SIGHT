@@ -364,6 +364,10 @@ const roleOptionsForClientAdmin = [
 ]
 
 const assignableModuleOptions = computed(() => {
+  if (isClientAdmin.value) {
+    return moduleOptions
+  }
+
   const allowed = new Set(getAvailableModules.value || [])
   return moduleOptions.filter(option => allowed.has(option.value))
 })

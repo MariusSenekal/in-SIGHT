@@ -4,7 +4,6 @@
 // Client_admin: can manage users in their own company (enforced by RLS)
 
 import { defineEventHandler, getRouterParam, readBody, getRequestHeader, createError } from 'h3'
-import { pgrest } from '~/server/utils/pgrest'
 import { pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
@@ -93,35 +92,6 @@ export default defineEventHandler(async (event) => {
       statusCode: 400, 
       message: `Invalid modules: ${invalidModules.join(', ')}` 
     })
-  }
-
-  // Client admins may only delegate modules they have been granted.
-  if (authUser.app_role === 'client_admin') {
-    try {
-      const ownPermissions = await pgrestAdmin<{ module: string }[]>('/user_module_permissions', {
-        query: {
-          select: 'module',
-          user_id: `eq.${authUser.sub}`
-        }
-      })
-
-      const ownModuleSet = new Set(ownPermissions.map(p => p.module))
-      const disallowed = body.modules.filter(module => !ownModuleSet.has(module))
-
-      if (disallowed.length > 0) {
-        throw createError({
-          statusCode: 403,
-          message: `You can only assign modules already granted to your account: ${disallowed.join(', ')}`
-        })
-      }
-    } catch (error: any) {
-      if (error?.statusCode === 403) throw error
-      console.error('Error validating assignable modules:', error)
-      throw createError({
-        statusCode: 500,
-        message: 'Failed to validate assignable modules.'
-      })
-    }
   }
 
   try {

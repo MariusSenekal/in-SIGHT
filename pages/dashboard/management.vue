@@ -944,6 +944,10 @@ const assignableModuleOptions = computed(() => {
     return moduleOptions
   }
 
+  if (isClientAdmin.value) {
+    return moduleOptions
+  }
+
   const allowed = new Set((getAvailableModules.value || []).filter(m => m !== 'qr-codes'))
   return moduleOptions.filter(option => allowed.has(option.value))
 })
