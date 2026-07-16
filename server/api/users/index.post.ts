@@ -1,7 +1,7 @@
 // POST /api/users
 // Admin or client_admin creates a new user via the admin_create_user() DB function.
 // client_admin can only create users with limited roles (not admin)
-import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
+import { requireAuth, getBearerToken } from '../../utils/pgrest'
 import { pgrestAdmin } from '../../utils/pgrest'
 import { verifyJwt } from '../../utils/jwt'
 
@@ -42,8 +42,7 @@ export default defineEventHandler(async (event) => {
   // For client_admin, default to their existing company when companyId is omitted.
   // If companyId is provided, it must belong to the current client_admin.
   if (authUser?.app_role === 'client_admin') {
-    const adminCompanies = await pgrest<any[]>('/company_users', {
-      token,
+    const adminCompanies = await pgrestAdmin<any[]>('/company_users', {
       query: {
         select: 'company_id',
         user_id: `eq.${authUser.sub}`
@@ -98,8 +97,7 @@ export default defineEventHandler(async (event) => {
   // Link newly-created user to company when we have a resolved company id.
   if (effectiveCompanyId) {
     try {
-      await pgrest('/company_users', {
-        token,
+      await pgrestAdmin('/company_users', {
         method: 'POST',
         body: {
           company_id: effectiveCompanyId,
@@ -108,7 +106,7 @@ export default defineEventHandler(async (event) => {
       })
     } catch (error) {
       console.error('Failed to link user to company:', error)
-      // User was created but not linked - admin can fix this later
+      throw createError({ statusCode: 500, message: 'User was created but could not be linked to company.' })
     }
   }
   
