@@ -1,7 +1,7 @@
 // PATCH /api/users/:id
 // Admin or client_admin updates a user's details, profile, and optionally their password.
 // client_admin can only update users in their own company (enforced by RLS)
-import { requireAuth, pgrestAdmin, pgrest, getBearerToken } from '../../utils/pgrest'
+import { requireAuth, pgrestAdmin, getBearerToken } from '../../utils/pgrest'
 import { verifyJwt } from '../../utils/jwt'
 
 export default defineEventHandler(async (event) => {
@@ -33,16 +33,14 @@ export default defineEventHandler(async (event) => {
   if (authUser?.app_role === 'client_admin') {
     // Verify the target user is in client_admin's company
     try {
-      const targetUserCompanies = await pgrest<any[]>('/company_users', {
-        token,
+      const targetUserCompanies = await pgrestAdmin<any[]>('/company_users', {
         query: {
           select: 'company_id',
           user_id: `eq.${userId}`
         }
       })
 
-      const adminCompanies = await pgrest<any[]>('/company_users', {
-        token,
+      const adminCompanies = await pgrestAdmin<any[]>('/company_users', {
         query: {
           select: 'company_id',
           user_id: `eq.${authUser.sub}`

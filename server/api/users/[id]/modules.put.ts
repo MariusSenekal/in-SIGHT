@@ -5,6 +5,7 @@
 
 import { defineEventHandler, getRouterParam, readBody, getRequestHeader, createError } from 'h3'
 import { pgrest } from '~/server/utils/pgrest'
+import { pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
 interface ModulePermissionsBody {
@@ -43,8 +44,7 @@ export default defineEventHandler(async (event) => {
   if (authUser.app_role === 'client_admin') {
     try {
       // Check if target user is in same company as client_admin
-      const companyCheck = await pgrest<any[]>('/company_users', {
-        token,
+      const companyCheck = await pgrestAdmin<any[]>('/company_users', {
         query: {
           select: 'company_id',
           user_id: `eq.${targetUserId}`
@@ -54,8 +54,7 @@ export default defineEventHandler(async (event) => {
       const targetUserCompanies = companyCheck.map(c => c.company_id)
       
       // Get client_admin's companies
-      const adminCompanies = await pgrest<any[]>('/company_users', {
-        token,
+      const adminCompanies = await pgrestAdmin<any[]>('/company_users', {
         query: {
           select: 'company_id',
           user_id: `eq.${authUser.sub}`
@@ -99,8 +98,7 @@ export default defineEventHandler(async (event) => {
   // Client admins may only delegate modules they have been granted.
   if (authUser.app_role === 'client_admin') {
     try {
-      const ownPermissions = await pgrest<{ module: string }[]>('/user_module_permissions', {
-        token,
+      const ownPermissions = await pgrestAdmin<{ module: string }[]>('/user_module_permissions', {
         query: {
           select: 'module',
           user_id: `eq.${authUser.sub}`
@@ -128,8 +126,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // First, delete all existing permissions for this user
-    await pgrest('/user_module_permissions', {
-      token,
+    await pgrestAdmin('/user_module_permissions', {
       method: 'DELETE',
       query: {
         user_id: `eq.${targetUserId}`
@@ -144,8 +141,7 @@ export default defineEventHandler(async (event) => {
         granted_by: authUser.sub
       }))
 
-      await pgrest('/user_module_permissions', {
-        token,
+      await pgrestAdmin('/user_module_permissions', {
         method: 'POST',
         body: permissions
       })

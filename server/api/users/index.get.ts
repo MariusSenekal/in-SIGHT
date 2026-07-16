@@ -3,14 +3,14 @@
 // client_admin only sees users in their own company (enforced by RLS)
 import { requireAuth, pgrest } from '../../utils/pgrest'
 import { getBearerToken } from '../../utils/pgrest'
+import { pgrestAdmin } from '../../utils/pgrest'
 
 export default defineEventHandler(async (event) => {
   const payload = requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero', 'client_admin'])
   const token = getBearerToken(event)!
 
   if (payload.app_role === 'client_admin') {
-    const myCompanyRows = await pgrest<Array<{ company_id: number }>>('/company_users', {
-      token,
+    const myCompanyRows = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
       query: {
         select: 'company_id',
         user_id: `eq.${payload.sub}`
@@ -23,8 +23,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const companyIdFilter = `in.(${myCompanyIds.join(',')})`
-    const linkedRows = await pgrest<Array<{ user_id: number }>>('/company_users', {
-      token,
+    const linkedRows = await pgrestAdmin<Array<{ user_id: number }>>('/company_users', {
       query: {
         select: 'user_id',
         company_id: companyIdFilter
@@ -37,8 +36,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const userIdFilter = `in.(${linkedUserIds.join(',')})`
-    const rows = await pgrest<any[]>('/users', {
-      token,
+    const rows = await pgrestAdmin<any[]>('/users', {
       query: {
         select: 'id,name,username,role,is_active,created_at,user_profiles(display_name,phone,location,bio)',
         id: userIdFilter

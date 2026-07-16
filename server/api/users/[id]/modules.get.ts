@@ -3,6 +3,7 @@
 
 import { defineEventHandler, getRouterParam, getRequestHeader, createError } from 'h3'
 import { pgrest } from '~/server/utils/pgrest'
+import { pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
 export default defineEventHandler(async (event) => {
@@ -33,16 +34,14 @@ export default defineEventHandler(async (event) => {
   }
 
   if (authUser.app_role === 'client_admin' && Number(authUser.sub) !== targetUserId) {
-    const targetRows = await pgrest<Array<{ company_id: number }>>('/company_users', {
-      token,
+    const targetRows = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
       query: {
         select: 'company_id',
         user_id: `eq.${targetUserId}`
       }
     })
 
-    const adminRows = await pgrest<Array<{ company_id: number }>>('/company_users', {
-      token,
+    const adminRows = await pgrestAdmin<Array<{ company_id: number }>>('/company_users', {
       query: {
         select: 'company_id',
         user_id: `eq.${authUser.sub}`

@@ -325,7 +325,7 @@ const createUserForm = reactive({
   name: '',
   username: '',
   password: '',
-  role: 'user' as AppUser['role'],
+  role: 'staff' as AppUser['role'],
   modules: [] as string[]
 })
 
@@ -381,19 +381,12 @@ const currentCompanyName = computed(() => {
 })
 
 const filteredUsers = computed(() => {
-  const visibleUsers = currentCompanyId.value
-    ? users.value.filter(user => {
-        const userCompany = companies.value.find((c: Company) => c.linkedUserIds.includes(user.id))
-        return userCompany?.id === currentCompanyId.value
-      })
-    : []
-
   const term = userSearch.value.trim().toLowerCase()
   if (!term) {
-    return visibleUsers
+    return users.value
   }
 
-  return visibleUsers.filter(user =>
+  return users.value.filter(user =>
     [
       user.name,
       user.username,
@@ -468,7 +461,7 @@ const submitCreateUser = async () => {
     createUserForm.name = ''
     createUserForm.username = ''
     createUserForm.password = ''
-    createUserForm.role = 'user'
+    createUserForm.role = 'staff'
     createUserForm.modules = []
 
     setTimeout(() => {
