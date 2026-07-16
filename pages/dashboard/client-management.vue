@@ -381,12 +381,19 @@ const currentCompanyName = computed(() => {
 })
 
 const filteredUsers = computed(() => {
+  const visibleUsers = currentCompanyId.value
+    ? users.value.filter(user => {
+        const userCompany = companies.value.find((c: Company) => c.linkedUserIds.includes(user.id))
+        return userCompany?.id === currentCompanyId.value
+      })
+    : []
+
   const term = userSearch.value.trim().toLowerCase()
   if (!term) {
-    return users.value
+    return visibleUsers
   }
 
-  return users.value.filter(user =>
+  return visibleUsers.filter(user =>
     [
       user.name,
       user.username,

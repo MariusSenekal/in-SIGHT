@@ -32,6 +32,35 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Forbidden.' })
   }
 
+  if (authUser.app_role === 'client_admin' && Number(authUser.sub) !== targetUserId) {
+    const targetRows = await pgrest<Array<{ company_id: number }>>('/company_users', {
+      token,
+      query: {
+        select: 'company_id',
+        user_id: `eq.${targetUserId}`
+      }
+    })
+
+    const adminRows = await pgrest<Array<{ company_id: number }>>('/company_users', {
+      token,
+      query: {
+        select: 'company_id',
+        user_id: `eq.${authUser.sub}`
+      }
+    })
+
+    const targetCompanies = new Set((targetRows ?? []).map(r => Number(r.company_id)))
+    const adminCompanies = new Set((adminRows ?? []).map(r => Number(r.company_id)))
+    const canView = [...targetCompanies].some(companyId => adminCompanies.has(companyId))
+
+    if (!canView) {
+      throw createError({
+        statusCode: 403,
+        message: 'You can only view module permissions for users in your company.'
+      })
+    }
+  }
+
   try {
     const result = await pgrest<{ module: string }[]>('/user_module_permissions', {
       token,
