@@ -58,6 +58,16 @@
                 <v-btn size="small" color="primary" variant="tonal" prepend-icon="mdi-account-edit" @click="openEditUser(selectedUser)">
                   Edit
                 </v-btn>
+                <v-btn
+                  v-if="selectedUser.id !== currentUser?.id"
+                  size="small"
+                  color="error"
+                  variant="tonal"
+                  prepend-icon="mdi-account-remove"
+                  @click="openDeleteUser(selectedUser)"
+                >
+                  Delete
+                </v-btn>
               </div>
             </v-card-title>
 
@@ -296,6 +306,25 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <v-dialog v-model="showDeleteUserDialog" max-width="400" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="d-flex align-center ga-2 text-error">
+        <v-icon icon="mdi-account-remove" />
+        Delete User
+      </v-card-title>
+      <v-card-text>
+        <p>Are you sure you want to permanently delete <strong>{{ deleteUserTarget?.profile?.displayName || deleteUserTarget?.name }}</strong> (@{{ deleteUserTarget?.username }})?</p>
+        <p class="text-medium-emphasis text-caption mt-2">This will remove their account, profile, and all associated records. This cannot be undone.</p>
+        <v-alert v-if="deleteUserError" type="error" variant="tonal" density="compact" class="mt-3">{{ deleteUserError }}</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleteUserLoading" @click="showDeleteUserDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" prepend-icon="mdi-delete" :loading="deleteUserLoading" @click="submitDeleteUser">Delete Permanently</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -309,6 +338,7 @@ const {
   loadUserModules,
   users,
   loadUsers,
+  deleteUser,
   updateUser,
   companies,
   loadCompanies,
@@ -349,6 +379,10 @@ const createUserLoading = ref(false)
 const editUserError = ref('')
 const editUserSuccess = ref('')
 const editUserLoading = ref(false)
+const showDeleteUserDialog = ref(false)
+const deleteUserTarget = ref<AppUser | null>(null)
+const deleteUserError = ref('')
+const deleteUserLoading = ref(false)
 
 const moduleOptions = [
   { title: 'Vehicle Module', value: 'vehicle', icon: 'mdi-car' },
@@ -531,6 +565,32 @@ const submitEditUser = async () => {
     editUserError.value = error?.data?.message || error?.message || 'Update failed.'
   } finally {
     editUserLoading.value = false
+  }
+}
+
+const openDeleteUser = (user: AppUser) => {
+  deleteUserTarget.value = user
+  deleteUserError.value = ''
+  showDeleteUserDialog.value = true
+}
+
+const submitDeleteUser = async () => {
+  if (!deleteUserTarget.value) return
+
+  deleteUserError.value = ''
+  deleteUserLoading.value = true
+
+  try {
+    const result = await deleteUser(deleteUserTarget.value.id)
+    if (!result.ok) {
+      deleteUserError.value = result.message
+      return
+    }
+
+    showDeleteUserDialog.value = false
+    selectedUserId.value = null
+  } finally {
+    deleteUserLoading.value = false
   }
 }
 
