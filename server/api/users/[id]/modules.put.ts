@@ -94,6 +94,35 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Client admins may only delegate modules already granted to their own account.
+  if (authUser.app_role === 'client_admin') {
+    try {
+      const ownPermissions = await pgrestAdmin<{ module: string }[]>('/user_module_permissions', {
+        query: {
+          select: 'module',
+          user_id: `eq.${authUser.sub}`
+        }
+      })
+
+      const ownModuleSet = new Set(ownPermissions.map(p => p.module))
+      const disallowed = body.modules.filter(module => !ownModuleSet.has(module))
+
+      if (disallowed.length > 0) {
+        throw createError({
+          statusCode: 403,
+          message: `You can only assign modules already granted to your account: ${disallowed.join(', ')}`
+        })
+      }
+    } catch (error: any) {
+      if (error?.statusCode === 403) throw error
+      console.error('Error validating assignable modules:', error)
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to validate assignable modules.'
+      })
+    }
+  }
+
   try {
     // First, delete all existing permissions for this user
     await pgrestAdmin('/user_module_permissions', {
