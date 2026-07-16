@@ -562,16 +562,8 @@ const submitLogin = async () => {
     loginForm.username = ''
     loginForm.password = ''
     
-    // Redirect based on role
-    if (isClientAdmin.value) {
-      navigateTo('/dashboard/client-management')
-    } else if (isAdmin.value) {
-      navigateTo('/dashboard')
-    } else if (isClientTechnician.value) {
-      navigateTo('/modules')
-    } else {
-      navigateTo('/')
-    }
+    // Route all users to the main landing screen after login.
+    navigateTo('/')
   } catch (error) {
     formMessage.value = 'Connection error. Please check your internet and try again.'
   } finally {

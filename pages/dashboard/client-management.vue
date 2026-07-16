@@ -306,6 +306,7 @@ const {
   isClientAdmin,
   getAvailableModules,
   initAuth,
+  loadUserModules,
   users,
   loadUsers,
   updateUser,
@@ -546,6 +547,7 @@ watch(filteredUsers, (nextUsers) => {
 
 onMounted(async () => {
   await initAuth()
+  await loadUserModules()
   await Promise.all([loadUsers(), loadCompanies()])
 
   if (!currentUser.value || !isClientAdmin.value) {
