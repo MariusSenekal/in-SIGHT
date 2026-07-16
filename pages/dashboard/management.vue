@@ -1192,6 +1192,9 @@ const isClientRole = (role: string) => {
 const submitCreateUser = async () => {
   createUserError.value = ''
   createUserSuccess.value = ''
+
+  const currentUserCompanyId = currentUser.value?.id ? getUserCompanyId(currentUser.value.id) : null
+  const effectiveCompanyId = isClientAdmin.value ? currentUserCompanyId : createUserForm.companyId
   
   // Validate client roles have a company (admin flow)
   if (isAdmin.value && isClientRole(createUserForm.role) && !createUserForm.companyId) {
@@ -1199,9 +1202,9 @@ const submitCreateUser = async () => {
     return
   }
   
-  // Client admin must provide company ID
-  if (isClientAdmin.value && !createUserForm.companyId) {
-    createUserError.value = 'Company is required.'
+  // Client admins create users under their own linked company.
+  if (isClientAdmin.value && !effectiveCompanyId) {
+    createUserError.value = 'Your account is not linked to a company. Please contact an admin.'
     return
   }
   
@@ -1216,7 +1219,7 @@ const submitCreateUser = async () => {
         username: createUserForm.username,
         password: createUserForm.password,
         role: createUserForm.role,
-        companyId: createUserForm.companyId
+        companyId: effectiveCompanyId
       }
     })
     

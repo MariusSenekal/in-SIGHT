@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const allowedRoles = ['user', 'staff', 'admin', 'cleaner', 'uv-hero', 'client_admin', 'client_technician']
+  let effectiveCompanyId = companyId ?? null
 
   // client_admin can only create staff or client_technician users
   if (authUser?.app_role === 'client_admin') {
@@ -38,16 +39,9 @@ export default defineEventHandler(async (event) => {
   
   const safeRole = allowedRoles.includes(role) ? role : 'user'
 
-  // client_admin must provide a companyId and it must be their own company
+  // For client_admin, default to their existing company when companyId is omitted.
+  // If companyId is provided, it must belong to the current client_admin.
   if (authUser?.app_role === 'client_admin') {
-    if (!companyId) {
-      throw createError({ 
-        statusCode: 400, 
-        message: 'Company ID is required.' 
-      })
-    }
-    
-    // Verify client_admin belongs to this company
     const adminCompanies = await pgrest<any[]>('/company_users', {
       token,
       query: {
@@ -55,10 +49,21 @@ export default defineEventHandler(async (event) => {
         user_id: `eq.${authUser.sub}`
       }
     })
-    
+
     const adminCompanyIds = adminCompanies.map(c => c.company_id)
-    
-    if (!adminCompanyIds.includes(companyId)) {
+
+    if (!adminCompanyIds.length) {
+      throw createError({
+        statusCode: 403,
+        message: 'Your account is not linked to a company.'
+      })
+    }
+
+    if (effectiveCompanyId == null) {
+      effectiveCompanyId = adminCompanyIds[0]
+    }
+
+    if (!adminCompanyIds.includes(effectiveCompanyId)) {
       throw createError({ 
         statusCode: 403, 
         message: 'You can only create users for your own company.' 
@@ -90,14 +95,14 @@ export default defineEventHandler(async (event) => {
 
   const u = rows[0]
   
-  // If client_admin created the user, automatically link to their company
-  if (authUser?.app_role === 'client_admin' && companyId) {
+  // Link newly-created user to company when we have a resolved company id.
+  if (effectiveCompanyId) {
     try {
       await pgrest('/company_users', {
         token,
         method: 'POST',
         body: {
-          company_id: companyId,
+          company_id: effectiveCompanyId,
           user_id: u.user_id
         }
       })
