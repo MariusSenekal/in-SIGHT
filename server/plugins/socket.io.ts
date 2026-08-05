@@ -18,7 +18,7 @@ export default defineNitroPlugin((nitroApp: any) => {
 
     const io = new SocketIOServer(rawServer, {
       // Serve under the app base path so nginx proxies it correctly.
-      path: '/login/socket.io/',
+      path: '/socket.io/',
       // Do not serve the Socket.io client bundle — the SPA loads it via npm.
       serveClient: false,
       cors: {
@@ -37,6 +37,6 @@ export default defineNitroPlugin((nitroApp: any) => {
       })
     })
 
-    console.log('[socket.io] Server attached — path /login/socket.io/')
+    console.log('[socket.io] Server attached — path /socket.io/')
   })
 })

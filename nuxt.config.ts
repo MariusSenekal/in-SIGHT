@@ -19,29 +19,29 @@ export default defineNuxtConfig({
       display: 'fullscreen',
       display_override: ['fullscreen', 'standalone'],
       orientation: 'portrait-primary',
-      scope: '/login/',
-      start_url: '/login/',
+      scope: '/',
+      start_url: '/',
       icons: [
         {
-          src: '/login/icons/pwa-192x192.png',
+          src: '/icons/pwa-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/login/icons/pwa-512x512.png',
+          src: '/icons/pwa-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: '/login/icons/pwa-maskable-192x192.png',
+          src: '/icons/pwa-maskable-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'maskable'
         },
         {
-          src: '/login/icons/pwa-maskable-512x512.png',
+          src: '/icons/pwa-maskable-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable'
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/login/',
+      navigateFallback: '/',
       globPatterns: ['**/*.{js,css,html,ico,png,svg,json,txt,woff2}']
     },
     client: {
@@ -61,7 +61,7 @@ export default defineNuxtConfig({
     }
   },
   app: {
-    baseURL: '/login/',
+    baseURL: '/',
     head: {
       title: 'in-SIGHT - Record Manager',
       meta: [
@@ -74,14 +74,14 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-title', content: 'in-SIGHT' },
         { name: 'format-detection', content: 'telephone=no' },
         { name: 'msapplication-TileColor', content: '#1d4ed8' },
-        { name: 'msapplication-config', content: '/login/browserconfig.xml' },
+        { name: 'msapplication-config', content: '/browserconfig.xml' },
         { name: 'application-name', content: 'in-SIGHT' },
         { name: 'google-site-verification', content: '' }
       ],
       link: [
-        { rel: 'icon', href: '/login/icons/pwa-192x192.png' },
-        { rel: 'apple-touch-icon', href: '/login/icons/apple-touch-icon.png' },
-        { rel: 'manifest', href: '/login/manifest.webmanifest' }
+        { rel: 'icon', href: '/icons/pwa-192x192.png' },
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/manifest.webmanifest' }
       ]
     }
   },

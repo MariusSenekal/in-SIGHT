@@ -15,7 +15,7 @@ export const useSocket = () => {
     if (_socket?.connected) return _socket
 
     _socket = io({
-      path: '/login/socket.io/',
+      path: '/socket.io/',
       // Try WebSocket first; fall back to long-polling if WS is blocked.
       transports: ['websocket', 'polling'],
       autoConnect: true,
