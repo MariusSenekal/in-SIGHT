@@ -35,7 +35,7 @@ useHead({
     { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}/icons/favicon-32x32.png` },
     { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${base}/icons/favicon-16x16.png` },
     { rel: 'shortcut icon', href: `${base}/favicon.ico` },
-    { rel: 'manifest', href: '/manifest.webmanifest' }
+    { rel: 'manifest', href: `${base}/manifest.webmanifest` }
   ]
 })
 

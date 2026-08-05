@@ -74,7 +74,7 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-title', content: 'in-SIGHT' },
         { name: 'format-detection', content: 'telephone=no' },
         { name: 'msapplication-TileColor', content: '#1d4ed8' },
-        { name: 'msapplication-config', content: '/browserconfig.xml' },
+        { name: 'msapplication-config', content: '/login/browserconfig.xml' },
         { name: 'application-name', content: 'in-SIGHT' },
         { name: 'google-site-verification', content: '' }
       ],
@@ -98,7 +98,7 @@ export default defineNuxtConfig({
     jwtSecret: '',
     pgrestUrl: '',
     public: {
-      siteUrl: 'https://in-sight.app'
+      siteUrl: 'https://login.in-sight.app'
     }
   }
 })
