@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS insight.user_profiles (
   phone        TEXT       NOT NULL DEFAULT '',
   location     TEXT       NOT NULL DEFAULT '',
   bio          TEXT       NOT NULL DEFAULT '',
-  theme        TEXT       NOT NULL DEFAULT 'arctic',
+  theme        TEXT       NOT NULL DEFAULT 'inSight',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
