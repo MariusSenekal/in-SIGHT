@@ -30,9 +30,9 @@ export default defineEventHandler(async (event) => {
           phone: r.user_profiles.phone ?? '',
           location: r.user_profiles.location ?? '',
           bio: r.user_profiles.bio ?? '',
-          theme: r.user_profiles.theme ?? 'arctic',
+          theme: r.user_profiles.theme ?? 'inSight',
           createdAt: r.user_profiles.created_at ?? r.created_at
         }
-      : { displayName: r.name, phone: '', location: '', bio: '', theme: 'arctic', createdAt: r.created_at }
+      : { displayName: r.name, phone: '', location: '', bio: '', theme: 'inSight', createdAt: r.created_at }
   }
 })

@@ -63,7 +63,7 @@ const buildUserFromPayload = (payload: Record<string, unknown>): AppUser => ({
     phone: '',
     location: '',
     bio: '',
-    theme: 'arctic',
+    theme: 'inSight',
     createdAt: new Date().toISOString()
   }
 })
@@ -276,7 +276,7 @@ export const useAuth = () => {
         ...users.value,
         {
           ...created,
-          profile: { displayName: created.name, phone: '', location: '', bio: '', theme: 'arctic', createdAt: new Date().toISOString() }
+          profile: { displayName: created.name, phone: '', location: '', bio: '', theme: 'inSight', createdAt: new Date().toISOString() }
         }
       ]
       return { ok: true, message: `User "${name}" created successfully.` }
