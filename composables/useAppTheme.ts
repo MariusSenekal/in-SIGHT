@@ -1,9 +1,11 @@
 import { useTheme } from 'vuetify'
 
 const THEME_KEY = 'insight-app-theme'
-const DEFAULT_THEME = 'arctic'
+const DEFAULT_THEME = 'inSight'
 
 export const themeOptions = [
+  // Brand default
+  { name: 'inSight',    label: 'in-SIGHT',    primary: '#04045d', secondary: '#000a3f', dark: false, emoji: '👁️' },
   // Light themes
   { name: 'ocean',      label: 'Ocean',       primary: '#4f46e5', secondary: '#7c3aed', dark: false, emoji: '🌊' },
   { name: 'teal',       label: 'Teal',        primary: '#0d9488', secondary: '#0891b2', dark: false, emoji: '🩵' },

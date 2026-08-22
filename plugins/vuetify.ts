@@ -15,8 +15,30 @@ export default defineNuxtPlugin((nuxtApp) => {
       VTextarea: { variant: 'outlined' },
     },
     theme: {
-      defaultTheme: 'ocean',
+      defaultTheme: 'inSight',
       themes: {
+        // ── Brand default (matches in-SIGHT mockups) ────────────────────────
+        inSight: {
+          dark: false,
+          colors: {
+            background: '#ffffff',
+            surface: '#ffffff',
+            'surface-variant': '#eef0f7',
+            primary: '#04045d',
+            secondary: '#000a3f',
+            accent: '#000a3f',
+            error: '#ef4444',
+            info: '#04045d',
+            success: '#22c55e',
+            warning: '#f59e0b',
+            'on-background': '#04045d',
+            'on-surface': '#04045d',
+            'on-primary': '#ffffff',
+            'on-secondary': '#ffffff',
+            'on-accent': '#ffffff',
+            'on-info': '#ffffff',
+          }
+        },
         // ── Light themes ──────────────────────────────────────────────────
         ocean: {
           dark: false,

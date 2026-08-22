@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Manrope:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
 :root {
@@ -48,7 +48,59 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* ── in-SIGHT theme: brand navy for all text on white surfaces ──────────────── */
+.v-theme--inSight {
+  --ink: #04045d;
+  --bg-top: #ffffff;
+  --bg-bottom: #ffffff;
+  --border: #dbe0ee;
+}
+
+/* ── in-SIGHT theme: solid navy hero banners (matches brand mockups) ────────── */
+.v-theme--inSight .page-hero,
+.v-theme--inSight .modules-hero,
+.v-theme--inSight .dash-hero,
+.v-theme--inSight .welcome-hero__main,
+.v-theme--inSight .auth-split__hero {
+  background: #04045d !important;
+}
+
+/* Dashboard / module / nav "action cards" render as solid navy tiles with white text */
+.v-theme--inSight .module-card,
+.v-theme--inSight .action-home-card,
+.v-theme--inSight .dash-action-card {
+  background: #04045d !important;
+  color: #ffffff !important;
+}
+
+.v-theme--inSight .module-card .text-medium-emphasis,
+.v-theme--inSight .action-home-card .text-medium-emphasis,
+.v-theme--inSight .dash-action-card .text-medium-emphasis {
+  color: #ffffff !important;
+  opacity: 0.78;
+}
+
+/* Info banners render as solid navy fill with white text (Scan QR-style notices) */
+.v-theme--inSight .v-alert--variant-tonal.text-info {
+  background: #04045d !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.v-theme--inSight .v-alert--variant-tonal.text-info .v-icon {
+  color: #ffffff !important;
+}
+
+/* Neutral (uncoloured) tonal/outlined buttons ("Back Home" style): grey fill, navy text */
+.v-theme--inSight .v-btn--variant-tonal:not(.bg-primary):not(.bg-secondary):not(.text-error):not(.text-success):not(.text-warning) {
+  background: #eef0f7 !important;
+  color: #04045d !important;
+}
+
 /* ── Per-theme adaptive backgrounds ────────────────────────────────────────── */
+.v-theme--inSight.v-application {
+  background: #ffffff !important;
+}
 .v-theme--ocean.v-application {
   background:
     radial-gradient(ellipse 70% 50% at 0% 0%, rgba(79,70,229,0.13) 0%, transparent 60%),
@@ -136,7 +188,7 @@ body {
 
 /* ── Typography ─────────────────────────────────────────────────────────────── */
 h1, h2, h3, h4, h5 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Poppins', sans-serif;
   letter-spacing: 0.01em;
   line-height: 1.2;
 }
@@ -187,7 +239,7 @@ h1, h2, h3, h4, h5 {
   gap: 4px;
 }
 .stat-tile__value {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 2rem;
   font-weight: 800;
   line-height: 1;
@@ -396,6 +448,7 @@ img, svg, canvas, video { max-width: 100%; height: auto; }
   mix-blend-mode: multiply;
 }
 
+.v-theme--inSight .heading-search-icon,
 .v-theme--midnight .heading-search-icon,
 .v-theme--carbon .heading-search-icon,
 .v-theme--darkForest .heading-search-icon,
@@ -682,7 +735,7 @@ input:focus {
   justify-content: center;
   background: linear-gradient(145deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
   color: #fff;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-weight: 800;
   margin-bottom: 10px;
 }
@@ -1165,7 +1218,7 @@ input:focus {
   min-width: 74px;
   padding: 7px 12px;
   border-radius: 999px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-weight: 800;
   color: #991b1b;
   background: #fee2e2;
