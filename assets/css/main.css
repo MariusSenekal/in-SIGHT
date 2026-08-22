@@ -72,15 +72,12 @@ body {
   --border: #dbe0ee;
 }
 
-/* ── in-SIGHT theme: navy hero banners with a black vignette (matches in-sight.app) ──
-   A flat navy fill let the logo's dark eyelid shape disappear into the background.
-   Blending toward black at the edges gives it something to sit against, same as the
-   marketing site's black canvas + navy glow treatment. */
+/* ── in-SIGHT theme: solid navy banners once logged in (no gradient) ────────── */
 .v-theme--inSight .page-hero,
 .v-theme--inSight .modules-hero,
 .v-theme--inSight .dash-hero,
 .v-theme--inSight .welcome-hero__main {
-  background: radial-gradient(ellipse 60% 140% at 8% 50%, #0d1c56 0%, #04045d 45%, #000000 92%) !important;
+  background: #04045d !important;
 }
 
 .v-theme--inSight .auth-split__hero {
