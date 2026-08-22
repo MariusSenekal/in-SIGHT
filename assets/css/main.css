@@ -72,31 +72,45 @@ body {
   --border: #dbe0ee;
 }
 
-/* ── in-SIGHT theme: every banner is solid navy with the dot pattern — no gradients ── */
+/* ── in-SIGHT theme: solid navy banners once logged in (no gradient) ────────── */
 .v-theme--inSight .page-hero,
 .v-theme--inSight .modules-hero,
 .v-theme--inSight .dash-hero,
-.v-theme--inSight .welcome-hero__main,
-.v-theme--inSight .auth-split__hero {
+.v-theme--inSight .welcome-hero__main {
   background: #04045d !important;
 }
 
 .v-theme--inSight .auth-split__hero {
-  position: relative;
-  overflow: hidden;
+  background:
+    radial-gradient(circle 260px at var(--g1x, 50%) var(--g1y, 9%),  #0d1c56 0%, rgba(13,28,86,0.45) 48%, transparent 78%),
+    radial-gradient(circle 340px at var(--g2x, 22%) var(--g2y, 33%), #0d1c56 0%, rgba(13,28,86,0.5) 55%, transparent 85%),
+    radial-gradient(circle 170px at var(--g3x, 88%) var(--g3y, 92%), #0d1c56 0%, rgba(13,28,86,0.45) 48%, transparent 78%),
+    #000000 !important;
+  animation: heroGlow1 22s ease-in-out infinite, heroGlow2 27s ease-in-out infinite, heroGlow3 19s ease-in-out infinite;
 }
 
-.v-theme--inSight .auth-split__hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  pointer-events: none;
-}
+@property --g1x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+@property --g1y { syntax: '<percentage>'; inherits: false; initial-value: 9%; }
+@property --g2x { syntax: '<percentage>'; inherits: false; initial-value: 22%; }
+@property --g2y { syntax: '<percentage>'; inherits: false; initial-value: 33%; }
+@property --g3x { syntax: '<percentage>'; inherits: false; initial-value: 88%; }
+@property --g3y { syntax: '<percentage>'; inherits: false; initial-value: 92%; }
 
-.v-theme--inSight .auth-split__hero > * {
-  position: relative;
-  z-index: 1;
+/* Each glow drifts independently — different durations/offsets so they never sync up. */
+@keyframes heroGlow1 {
+  0%, 100% { --g1x: 50%; --g1y: 9%; }
+  33%      { --g1x: 45%; --g1y: 14%; }
+  66%      { --g1x: 55%; --g1y: 5%; }
+}
+@keyframes heroGlow2 {
+  0%, 100% { --g2x: 22%; --g2y: 33%; }
+  33%      { --g2x: 27%; --g2y: 28%; }
+  66%      { --g2x: 18%; --g2y: 38%; }
+}
+@keyframes heroGlow3 {
+  0%, 100% { --g3x: 88%; --g3y: 92%; }
+  33%      { --g3x: 83%; --g3y: 87%; }
+  66%      { --g3x: 92%; --g3y: 95%; }
 }
 
 /* Dashboard / module / nav "action cards" render as solid navy tiles with white text */
