@@ -8,7 +8,7 @@
           <v-col cols="12" sm="9" md="7">
             <div class="d-flex flex-column align-center mb-6">
               <div class="mobile-logo-container mb-4">
-                <img :src="logoUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
+                <img :src="logoDarkUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
               </div>
               <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
                 <span class="no-break">in-FORMATION</span><br>
@@ -119,7 +119,7 @@
     <div class="auth-split">
       <!-- Hero panel -->
       <div class="auth-split__hero">
-        <img :src="logoUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
+        <img :src="logoLightUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
         <h2 class="hero-heading">
           <span class="hero-heading__line"><span class="no-break">in-FORMATION</span></span>
           <span class="hero-heading__line">Visible, Accessible & Secure</span>
@@ -241,7 +241,7 @@
           <div class="welcome-hero">
             <div class="welcome-hero__main">
               <div class="welcome-hero__logo-section">
-                <img :src="logoIconUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
+                <img :src="logoIconLightUrl" alt="in-SIGHT logo" class="welcome-hero__logo" />
               </div>
               <div class="welcome-hero__content">
                 <div class="welcome-hero__avatar">
@@ -382,8 +382,12 @@ definePageMeta({ ssr: false })
 
 type AuthMode = 'login' | 'signup'
 
-const logoUrl = `${useRuntimeConfig().app.baseURL}branding/logo-full.png`
-const logoIconUrl = `${useRuntimeConfig().app.baseURL}branding/logo-icon.png`
+const brandingBase = `${useRuntimeConfig().app.baseURL}branding/`
+// Dark-ink logo for light/white surfaces (mobile login card); light-ink logo for the
+// navy hero panels, which are always forced dark regardless of the active theme.
+const logoDarkUrl = `${brandingBase}logo-full-dark.png`
+const logoLightUrl = `${brandingBase}logo-full-light.png`
+const logoIconLightUrl = `${brandingBase}logo-icon-light.png`
 const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, signup, logout } = useAuth()
 const { addRequest } = useServiceRequests()
 const { getRecords } = useRecords()
