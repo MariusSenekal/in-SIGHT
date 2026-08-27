@@ -21,3 +21,9 @@ logs
 .env
 .env.*
 !.env.example
+
+# Shell scripts (may contain server/infra details) - keep local only
+*.sh
+
+# Local docs that may contain secrets/infra notes
+AUTH_EXPLAINED.md
