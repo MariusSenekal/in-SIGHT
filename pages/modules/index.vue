@@ -24,18 +24,17 @@
 
         <!-- Module cards grid -->
         <v-row dense>
-          <v-col cols="12" sm="6" md="4" v-for="module in availableModules" :key="module.key">
+          <v-col cols="12" sm="6" md="4" class="d-flex" v-for="module in availableModules" :key="module.key">
             <v-card
               rounded="xl"
               elevation="2"
-              :class="['module-card', module.locked ? 'module-card--locked' : 'cursor-pointer']"
+              :class="['module-card', 'd-flex', 'flex-column', module.locked ? 'module-card--locked' : 'cursor-pointer']"
               @click="module.locked ? null : module.action()"
             >
               <div
                 class="module-card__strip"
                 :style="`background: linear-gradient(90deg, ${module.color1} 0%, ${module.color2} 100%)`"
               />
-              <span v-if="module.locked" class="module-card__badge">Coming Soon</span>
               <v-card-text class="pa-5">
                 <div class="d-flex align-center ga-3 mb-2">
                   <div
@@ -68,15 +67,118 @@ const handleLogout = () => {
   navigateTo('/')
 }
 
-const modules = [
+interface ModuleCard {
+  key: string
+  title: string
+  description: string
+  iconImg?: string
+  icon?: string
+  color1: string
+  color2: string
+  action: () => unknown
+  /** Module has no page yet - always listed, always greyed out. */
+  notBuilt?: boolean
+  /** Card is only shown to admins. */
+  adminOnly?: boolean
+}
+
+// Order, titles, descriptions and colours mirror https://www.in-sight.app/features
+const modules: ModuleCard[] = [
+  {
+    key: 'clients',
+    title: 'Client',
+    description: 'Store your client information, contact history, tasks, & service records.',
+    iconImg: '/module-icons/clients.svg',
+    color1: '#3b82f6',
+    color2: '#2563eb',
+    action: () => navigateTo('/modules/clients')
+  },
   {
     key: 'vehicle',
     title: 'Vehicle',
-    description: 'Track vehicle information, maintenance, and service history.',
+    description: 'Store mobile asset details (cars, bikes, trucks, golf carts, boats, trailers, caravan, etc.), insurance information & service history ensuring every vehicle is properly managed throughout its lifecycle.',
     iconImg: '/module-icons/vehicle.svg',
-    color1: '#3b82f6',
-    color2: '#2563eb',
+    color1: '#f97316',
+    color2: '#ea580c',
     action: () => navigateTo('/modules/vehicles')
+  },
+  {
+    key: 'equipment',
+    title: 'Equipment',
+    description: 'Complete digital record of every piece of equipment your business owns. From equipment information, maintenance history, warranty information, cleaning & service schedules.',
+    iconImg: '/module-icons/equipment.svg',
+    color1: '#0e7490',
+    color2: '#155e75',
+    action: () => navigateTo('/modules/equipment')
+  },
+  {
+    key: 'properties',
+    title: 'Property',
+    description: 'Streamline property operations by managing building information & maintenance history.',
+    iconImg: '/module-icons/properties.svg',
+    color1: '#7c8b3a',
+    color2: '#5f6b2c',
+    action: () => {},
+    notBuilt: true
+  },
+  {
+    key: 'inventory',
+    title: 'Inventory',
+    description: 'Simplify stock counting with real-time reconciliation & full tracking.',
+    iconImg: '/module-icons/inventory.svg',
+    color1: '#ec4899',
+    color2: '#db2777',
+    action: () => {},
+    notBuilt: true
+  },
+  {
+    key: 'suppliers',
+    title: 'Vendor',
+    description: 'Manage all your suppliers, track their information & keep every vendor relationship organised.',
+    iconImg: '/module-icons/suppliers.svg',
+    color1: '#14b8a6',
+    color2: '#0d9488',
+    action: () => {},
+    notBuilt: true
+  },
+  {
+    key: 'records',
+    title: 'Compliance',
+    description: "One platform to manage, track & prove your business' compliance.",
+    iconImg: '/module-icons/records.svg',
+    color1: '#ef4444',
+    color2: '#dc2626',
+    action: () => {},
+    notBuilt: true
+  },
+  {
+    key: 'hr',
+    title: 'Human Resources',
+    description: 'Manage your employees from one central place. Store staff records & keep your workforce organised with secure digital profiles.',
+    iconImg: '/module-icons/hr.svg',
+    color1: '#8b5cf6',
+    color2: '#7c3aed',
+    action: () => navigateTo('/modules/hr')
+  },
+  {
+    key: 'cleaning',
+    title: 'Cleaning',
+    description: "Plan, assign, monitor & verify cleaning activities across your entire business. Whether you're managing an office, warehouse, restaurant, school, clinic or multiple sites, every cleaning task is recorded via allocated QR Codes.",
+    iconImg: '/module-icons/cleaning.svg',
+    color1: '#0d9488',
+    color2: '#0f766e',
+    action: () => {},  // To be implemented
+    notBuilt: true
+  },
+  {
+    key: 'pets',
+    title: 'Animal',
+    description: "Track every animal's health, identification, breeding, treatments & ownership.",
+    iconImg: '/module-icons/pets.svg',
+    color1: '#22c55e',
+    color2: '#16a34a',
+    action: () => {},
+    notBuilt: true
   },
   {
     key: 'qr-codes',
@@ -87,119 +189,19 @@ const modules = [
     color2: '#7c3aed',
     action: () => navigateTo('/modules/qr-codes'),
     adminOnly: true  // Only admins can access QR codes module
-  },
-  {
-    key: 'equipment',
-    title: 'Equipment',
-    description: 'Manage equipment inventory, maintenance schedules, and tracking.',
-    iconImg: '/module-icons/equipment.svg',
-    color1: '#f59e0b',
-    color2: '#d97706',
-    action: () => navigateTo('/modules/equipment')
-  },
-  {
-    key: 'cleaning',
-    title: 'Cleaning',
-    description: 'Monitor cleaning schedules, checklists, and quality standards.',
-    iconImg: '/module-icons/cleaning.svg',
-    color1: '#10b981',
-    color2: '#059669',
-    action: () => {},  // To be implemented
-    locked: true
-  },
-  {
-    key: 'clients',
-    title: 'Clients',
-    description: 'Manage client information and relationships.',
-    iconImg: '/module-icons/clients.svg',
-    color1: '#0ea5e9',
-    color2: '#0284c7',
-    action: () => navigateTo('/modules/clients')
-  },
-  {
-    key: 'hr',
-    title: 'HR',
-    description: 'Manage staff information and records.',
-    iconImg: '/module-icons/hr.svg',
-    color1: '#8b5cf6',
-    color2: '#6d28d9',
-    action: () => navigateTo('/modules/hr')
-  },
-  // Not yet built - shown for visibility but unaccessible, same treatment as Cleaning
-  {
-    key: 'properties',
-    title: 'Properties',
-    description: 'Manage properties, sites, and service locations.',
-    iconImg: '/module-icons/properties.svg',
-    color1: '#6366f1',
-    color2: '#4f46e5',
-    action: () => {},
-    locked: true,
-    comingSoon: true
-  },
-  {
-    key: 'inventory',
-    title: 'Inventory',
-    description: 'Track cleaning supplies, stock levels, and reordering.',
-    iconImg: '/module-icons/inventory.svg',
-    color1: '#ec4899',
-    color2: '#db2777',
-    action: () => {},
-    locked: true,
-    comingSoon: true
-  },
-  {
-    key: 'records',
-    title: 'Records & Compliance',
-    description: 'Manage compliance documents, certificates, and records.',
-    iconImg: '/module-icons/records.svg',
-    color1: '#ef4444',
-    color2: '#dc2626',
-    action: () => {},
-    locked: true,
-    comingSoon: true
-  },
-  {
-    key: 'suppliers',
-    title: 'Suppliers',
-    description: 'Manage suppliers and vendor relationships.',
-    iconImg: '/module-icons/suppliers.svg',
-    color1: '#14b8a6',
-    color2: '#0d9488',
-    action: () => {},
-    locked: true,
-    comingSoon: true
-  },
-  {
-    key: 'pets',
-    title: 'Pet Care',
-    description: 'Track pet-friendly service requirements for client properties.',
-    iconImg: '/module-icons/pets.svg',
-    color1: '#84cc16',
-    color2: '#65a30d',
-    action: () => {},
-    locked: true,
-    comingSoon: true
   }
 ]
 
-// Filter modules based on user role and permissions
+// Every module from the marketing site is always listed so this page mirrors it.
+// A card is greyed out (and not clickable) when the module has no page yet, or
+// the current user hasn't been granted access to it. QR Codes stays admin-only.
 const availableModules = computed(() =>
-  modules.filter(module => {
-    // Not-yet-built modules are shown to everyone as a locked preview -
-    // there's nothing to gate access to yet.
-    if (module.comingSoon) {
-      return true
-    }
-
-    // Admin-only modules require admin role
-    if (module.adminOnly && !isAdmin.value) {
-      return false
-    }
-
-    // Check if user has access to this specific module
-    return hasModuleAccess(module.key)
-  })
+  modules
+    .filter(module => !module.adminOnly || isAdmin.value)
+    .map(module => ({
+      ...module,
+      locked: Boolean(module.notBuilt) || !hasModuleAccess(module.key)
+    }))
 )
 </script>
 
@@ -240,6 +242,10 @@ const availableModules = computed(() =>
 .module-card {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  /* Every card matches the tallest: fill the row, with a floor for lone cards */
+  height: 100%;
+  min-height: 280px;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -294,21 +300,5 @@ const availableModules = computed(() =>
 .module-card--locked .text-h6,
 .module-card--locked .text-body-2 {
   opacity: 0.55;
-}
-
-.module-card__badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
-  background: rgba(var(--v-theme-surface), 0.92);
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.15);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 999px;
 }
 </style>
