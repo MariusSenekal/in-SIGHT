@@ -6,29 +6,22 @@
       <v-container class="py-8">
         <v-row justify="center">
           <v-col cols="12" sm="9" md="7">
-            <div class="d-flex flex-column align-center mb-6">
-              <div class="mobile-logo-container mb-4">
-                <img :src="logoDarkUrl" alt="in-SIGHT logo" class="mobile-login-logo" />
-              </div>
-              <h1 class="text-h5 text-sm-h4 font-weight-bold text-center mb-3 mobile-hero-title">
-                <span class="no-break">in-FORMATION</span><br>
-                Visible, Accessible & Secure
-              </h1>
-              <p class="text-body-1 text-center px-3 mobile-hero-subtitle">
-                We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
-              </p>
+            <div class="mobile-hero-banner">
+              <img
+                :src="loginHeroUrl"
+                alt="in-SIGHT — organise, manage and control your info, all on one secure platform"
+                class="login-hero-img login-hero-img--mobile"
+              />
             </div>
             <v-card rounded="xl" elevation="8" class="pa-6 pa-sm-7 mobile-login-card">
               <div class="d-flex align-center ga-2 mb-5">
                 <div class="mobile-form-icon">
-                  <v-icon :icon="mode === 'login' ? 'mdi-login' : 'mdi-account-plus'" size="24" />
+                  <v-icon icon="mdi-login" size="24" />
                 </div>
-                <h3 class="text-h5 font-weight-bold mb-0">
-                  {{ mode === 'login' ? 'Sign in to your account' : 'Create an account' }}
-                </h3>
+                <h3 class="text-h5 font-weight-bold mb-0">Sign in to your account</h3>
               </div>
 
-              <v-form v-if="mode === 'login'" @submit.prevent="submitLogin">
+              <v-form @submit.prevent="submitLogin">
                 <v-row dense>
                   <v-col cols="12">
                     <v-text-field v-model="loginForm.username" label="Username" prepend-inner-icon="mdi-account" variant="outlined" required />
@@ -46,12 +39,12 @@
                     />
                   </v-col>
                   <v-col cols="12">
-                    <v-btn 
-                      block 
-                      color="primary" 
-                      size="large" 
-                      prepend-icon="mdi-login" 
-                      type="submit" 
+                    <v-btn
+                      block
+                      color="primary"
+                      size="large"
+                      prepend-icon="mdi-login"
+                      type="submit"
                       class="btn-gradient"
                       :loading="loginLoading"
                       :disabled="loginLoading"
@@ -61,52 +54,6 @@
                   </v-col>
                 </v-row>
               </v-form>
-
-              <v-form v-else @submit.prevent="submitSignup">
-                <v-row dense>
-                  <v-col cols="12">
-                    <v-text-field v-model="signupForm.name" label="Full Name" prepend-inner-icon="mdi-badge-account" variant="outlined" required />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field v-model="signupForm.username" label="Username" prepend-inner-icon="mdi-account-plus" variant="outlined" required />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      v-model="signupForm.password"
-                      :type="showSignupPassword ? 'text' : 'password'"
-                      label="Password"
-                      prepend-inner-icon="mdi-lock"
-                      :append-inner-icon="showSignupPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                      variant="outlined"
-                      required
-                      @click:append-inner="showSignupPassword = !showSignupPassword"
-                    />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-btn 
-                      block 
-                      color="primary" 
-                      size="large" 
-                      prepend-icon="mdi-account-plus" 
-                      type="submit" 
-                      class="btn-gradient"
-                      :loading="signupLoading"
-                      :disabled="signupLoading"
-                    >
-                      {{ signupLoading ? 'Creating account...' : 'Create Account' }}
-                    </v-btn>
-                  </v-col>
-                </v-row>
-              </v-form>
-
-              <div class="d-flex align-center justify-center ga-2 mt-4">
-                <span class="text-body-2 text-medium-emphasis">
-                  {{ mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
-                </span>
-                <v-btn variant="text" color="primary" size="small" @click="mode = mode === 'login' ? 'signup' : 'login'">
-                  {{ mode === 'login' ? 'Sign Up' : 'Sign In' }}
-                </v-btn>
-              </div>
 
               <v-alert v-if="formMessage" :type="formMessageType" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
             </v-card>
@@ -118,34 +65,21 @@
     <!-- Desktop: split layout -->
     <div class="auth-split">
       <!-- Hero panel -->
-      <div class="auth-split__hero">
-        <img :src="logoLightUrl" alt="in-SIGHT logo" class="auth-hero-logo" />
-        <h2 class="hero-heading">
-          <span class="hero-heading__line"><span class="no-break">in-FORMATION</span></span>
-          <span class="hero-heading__line">Visible, Accessible & Secure</span>
-        </h2>
-        <p class="hero-subtitle">
-          We manage what matters by ensuring <span class="no-break">in-FORMATION</span> is visible, accessible and secure for the real world
-        </p>
-        <div class="auth-hero-features">
-          <div v-for="f in heroFeatures" :key="f.icon" class="auth-hero-feature">
-            <v-icon :icon="f.icon" size="18" class="mr-2" />
-            <span>{{ f.label }}</span>
-          </div>
-        </div>
+      <div class="auth-split__hero auth-split__hero--image">
+        <img
+          :src="loginHeroUrl"
+          alt="in-SIGHT — in-FORMATION visible, accessible and secure"
+          class="login-hero-img"
+        />
       </div>
 
       <!-- Form panel -->
       <div class="auth-split__form">
         <div class="auth-split__form-inner">
-          <h3 class="text-h5 font-weight-bold mb-1">
-            {{ mode === 'login' ? 'Sign in to your account' : 'Create an account' }}
-          </h3>
-          <p class="text-medium-emphasis text-body-2 mb-5">
-            {{ mode === 'login' ? 'Welcome back — enter your details below.' : 'Get started with in-SIGHT today.' }}
-          </p>
+          <h3 class="text-h5 font-weight-bold mb-1">Sign in to your account</h3>
+          <p class="text-medium-emphasis text-body-2 mb-5">Welcome back — enter your details below.</p>
 
-          <v-form v-if="mode === 'login'" @submit.prevent="submitLogin">
+          <v-form @submit.prevent="submitLogin">
             <v-row dense>
               <v-col cols="12">
                 <v-text-field v-model="loginForm.username" label="Username" prepend-inner-icon="mdi-account" variant="outlined" required />
@@ -163,12 +97,12 @@
                 />
               </v-col>
               <v-col cols="12">
-                <v-btn 
-                  block 
-                  color="primary" 
-                  size="large" 
-                  prepend-icon="mdi-login" 
-                  type="submit" 
+                <v-btn
+                  block
+                  color="primary"
+                  size="large"
+                  prepend-icon="mdi-login"
+                  type="submit"
                   class="btn-gradient"
                   :loading="loginLoading"
                   :disabled="loginLoading"
@@ -178,52 +112,6 @@
               </v-col>
             </v-row>
           </v-form>
-
-          <v-form v-else @submit.prevent="submitSignup">
-            <v-row dense>
-              <v-col cols="12">
-                <v-text-field v-model="signupForm.name" label="Full Name" prepend-inner-icon="mdi-badge-account" variant="outlined" required />
-              </v-col>
-              <v-col cols="12">
-                <v-text-field v-model="signupForm.username" label="Username" prepend-inner-icon="mdi-account-plus" variant="outlined" required />
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="signupForm.password"
-                  :type="showSignupPassword ? 'text' : 'password'"
-                  label="Password"
-                  prepend-inner-icon="mdi-lock"
-                  :append-inner-icon="showSignupPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                  variant="outlined"
-                  required
-                  @click:append-inner="showSignupPassword = !showSignupPassword"
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-btn 
-                  block 
-                  color="primary" 
-                  size="large" 
-                  prepend-icon="mdi-account-plus" 
-                  type="submit" 
-                  class="btn-gradient"
-                  :loading="signupLoading"
-                  :disabled="signupLoading"
-                >
-                  {{ signupLoading ? 'Creating account...' : 'Create Account' }}
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-form>
-
-          <div class="d-flex align-center justify-center ga-2 mt-4">
-            <span class="text-body-2 text-medium-emphasis">
-              {{ mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
-            </span>
-            <v-btn variant="text" color="primary" size="small" @click="mode = mode === 'login' ? 'signup' : 'login'">
-              {{ mode === 'login' ? 'Sign Up' : 'Sign In' }}
-            </v-btn>
-          </div>
 
           <v-alert v-if="formMessage" :type="formMessageType" variant="tonal" border="start" density="compact" class="mt-3">{{ formMessage }}</v-alert>
         </div>
@@ -380,35 +268,20 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-type AuthMode = 'login' | 'signup'
-
 const brandingBase = `${useRuntimeConfig().app.baseURL}branding/`
-// Dark-ink logo for light/white surfaces (mobile login card); light-ink logo for the
-// navy hero panels, which are always forced dark regardless of the active theme.
-const logoDarkUrl = `${brandingBase}logo-full-dark.png`
-const logoLightUrl = `${brandingBase}logo-full-light.png`
+// Single artwork that fills the branded side of the auth page on both desktop and mobile.
+const loginHeroUrl = `${brandingBase}login-hero.svg`
 const logoIconLightUrl = `${brandingBase}logo-icon-light.png`
-const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, signup, logout } = useAuth()
+const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, logout } = useAuth()
 const { addRequest } = useServiceRequests()
 const { getRecords } = useRecords()
 
-const mode = ref<AuthMode>('login')
 const formMessage = ref('')
 const showLoginPassword = ref(false)
-const showSignupPassword = ref(false)
 const showProfileModal = ref(false)
 const loginLoading = ref(false)
-const signupLoading = ref(false)
 
 const loginForm = reactive({ username: '', password: '' })
-const signupForm = reactive({ name: '', username: '', password: '' })
-
-const heroFeatures = [
-  { icon: 'mdi-qrcode-scan',    label: 'Instant QR code check-ins' },
-  { icon: 'mdi-camera',         label: 'Photo evidence uploads' },
-  { icon: 'mdi-check-all',      label: 'Checklist management' },
-  { icon: 'mdi-chart-bar',      label: 'Reporting & history' },
-]
 
 // ── Maintenance ───────────────────────────────────────────────────────────────
 const showMaintenanceDialog = ref(false)
@@ -575,34 +448,6 @@ const submitLogin = async () => {
   }
 }
 
-const submitSignup = async () => {
-  if (signupLoading.value) return
-  if (!signupForm.name.trim() || !signupForm.username.trim() || !signupForm.password.trim()) {
-    formMessage.value = 'Please fill in all fields.'
-    return
-  }
-  
-  signupLoading.value = true
-  formMessage.value = ''
-  
-  try {
-    const result = await signup(signupForm.name, signupForm.username, signupForm.password)
-    formMessage.value = result.message
-    if (!result.ok) return
-    signupForm.name = ''
-    signupForm.username = ''
-    signupForm.password = ''
-    setTimeout(() => {
-      mode.value = 'login'
-      formMessage.value = ''
-    }, 2000)
-  } catch (error) {
-    formMessage.value = 'Connection error. Please check your internet and try again.'
-  } finally {
-    signupLoading.value = false
-  }
-}
-
 const goToProfilePage = () => {
   showProfileModal.value = false
   navigateTo('/profile')
@@ -611,9 +456,17 @@ const goToProfilePage = () => {
 
 <style scoped>
 /* Auth page wrapper */
-.auth-page-wrap { 
-  min-height: 100vh; 
+.auth-page-wrap {
+  min-height: 100vh;
   background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.03) 0%, rgba(var(--v-theme-secondary), 0.05) 100%);
+}
+
+/* Mobile: fill the page with the same deep-navy vignette as the hero artwork */
+@media (max-width: 959px) {
+  .auth-page-wrap {
+    background:
+      radial-gradient(ellipse 130% 80% at 50% 26%, #05095c 0%, #01031e 56%, #00000c 100%) !important;
+  }
 }
 
 /* Prevent word breaking */
@@ -626,39 +479,26 @@ const goToProfilePage = () => {
 .auth-mobile-wrap { display: block; }
 @media (min-width: 960px) { .auth-mobile-wrap { display: none; } }
 
-/* Mobile login styling */
-.mobile-logo-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.mobile-login-logo {
-  height: 180px;
-  width: auto;
-  max-width: 400px;
+/* Branded artwork that replaces the info panel (desktop) / header block (mobile) */
+.login-hero-img {
   display: block;
-  object-fit: contain;
 }
 
-.mobile-hero-title {
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.4;
-  letter-spacing: -0.02em;
+/* Mobile: artwork sits as a full-width header above the sign-in card. Sharp
+   edges, no frame - it blends into the matching deep-navy page background. */
+.mobile-hero-banner {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto 22px;
 }
 
-.mobile-hero-subtitle {
-  color: rgb(var(--v-theme-on-surface));
-  opacity: 0.75;
-  line-height: 1.6;
-  max-width: 520px;
+.login-hero-img--mobile {
+  width: 100%;
+  height: auto;
+  /* Trim the artwork's generous top/bottom padding for a tighter crop. */
+  aspect-ratio: 8 / 7;
+  object-fit: cover;
+  object-position: center;
 }
 
 .mobile-login-card {
@@ -709,28 +549,20 @@ const goToProfilePage = () => {
 
 .auth-split__form-inner { width: 100%; max-width: 400px; }
 
-.auth-hero-logo {
-  height: clamp(234px, 23vw, 364px);
-  width: auto;
-  max-width: 676px;
-  display: block;
-  object-fit: contain;
-  opacity: 0.95;
+/* Image-only hero panel: the artwork fills the entire left-hand side, edge to edge */
+.auth-split__hero--image {
+  display: block !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden;
 }
 
-.auth-hero-features {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.auth-hero-feature {
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  color: rgba(255,255,255,0.85);
-  font-weight: 500;
+.auth-split__hero--image .login-hero-img {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  object-fit: cover;
+  object-position: center;
 }
 
 /* Welcome hero */
@@ -955,20 +787,9 @@ const goToProfilePage = () => {
 
 /* Mobile login responsive improvements */
 @media (max-width: 599px) {
-  .mobile-logo-container {
-    padding: 20px;
-  }
-  .mobile-login-logo {
-    height: 140px;
-    max-width: 320px;
-  }
-  .mobile-hero-title {
-    font-size: 1.25rem !important;
-    line-height: 1.4;
-  }
-  .mobile-hero-subtitle {
-    font-size: 0.9rem;
-    padding: 0 8px;
+  .mobile-hero-banner {
+    max-width: 400px;
+    margin-bottom: 18px;
   }
   .mobile-login-card {
     padding: 20px !important;
@@ -984,11 +805,8 @@ const goToProfilePage = () => {
     padding-top: 24px !important;
     padding-bottom: 24px !important;
   }
-  .mobile-hero-title {
-    font-size: 1.1rem !important;
-  }
-  .mobile-hero-subtitle {
-    font-size: 0.85rem;
+  .mobile-hero-banner {
+    max-width: 320px;
   }
 }
 </style>

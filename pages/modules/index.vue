@@ -88,7 +88,7 @@ const modules: ModuleCard[] = [
     key: 'clients',
     title: 'Client',
     description: 'Store your client information, contact history, tasks, & service records.',
-    iconImg: '/module-icons/clients.svg',
+    iconImg: '/module-icons/hr.svg',
     color1: '#3b82f6',
     color2: '#2563eb',
     action: () => navigateTo('/modules/clients')
@@ -155,7 +155,7 @@ const modules: ModuleCard[] = [
     key: 'hr',
     title: 'Human Resources',
     description: 'Manage your employees from one central place. Store staff records & keep your workforce organised with secure digital profiles.',
-    iconImg: '/module-icons/hr.svg',
+    iconImg: '/module-icons/clients.svg',
     color1: '#8b5cf6',
     color2: '#7c3aed',
     action: () => navigateTo('/modules/hr')

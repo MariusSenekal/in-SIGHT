@@ -173,24 +173,6 @@ export const useAuth = () => {
     }
   }
 
-  const signup = async (name: string, username: string, password: string): Promise<AuthResult> => {
-    try {
-      clearDomainState()
-      const { token, user } = await $fetch<{ token: string; user: AppUser }>('/api/auth/register', {
-        method: 'POST',
-        body: { name, username, password }
-      })
-      authToken.value = token
-      if (import.meta.client) localStorage.setItem(AUTH_TOKEN_KEY, token)
-      const payload = decodeTokenPayload(token) ?? {}
-      currentUser.value = { ...user, profile: buildUserFromPayload(payload).profile }
-      return { ok: true, message: 'Account created successfully.' }
-    } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Registration failed.'
-      return { ok: false, message: msg }
-    }
-  }
-
   const logout = async () => {
     try {
       if (authToken.value) {
@@ -504,7 +486,6 @@ export const useAuth = () => {
     initAuth,
     ensureValidSession,
     login,
-    signup,
     updateProfile,
     refreshToken,
     logout,
