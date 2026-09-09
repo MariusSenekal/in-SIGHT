@@ -270,7 +270,7 @@ definePageMeta({ ssr: false })
 
 const brandingBase = `${useRuntimeConfig().app.baseURL}branding/`
 // Single artwork that fills the branded side of the auth page on both desktop and mobile.
-const loginHeroUrl = `${brandingBase}login-hero.svg`
+const loginHeroUrl = `${brandingBase}login-hero.png`
 const logoIconLightUrl = `${brandingBase}logo-icon-light.png`
 const { currentUser, isAdmin, isClientAdmin, isClientTechnician, initAuth, login, logout } = useAuth()
 const { addRequest } = useServiceRequests()
