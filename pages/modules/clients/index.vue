@@ -77,7 +77,7 @@
                 <span class="text-body-2">{{ client.industry }}</span>
               </div>
               <div v-if="client.service_type" class="d-flex align-center ga-2">
-                <v-icon icon="mdi-spray-bottle" size="15" color="grey" />
+                <v-icon icon="mdi-tag-outline" size="15" color="grey" />
                 <span class="text-body-2">{{ client.service_type }}</span>
               </div>
               <div v-if="client.mobile_number" class="d-flex align-center ga-2">
@@ -325,7 +325,7 @@
                 <v-text-field
                   v-model="clientForm.serviceType"
                   label="Service Type"
-                  prepend-inner-icon="mdi-spray-bottle"
+                  prepend-inner-icon="mdi-tag-outline"
                   variant="outlined"
                   density="comfortable"
                 />
