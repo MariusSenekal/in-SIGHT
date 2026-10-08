@@ -11,12 +11,12 @@ export interface Record {
 }
 
 export const useRecords = () => {
-  const { authToken } = useAuth()
+  const { isAuthenticated } = useAuth()
   const records = useState<Record[]>('records', () => [])
   const recordsLoading = useState<boolean>('records-loading', () => false)
 
   const authHeaders = computed(() =>
-    authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+    ({} as Record<string, string>)
   )
 
   const loadRecords = async () => {

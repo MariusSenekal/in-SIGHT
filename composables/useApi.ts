@@ -1,13 +1,9 @@
 // composables/useApi.ts
 // Thin client-side wrapper that calls /api/* (Nuxt server routes).
-// Automatically attaches the current auth token. Never calls PostgREST directly.
+// Auth rides on the HttpOnly session cookie. Never calls PostgREST directly.
 
 export const useApi = () => {
-  const token = useState<string | null>('auth-token')
-
-  const authHeaders = computed((): Record<string, string> =>
-    token.value ? { Authorization: `Bearer ${token.value}` } : {}
-  )
+  const authHeaders = computed((): Record<string, string> => ({}))
 
   const get = <T>(path: string, query?: Record<string, string>) =>
     $fetch<T>(path, { method: 'GET', headers: authHeaders.value, query })

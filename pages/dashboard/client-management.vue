@@ -342,7 +342,7 @@ const {
   updateUser,
   companies,
   loadCompanies,
-  authToken
+  isAuthenticated
 } = useAuth()
 
 const userSearch = ref('')
@@ -450,7 +450,6 @@ const roleColor = (role: string) => {
 
 const loadModulesForUser = async (userId: number) => {
   const result = await $fetch<{ modules: string[] }>(`/api/users/${userId}/modules`, {
-    headers: { Authorization: `Bearer ${authToken.value}` }
   })
   return result.modules || []
 }
@@ -458,7 +457,6 @@ const loadModulesForUser = async (userId: number) => {
 const saveModulesForUser = async (userId: number, modules: string[]) => {
   await $fetch(`/api/users/${userId}/modules`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${authToken.value}` },
     body: { modules }
   })
 }
@@ -476,7 +474,6 @@ const submitCreateUser = async () => {
   try {
     const response = await $fetch<{ id: number; name: string }>('/api/users', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
         name: createUserForm.name,
         username: createUserForm.username,

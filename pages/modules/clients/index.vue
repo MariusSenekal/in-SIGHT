@@ -834,7 +834,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { authToken, isAdmin, isClientAdmin, initAuth } = useAuth()
+const { isAuthenticated, isAdmin, isClientAdmin, initAuth } = useAuth()
 initAuth()
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1011,7 +1011,6 @@ const loadClients = async () => {
   loadError.value = ''
   try {
     clients.value = await $fetch<Client[]>('/api/clients', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch (err: any) {
     clients.value = []
@@ -1025,7 +1024,6 @@ const loadServiceHistory = async (clientId: number) => {
   serviceHistoryLoading.value = true
   try {
     serviceHistory.value = await $fetch<ServiceHistoryEntry[]>(`/api/clients/${clientId}/service-history`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch {
     serviceHistory.value = []
@@ -1111,14 +1109,12 @@ const submitClientForm = async () => {
     if (editingClient.value) {
       await $fetch(`/api/clients/${editingClient.value.id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: payload
       })
       clientFeedback.value = 'Client updated.'
     } else {
       await $fetch('/api/clients', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: payload
       })
       clientFeedback.value = 'Client added.'
@@ -1151,7 +1147,6 @@ const submitDeleteClient = async () => {
   try {
     await $fetch(`/api/clients/${deleteClientTarget.value.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     await loadClients()
     showDeleteClientDialog.value = false
@@ -1210,13 +1205,11 @@ const submitServiceEntryForm = async () => {
     if (editingServiceEntry.value) {
       await $fetch(`/api/clients/service-history/${editingServiceEntry.value.id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
     } else {
       await $fetch(`/api/clients/${serviceHistoryClient.value!.id}/service-history`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
     }
@@ -1248,7 +1241,6 @@ const submitDeleteServiceEntry = async () => {
   try {
     await $fetch(`/api/clients/service-history/${deleteServiceEntryTarget.value.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     await loadServiceHistory(serviceHistoryClient.value!.id)
     showDeleteServiceEntryDialog.value = false

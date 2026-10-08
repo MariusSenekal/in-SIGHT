@@ -5,6 +5,7 @@
 
 import { Server as SocketIOServer } from 'socket.io'
 import { getIO, setIO } from '../utils/socket'
+import { resolveSessionToken, readCookieHeader, SESSION_COOKIE } from '../utils/session'
 
 export default defineNitroPlugin((nitroApp: any) => {
   nitroApp.hooks.hook('request', (event: any) => {
@@ -29,12 +30,30 @@ export default defineNitroPlugin((nitroApp: any) => {
 
     setIO(io)
 
+    // Every connection must belong to a live database session (sent via the
+    // HttpOnly session cookie). The server — never the client — decides which
+    // rooms a socket joins, so one user can't listen in on another's events.
+    io.use(async (socket, next) => {
+      try {
+        const token = readCookieHeader(socket.request.headers.cookie, SESSION_COOKIE)
+        const session = await resolveSessionToken(token)
+        if (!session) return next(new Error('unauthorized'))
+        socket.data.session = session
+        next()
+      } catch {
+        next(new Error('unauthorized'))
+      }
+    })
+
     io.on('connection', (socket) => {
-      // Clients join the 'admins' room after authenticating so that we can
-      // direct-broadcast to staff/admin users without hitting everyone.
-      socket.on('join-admins', () => {
+      const session = socket.data.session
+      // Private rooms: this user, and this one login (closed on logout).
+      socket.join(`user:${session.id}`)
+      socket.join(`session:${session.sessionId}`)
+      // Staff/admin share the 'admins' room for service-request notifications.
+      if (session.role === 'admin' || session.role === 'staff') {
         socket.join('admins')
-      })
+      }
     })
 
     console.log('[socket.io] Server attached — path /socket.io/')

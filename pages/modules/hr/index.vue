@@ -530,7 +530,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { authToken, isAdmin, isClientAdmin, initAuth } = useAuth()
+const { isAuthenticated, isAdmin, isClientAdmin, initAuth } = useAuth()
 initAuth()
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -650,7 +650,6 @@ const loadStaff = async () => {
   loadError.value = ''
   try {
     staff.value = await $fetch<StaffMember[]>('/api/staff', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch (err: any) {
     staff.value = []
@@ -753,14 +752,12 @@ const submitStaffForm = async () => {
     if (editingStaff.value) {
       await $fetch(`/api/staff/${editingStaff.value.id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: payload
       })
       staffFeedback.value = 'Staff member updated.'
     } else {
       await $fetch('/api/staff', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: payload
       })
       staffFeedback.value = 'Staff member added.'
@@ -788,7 +785,6 @@ const submitDeleteStaff = async () => {
   try {
     await $fetch(`/api/staff/${deleteStaffTarget.value.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     await loadStaff()
     showDeleteStaffDialog.value = false

@@ -363,7 +363,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { authToken } = useAuth()
+const { isAuthenticated } = useAuth()
 
 interface Vehicle {
   id: number
@@ -426,7 +426,6 @@ const loadVehicles = async () => {
   loading.value = true
   try {
     vehicles.value = await $fetch<Vehicle[]>('/api/vehicles', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch (error) {
     console.error('Failed to load vehicles:', error)
@@ -448,7 +447,6 @@ const submitAddVehicle = async () => {
   try {
     await $fetch('/api/vehicles', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: newVehicle
     })
     addFeedback.value = 'Vehicle added successfully!'
@@ -503,7 +501,6 @@ const submitEditVehicle = async () => {
   try {
     await $fetch(`/api/vehicles/${editTarget.value!.id}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: editVehicle
     })
     editFeedback.value = 'Vehicle updated successfully!'
@@ -537,7 +534,6 @@ const submitDeleteVehicle = async () => {
   try {
     await $fetch(`/api/vehicles/${deleteTarget.value.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     deleteFeedback.value = 'Vehicle deleted successfully!'
     deleteFeedbackType.value = 'success'

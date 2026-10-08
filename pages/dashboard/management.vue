@@ -920,7 +920,7 @@
 import QrcodeVue from 'qrcode.vue'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { currentUser, isAdmin, isClientAdmin, getAvailableModules, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany, authToken, loadUserModules, updateUserModules } = useAuth()
+const { currentUser, isAdmin, isClientAdmin, getAvailableModules, initAuth, logout, users, loadUsers, createUser, updateUser, deleteUser, companies, loadCompanies, createCompany, linkUserToCompany, unlinkUserFromCompany, isAuthenticated, loadUserModules, updateUserModules } = useAuth()
 const { goBack } = useAppNavigation()
 const { records: managementRecords, loadRecords, addRecord, updateRecord, deleteRecord, getRecordsByCompany: getRecordsByCompanyFn } = useRecords()
 const getRecords = () => managementRecords.value
@@ -957,7 +957,6 @@ const loadModulesForUser = async (userId: number) => {
   loadingModules.value = true
   try {
     const result = await $fetch<{ modules: string[] }>(`/api/users/${userId}/modules`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     userModules.value = result.modules || []
   } catch (error) {
@@ -972,7 +971,6 @@ const saveModulesForUser = async (userId: number, modules: string[]) => {
   try {
     await $fetch(`/api/users/${userId}/modules`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: { modules }
     })
     return { ok: true, message: 'Module permissions updated successfully.' }
@@ -1001,10 +999,9 @@ const vehicles = ref<any[]>([])
 const equipment = ref<any[]>([])
 
 const loadVehicles = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/vehicles', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     vehicles.value = response || []
   } catch (error) {
@@ -1014,10 +1011,9 @@ const loadVehicles = async () => {
 }
 
 const loadEquipment = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/equipment', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     equipment.value = response || []
   } catch (error) {
@@ -1027,19 +1023,17 @@ const loadEquipment = async () => {
 }
 
 const deleteVehicle = async (id: number) => {
-  if (!authToken.value) throw new Error('Not authenticated')
+  if (!isAuthenticated.value) throw new Error('Not authenticated')
   await $fetch(`/api/vehicles/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${authToken.value}` }
   })
   vehicles.value = vehicles.value.filter(v => v.id !== id)
 }
 
 const deleteEquipment = async (id: number) => {
-  if (!authToken.value) throw new Error('Not authenticated')
+  if (!isAuthenticated.value) throw new Error('Not authenticated')
   await $fetch(`/api/equipment/${id}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${authToken.value}` }
   })
   equipment.value = equipment.value.filter(e => e.id !== id)
 }
@@ -1218,7 +1212,6 @@ const submitCreateUser = async () => {
     // Create user with companyId
     const response = await $fetch<{ id: number; name: string; username: string; role: string }>('/api/users', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
         name: createUserForm.name,
         username: createUserForm.username,

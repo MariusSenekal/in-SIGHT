@@ -110,8 +110,11 @@ export const useSessionGuard = () => {
 
     const now = Date.now()
     if (now - lastTokenRefreshMs.value >= TOKEN_REFRESH_INTERVAL_MS) {
-      refreshToken()
       lastTokenRefreshMs.value = now
+      // Keep-alive; if the database session has ended, leave immediately.
+      refreshToken().then((alive) => {
+        if (!alive) logoutFromPrompt()
+      })
     }
 
     scheduleWarning()
@@ -133,7 +136,10 @@ export const useSessionGuard = () => {
       return
     }
 
-    await refreshToken()
+    if (!(await refreshToken())) {
+      await logoutFromPrompt()
+      return
+    }
     lastTokenRefreshMs.value = Date.now()
     hidePrompt()
     clearTimers()

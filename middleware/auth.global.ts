@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
   if (!import.meta.client) {
     return
   }
@@ -13,7 +13,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
   currentPath.value = to.fullPath
 
   const { initAuth, ensureValidSession, isAdmin, isStaff, isClientAdmin, isClientTechnician } = useAuth()
-  initAuth()
+  // Ask the server which user owns this browser's database session.
+  await initAuth()
 
   const isPublicRoute = to.path === '/' || to.path.startsWith('/scan')
   if (isPublicRoute) {

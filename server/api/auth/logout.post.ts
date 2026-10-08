@@ -1,22 +1,16 @@
 // POST /api/auth/logout
-// Revokes the current JWT by inserting its jti into revoked_tokens.
-import { requireAuth } from '../../utils/pgrest'
-import { pgrestAdmin } from '../../utils/pgrest'
+// Revokes the current database session, clears the cookie and drops any
+// real-time connections that belonged to it.
+import { revokeSession, SESSION_COOKIE } from '../../utils/session'
+import { getIO } from '../../utils/socket'
 
 export default defineEventHandler(async (event) => {
-  const payload = requireAuth(event)
-
-  try {
-    await pgrestAdmin('/rpc/revoke_token', {
-      method: 'POST',
-      body: {
-        in_jti: payload.jti,
-        in_expires_at: new Date(payload.exp * 1000).toISOString()
-      }
-    })
-  } catch {
-    // Non-fatal: if revocation fails the token expires naturally (15 min)
+  const session = event.context.session
+  if (session) {
+    await revokeSession(event, session.sessionId)
+    getIO()?.in(`session:${session.sessionId}`).disconnectSockets(true)
+  } else {
+    deleteCookie(event, SESSION_COOKIE, { path: '/' })
   }
-
   return { ok: true }
 })

@@ -2,7 +2,7 @@ version: '3.8'
 
 # in-SIGHT – PostgreSQL + PostgREST stack
 # Every service restarts automatically and data is persisted in a named volume.
-# Deploy ONLY to the designated database server: ubuntu@129.151.169.238
+# Deploy ONLY to the designated database server: ubuntu@154.65.104.217
 # Do NOT modify containers on any other server.
 
 services:

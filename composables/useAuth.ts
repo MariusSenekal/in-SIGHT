@@ -31,48 +31,27 @@ interface AuthResult {
   message: string
 }
 
-// ─── Token helpers (client-side decode only — verification is server-side) ───
+// ─── Session ─────────────────────────────────────────────────────────────────
+// Sessions live in the database (insight.user_sessions). The browser only holds
+// an HttpOnly cookie it cannot read; nothing about the login is kept in
+// localStorage. The current user always comes from GET /api/auth/session.
 
-const AUTH_TOKEN_KEY = 'insight_auth_token'
-
-const decodeTokenPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-      .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
-    return JSON.parse(atob(padded))
-  } catch {
-    return null
-  }
-}
-
-const isTokenExpired = (token: string): boolean => {
-  const payload = decodeTokenPayload(token)
-  if (!payload || typeof payload.exp !== 'number') return true
-  return payload.exp <= Math.floor(Date.now() / 1000)
-}
-
-const buildUserFromPayload = (payload: Record<string, unknown>): AppUser => ({
-  id: Number(payload.sub),
-  name: payload.name as string,
-  username: payload.username as string,
-  role: payload.app_role as AppUser['role'],
-  profile: {
-    displayName: payload.name as string,
-    phone: '',
-    location: '',
-    bio: '',
-    theme: 'inSight',
-    createdAt: new Date().toISOString()
-  }
+const defaultProfile = (displayName: string): UserProfile => ({
+  displayName,
+  phone: '',
+  location: '',
+  bio: '',
+  theme: 'inSight',
+  createdAt: new Date().toISOString()
 })
+
+// Shared in-flight session lookup so concurrent initAuth() calls make one request.
+let initPromise: Promise<void> | null = null
 
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export const useAuth = () => {
   const currentUser = useState<AppUser | null>('auth-current-user', () => null)
-  const authToken = useState<string | null>('auth-token', () => null)
   const initialized = useState<boolean>('auth-initialized', () => false)
 
   // Shared reactive user + company lists (populated by loadUsers/loadCompanies)
@@ -84,8 +63,6 @@ export const useAuth = () => {
 
   const clearAuthState = () => {
     currentUser.value = null
-    authToken.value = null
-    if (import.meta.client) localStorage.removeItem(AUTH_TOKEN_KEY)
   }
 
   const clearDomainState = () => {
@@ -96,66 +73,56 @@ export const useAuth = () => {
     userModulePermissions.value = []
   }
 
-  const applyStoredToken = (token: string): boolean => {
-    if (isTokenExpired(token)) return false
-    const payload = decodeTokenPayload(token)
-    if (!payload) return false
-    currentUser.value = buildUserFromPayload(payload)
-    authToken.value = token
-    return true
+  const loadSession = async () => {
+    try {
+      const { user } = await $fetch<{ user: AppUser }>('/api/auth/session')
+      currentUser.value = { ...user, profile: defaultProfile(user.name) }
+    } catch {
+      clearAuthState()
+      return
+    }
+    // Load profile (theme) and module permissions for the session's user.
+    try {
+      const profile = await $fetch<AppUser>('/api/profile')
+      if (profile && currentUser.value) {
+        currentUser.value.profile = profile.profile
+        if (profile.profile?.theme) {
+          const { initTheme } = useAppTheme()
+          initTheme(profile.profile.theme)
+        }
+      }
+      await loadUserModules()
+    } catch (error) {
+      console.warn('Could not load profile on init:', error)
+    }
   }
 
   const initAuth = async () => {
     if (!import.meta.client || initialized.value) return
-    const stored = localStorage.getItem(AUTH_TOKEN_KEY)
-    if (stored && applyStoredToken(stored)) {
-      // Token is valid, load profile to get theme
-      try {
-        const profile = await $fetch<AppUser>('/api/profile')
-        if (profile && currentUser.value) {
-          currentUser.value.profile = profile.profile
-          // Initialize theme from profile
-          if (profile.profile?.theme) {
-            const { initTheme } = useAppTheme()
-            initTheme(profile.profile.theme)
-          }
-          // Load module permissions
-          await loadUserModules()
-        }
-      } catch (error) {
-        // If profile fetch fails, continue with token-based auth
-        console.warn('Could not load profile on init:', error)
-      }
-    } else {
-      clearAuthState()
-    }
-    initialized.value = true
+    // Remove the token left behind by the old localStorage-based login.
+    localStorage.removeItem('insight_auth_token')
+    initPromise ??= loadSession().finally(() => {
+      initialized.value = true
+      initPromise = null
+    })
+    await initPromise
   }
 
-  const ensureValidSession = (): boolean => {
-    if (!import.meta.client) return Boolean(currentUser.value)
-    if (!initialized.value) initAuth()
-    const token = authToken.value ?? localStorage.getItem(AUTH_TOKEN_KEY)
-    if (!token || !applyStoredToken(token)) {
-      clearAuthState()
-      return false
-    }
-    return true
-  }
+  const ensureValidSession = (): boolean => Boolean(currentUser.value)
 
   // ── Auth actions ──────────────────────────────────────────────────────────
 
   const login = async (username: string, password: string): Promise<AuthResult> => {
     try {
       clearDomainState()
-      const { token, user } = await $fetch<{ token: string; user: AppUser }>('/api/auth/login', {
+      // Never carry a previous user's real-time connection into a new session
+      useSocket().disconnect()
+      const { user } = await $fetch<{ user: AppUser }>('/api/auth/login', {
         method: 'POST',
         body: { username, password }
       })
-      authToken.value = token
-      if (import.meta.client) localStorage.setItem(AUTH_TOKEN_KEY, token)
-      const payload = decodeTokenPayload(token) ?? {}
-      currentUser.value = { ...user, profile: buildUserFromPayload(payload).profile }
+      currentUser.value = { ...user, profile: defaultProfile(user.name) }
+      initialized.value = true
       
       // Initialize theme from user profile
       if (import.meta.client && user.profile?.theme) {
@@ -175,14 +142,12 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      if (authToken.value) {
-        await $fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${authToken.value}` }
-        })
-      }
+      await $fetch('/api/auth/logout', { method: 'POST' })
     } catch { /* non-fatal */ }
-    
+
+    // Drop the real-time connection so it can't keep receiving this user's events
+    useSocket().disconnect()
+
     // Clear all auth state
     clearAuthState()
     
@@ -197,14 +162,9 @@ export const useAuth = () => {
   }
 
   const refreshToken = async (): Promise<boolean> => {
-    if (!authToken.value || isTokenExpired(authToken.value)) return false
+    if (!currentUser.value) return false
     try {
-      const { token } = await $fetch<{ token: string }>('/api/auth/refresh', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` }
-      })
-      authToken.value = token
-      if (import.meta.client) localStorage.setItem(AUTH_TOKEN_KEY, token)
+      await $fetch('/api/auth/refresh', { method: 'POST' })
       return true
     } catch {
       return false
@@ -220,7 +180,6 @@ export const useAuth = () => {
     try {
       await $fetch('/api/profile', {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: input
       })
       currentUser.value = {
@@ -240,7 +199,6 @@ export const useAuth = () => {
   const loadUsers = async () => {
     try {
       users.value = await $fetch<AppUser[]>('/api/users', {
-        headers: { Authorization: `Bearer ${authToken.value}` }
       })
     } catch { users.value = [] }
   }
@@ -251,7 +209,6 @@ export const useAuth = () => {
     try {
       const created = await $fetch<AppUser>('/api/users', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: { name, username, password, role }
       })
       users.value = [
@@ -273,7 +230,6 @@ export const useAuth = () => {
   const loadCompanies = async () => {
     try {
       companies.value = await $fetch<Company[]>('/api/companies', {
-        headers: { Authorization: `Bearer ${authToken.value}` }
       })
     } catch { companies.value = [] }
   }
@@ -284,7 +240,6 @@ export const useAuth = () => {
     try {
       const created = await $fetch<Company>('/api/companies', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: { name }
       })
       companies.value = [...companies.value, created]
@@ -299,7 +254,6 @@ export const useAuth = () => {
     try {
       await $fetch('/api/companies/link', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: { companyId, userId, action: 'link' }
       })
       companies.value = companies.value.map(c =>
@@ -314,7 +268,6 @@ export const useAuth = () => {
     try {
       await $fetch('/api/companies/link', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: { companyId, userId, action: 'unlink' }
       })
       companies.value = companies.value.map(c =>
@@ -342,7 +295,6 @@ export const useAuth = () => {
     try {
       await $fetch(`/api/users/${userId}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: input
       })
       // Update local state
@@ -374,7 +326,6 @@ export const useAuth = () => {
     try {
       await $fetch(`/api/users/${userId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${authToken.value}` }
       })
       users.value = users.value.filter(u => u.id !== userId)
       // Remove from companies
@@ -403,7 +354,7 @@ export const useAuth = () => {
     currentUser.value?.role === 'cleaner' || 
     currentUser.value?.role === 'uv-hero'
   )
-  const isAuthenticated = computed(() => Boolean(currentUser.value && authToken.value))
+  const isAuthenticated = computed(() => Boolean(currentUser.value))
 
   // ── Module Permissions ────────────────────────────────────────────────────
 
@@ -413,7 +364,6 @@ export const useAuth = () => {
 
     try {
       const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`, {
-        headers: { Authorization: `Bearer ${authToken.value}` }
       })
       userModulePermissions.value = result.modules || []
     } catch (err) {
@@ -426,7 +376,6 @@ export const useAuth = () => {
     try {
       await $fetch(`/api/users/${userId}/modules`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body: { modules }
       })
       // Refresh current user's permissions if they're the target
@@ -473,7 +422,6 @@ export const useAuth = () => {
   return {
     users,
     currentUser,
-    authToken,
     isAdmin,
     isCleaner,
     isUvHero,

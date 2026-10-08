@@ -18,12 +18,12 @@ export interface ServiceRequest {
 }
 
 export const useServiceRequests = () => {
-  const { authToken } = useAuth()
+  const { isAuthenticated } = useAuth()
   const requests = useState<ServiceRequest[]>('service-requests', () => [])
   const requestsLoading = useState<boolean>('service-requests-loading', () => false)
 
   const authHeaders = computed((): Record<string, string> =>
-    authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+    ({} as Record<string, string>)
   )
 
   const loadRequests = async () => {

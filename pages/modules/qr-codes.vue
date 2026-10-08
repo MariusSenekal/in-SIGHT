@@ -234,7 +234,7 @@ import QrcodeVue from 'qrcode.vue'
 
 definePageMeta({ ssr: false })
 
-const { currentUser, isAdmin, authToken } = useAuth()
+const { currentUser, isAdmin, isAuthenticated } = useAuth()
 
 // Redirect non-admin users away from this page
 if (import.meta.client) {

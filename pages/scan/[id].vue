@@ -599,7 +599,7 @@ const {
   isClientAdmin, 
   isClientTechnician, 
   isStaff,
-  authToken,
+  isAuthenticated,
   getAvailableModules
 } = useAuth()
 const { loadRecords, getRecords } = useRecords()
@@ -648,7 +648,7 @@ watch(() => serviceHistory.value.length, () => {
 })
 
 const authHeaders = computed((): Record<string, string> =>
-  authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+  ({} as Record<string, string>)
 )
 
 const selectedHistory = ref<ServiceEntry | null>(null)
@@ -792,7 +792,7 @@ const performCheckCompletion = async (isUpdate: boolean) => {
   
   try {
     console.log('Marking check completed for:', record.value.code, '(Update:', isUpdate, ')')
-    console.log('Auth token present:', !!authToken.value)
+    console.log('Auth token present:', isAuthenticated.value)
     console.log('User role:', currentUser.value?.role)
     const result: { entryId: number; timestamp: string; endTimeSet?: boolean } = await markCompletion(record.value.code, 'check')
     checkCompletedFeedback.value = `✅ ${result.timestamp}`
@@ -861,7 +861,7 @@ const performCleaningCompletion = async (isUpdate: boolean) => {
   
   try {
     console.log('Marking cleaning completed for:', record.value.code, '(Update:', isUpdate, ')')
-    console.log('Auth token present:', !!authToken.value)
+    console.log('Auth token present:', isAuthenticated.value)
     console.log('User role:', currentUser.value?.role)
     const result: { entryId: number; timestamp: string; endTimeSet?: boolean } = await markCompletion(record.value.code, 'cleaning')
     cleaningCompletedFeedback.value = `✅ ${result.timestamp}`

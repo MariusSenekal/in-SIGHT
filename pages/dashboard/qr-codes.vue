@@ -335,7 +335,7 @@ if (import.meta.client) {
   watch(() => currentUser.value, checkAccess)
 }
 const { records, loadRecords } = useRecords()
-const { authToken } = useAuth()
+const { isAuthenticated } = useAuth()
 
 // Types for combined items
 interface QRItem {
@@ -354,10 +354,9 @@ const equipment = ref<any[]>([])
 
 // Load all items
 const loadVehicles = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/vehicles', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     vehicles.value = response || []
   } catch (error) {
@@ -367,10 +366,9 @@ const loadVehicles = async () => {
 }
 
 const loadEquipment = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/equipment', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     equipment.value = response || []
   } catch (error) {

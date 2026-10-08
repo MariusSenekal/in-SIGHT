@@ -519,7 +519,7 @@
 definePageMeta({ ssr: false })
 
 const route = useRoute()
-const { authToken, isAdmin } = useAuth()
+const { isAuthenticated, isAdmin } = useAuth()
 const vehicleId = computed(() => route.params.id as string)
 
 interface Vehicle {
@@ -752,7 +752,6 @@ const loadVehicle = async () => {
   loading.value = true
   try {
     vehicle.value = await $fetch<Vehicle>(`/api/vehicles/${vehicleId.value}`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     // Populate edit form
     if (vehicle.value) {
@@ -777,7 +776,6 @@ const loadServiceHistory = async () => {
   historyLoading.value = true
   try {
     serviceHistory.value = await $fetch<ServiceHistory[]>(`/api/vehicles/${vehicleId.value}/service-history`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch (error) {
     console.error('Failed to load service history:', error)
@@ -799,7 +797,6 @@ const submitEdit = async () => {
   try {
     await $fetch(`/api/vehicles/${vehicleId.value}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: editForm
     })
     editFeedback.value = 'Vehicle updated successfully!'
@@ -864,7 +861,6 @@ const submitService = async () => {
       // Update existing service record
       await $fetch(`/api/vehicles/${vehicleId.value}/service-history/${editingServiceId.value}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
       serviceFeedback.value = 'Service record updated successfully!'
@@ -872,7 +868,6 @@ const submitService = async () => {
       // Create new service record
       await $fetch(`/api/vehicles/${vehicleId.value}/service-history`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
       serviceFeedback.value = 'Service record added successfully!'

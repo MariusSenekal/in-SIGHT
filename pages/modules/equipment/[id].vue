@@ -496,7 +496,7 @@
 definePageMeta({ ssr: false })
 
 const route = useRoute()
-const { authToken, isAdmin } = useAuth()
+const { isAuthenticated, isAdmin } = useAuth()
 const equipmentId = computed(() => route.params.id as string)
 
 interface Equipment {
@@ -718,7 +718,6 @@ const loadEquipment = async () => {
   loading.value = true
   try {
     equipment.value = await $fetch<Equipment>(`/api/equipment/${equipmentId.value}`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     // Populate edit form
     if (equipment.value) {
@@ -742,7 +741,6 @@ const loadServiceHistory = async () => {
   historyLoading.value = true
   try {
     serviceHistory.value = await $fetch<ServiceHistory[]>(`/api/equipment/${equipmentId.value}/service-history`, {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
   } catch (error) {
     console.error('Failed to load service history:', error)
@@ -764,7 +762,6 @@ const submitEdit = async () => {
   try {
     await $fetch(`/api/equipment/${equipmentId.value}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: editForm
     })
     editFeedback.value = 'Equipment updated successfully!'
@@ -827,7 +824,6 @@ const submitService = async () => {
       // Update existing service record
       await $fetch(`/api/equipment/${equipmentId.value}/service-history/${editingServiceId.value}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
       serviceFeedback.value = 'Service record updated successfully!'
@@ -835,7 +831,6 @@ const submitService = async () => {
       // Create new service record
       await $fetch(`/api/equipment/${equipmentId.value}/service-history`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken.value}` },
         body
       })
       serviceFeedback.value = 'Service record added successfully!'

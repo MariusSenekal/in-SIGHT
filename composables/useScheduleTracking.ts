@@ -58,13 +58,13 @@ const computeStatus = (checklist: ServiceTask[]): ScheduleStatus => {
 }
 
 export const useScheduleTracking = () => {
-  const { authToken } = useAuth()
+  const { isAuthenticated } = useAuth()
   const templates = useState<ChecklistTemplate[]>('schedule-templates', () => [])
   const entries = useState<ServiceEntry[]>('schedule-entries', () => [])
   const entriesLoading = useState<boolean>('schedule-entries-loading', () => false)
 
   const authHeaders = computed(() =>
-    authToken.value ? { Authorization: `Bearer ${authToken.value}` } : {}
+    ({} as Record<string, string>)
   )
 
   /** Load entries from the server; optionally scoped to a record code */

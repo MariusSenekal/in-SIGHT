@@ -310,7 +310,7 @@
 import type { Record as QrRecord } from '~/composables/useRecords'
 import type { AppUser, Company } from '~/composables/useAuth'
 
-const { isAdmin, isClientTechnician, initAuth, users, companies, loadUsers, loadCompanies, authToken } = useAuth()
+const { isAdmin, isClientTechnician, initAuth, users, companies, loadUsers, loadCompanies, isAuthenticated } = useAuth()
 const { records, loadRecords, addRecord, updateRecord, deleteRecord } = useRecords()
 const { requests, loadRequests } = useServiceRequests()
 
@@ -319,10 +319,9 @@ const vehicles = ref<any[]>([])
 const equipment = ref<any[]>([])
 
 const loadVehicles = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/vehicles', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     vehicles.value = response || []
   } catch (error) {
@@ -332,10 +331,9 @@ const loadVehicles = async () => {
 }
 
 const loadEquipment = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   try {
     const response = await $fetch<any[]>('/api/equipment', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     equipment.value = response || []
   } catch (error) {

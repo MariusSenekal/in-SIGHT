@@ -337,7 +337,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { currentUser, authToken } = useAuth()
+const { currentUser, isAuthenticated } = useAuth()
 
 const loading = ref(true)
 const equipment = ref<any[]>([])
@@ -379,11 +379,10 @@ const newEquipment = reactive({
 })
 
 const loadEquipment = async () => {
-  if (!authToken.value) return
+  if (!isAuthenticated.value) return
   loading.value = true
   try {
     const response = await $fetch<any[]>('/api/equipment', {
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     equipment.value = response || []
   } catch (error) {
@@ -410,7 +409,6 @@ const submitAddEquipment = async () => {
   try {
     await $fetch('/api/equipment', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
         name: trimmedMake, // Include name field for API compatibility
         make: trimmedMake,
@@ -483,7 +481,6 @@ const submitEditEquipment = async () => {
   try {
     await $fetch(`/api/equipment/${editTarget.value.id}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${authToken.value}` },
       body: {
         make: trimmedMake,
         model: editEquipment.model?.trim() || '',
@@ -525,7 +522,6 @@ const submitDeleteEquipment = async () => {
   try {
     await $fetch(`/api/equipment/${deleteTarget.value.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken.value}` }
     })
     deleteFeedback.value = 'Equipment deleted successfully!'
     deleteFeedbackType.value = 'success'

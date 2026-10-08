@@ -1,7 +1,8 @@
 // POST /api/auth/login
-// Validates credentials via PostgREST rpc/authenticate, returns a signed JWT.
-import { signJwt } from '../../utils/jwt'
+// Validates credentials via PostgREST rpc/authenticate, then opens a database
+// session (insight.user_sessions) and sets the HttpOnly session cookie.
 import { pgrestAdmin } from '../../utils/pgrest'
+import { createSession, resolveSession, revokeSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const { username, password } = await readBody<{ username: string; password: string }>(event)
@@ -27,12 +28,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid username or password.' })
   }
 
+  // Close any session this browser already had before opening a new one.
+  const previous = await resolveSession(event)
+  if (previous) await revokeSession(event, previous.sessionId)
+
   const user = rows[0]
-  const config = useRuntimeConfig()
-  const token = signJwt(user.user_id, user.name, user.username, user.role, config.jwtSecret as string)
+  await createSession(event, user.user_id)
 
   return {
-    token,
     user: {
       id: user.user_id,
       name: user.name,
