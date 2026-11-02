@@ -48,6 +48,13 @@ const defaultProfile = (displayName: string): UserProfile => ({
 // Shared in-flight session lookup so concurrent initAuth() calls make one request.
 let initPromise: Promise<void> | null = null
 
+// $fetch has no default timeout, so a stalled mobile connection (weak signal,
+// captive portal, network handover) can leave a request pending indefinitely
+// - which left session/module checks hanging forever instead of failing and
+// retrying. Bound every auth-critical request so it always resolves one way
+// or another.
+const AUTH_FETCH_TIMEOUT_MS = 10_000
+
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export const useAuth = () => {
@@ -80,7 +87,7 @@ export const useAuth = () => {
 
   const loadSession = async () => {
     try {
-      const { user } = await $fetch<{ user: AppUser }>('/api/auth/session')
+      const { user } = await $fetch<{ user: AppUser }>('/api/auth/session', { timeout: AUTH_FETCH_TIMEOUT_MS })
       currentUser.value = { ...user, profile: defaultProfile(user.name) }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number }; statusCode?: number })?.response?.status
@@ -97,16 +104,23 @@ export const useAuth = () => {
 
       try {
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        const { user } = await $fetch<{ user: AppUser }>('/api/auth/session')
+        const { user } = await $fetch<{ user: AppUser }>('/api/auth/session', { timeout: AUTH_FETCH_TIMEOUT_MS })
         currentUser.value = { ...user, profile: defaultProfile(user.name) }
       } catch {
         clearAuthState()
         return
       }
     }
-    // Load profile (theme) and module permissions for the session's user.
+
+    // Module permissions are loaded independently of the profile/theme fetch
+    // below - it manages its own retries and always settles (modulesLoaded
+    // flips to true one way or another), so a profile-fetch failure can't
+    // leave the "checking access" spinner stuck forever.
+    loadUserModules()
+
+    // Load profile (theme) for the session's user. Non-fatal if it fails.
     try {
-      const profile = await $fetch<AppUser>('/api/profile')
+      const profile = await $fetch<AppUser>('/api/profile', { timeout: AUTH_FETCH_TIMEOUT_MS })
       if (profile && currentUser.value) {
         currentUser.value.profile = profile.profile
         if (profile.profile?.theme) {
@@ -114,7 +128,6 @@ export const useAuth = () => {
           initTheme(profile.profile.theme)
         }
       }
-      await loadUserModules()
     } catch (error) {
       console.warn('Could not load profile on init:', error)
     }
@@ -412,7 +425,7 @@ export const useAuth = () => {
     const delaysMs = [1000, 2000, 4000]
     for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
       try {
-        const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`)
+        const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`, { timeout: AUTH_FETCH_TIMEOUT_MS })
         userModulePermissions.value = result.modules || []
         modulesLoaded.value = true
         return
