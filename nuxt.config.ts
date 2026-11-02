@@ -8,7 +8,12 @@ export default defineNuxtConfig({
     transpile: ['vuetify']
   },
   pwa: {
-    registerType: 'autoUpdate',
+    // 'autoUpdate' force-reloads the page whenever the SW thinks it has been
+    // "externally" activated - a known false-positive on mobile when a tab is
+    // resumed rather than freshly opened, with no loop guard, causing an
+    // infinite refresh loop. 'prompt' never auto-reloads; the new SW just
+    // takes over silently on the next natural navigation instead.
+    registerType: 'prompt',
     injectRegister: 'auto',
     strategies: 'injectManifest',
     srcDir: 'service-worker',
