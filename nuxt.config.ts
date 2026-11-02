@@ -103,6 +103,11 @@ export default defineNuxtConfig({
     vapidPublicKey: '',
     vapidPrivateKey: '',
     vapidSubject: 'mailto:support@in-sight.app',
+    // S3 attachments — set via NUXT_AWS_ACCESS_KEY_ID / NUXT_AWS_SECRET_ACCESS_KEY / NUXT_AWS_REGION / NUXT_AWS_S3_BUCKET
+    awsAccessKeyId: '',
+    awsSecretAccessKey: '',
+    awsRegion: 'af-south-1',
+    awsS3Bucket: 'in-sight-app',
     public: {
       siteUrl: 'https://login.in-sight.app'
     }

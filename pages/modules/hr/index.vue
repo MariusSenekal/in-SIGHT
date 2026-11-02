@@ -492,6 +492,16 @@
                   <div class="text-body-2">{{ viewStaffTarget.additional_information || 'No additional information provided.' }}</div>
                 </v-card>
               </v-col>
+
+              <v-col cols="12">
+                <v-card variant="outlined" rounded="lg" class="pa-4">
+                  <AttachmentsPanel
+                    module="hr"
+                    :record-id="viewStaffTarget.id"
+                    :can-edit="isAdmin || isClientAdmin"
+                  />
+                </v-card>
+              </v-col>
             </v-row>
           </div>
         </v-card-text>
