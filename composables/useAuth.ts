@@ -77,9 +77,27 @@ export const useAuth = () => {
     try {
       const { user } = await $fetch<{ user: AppUser }>('/api/auth/session')
       currentUser.value = { ...user, profile: defaultProfile(user.name) }
-    } catch {
-      clearAuthState()
-      return
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number }; statusCode?: number })?.response?.status
+        ?? (err as { statusCode?: number })?.statusCode
+
+      // A real 401 means there's genuinely no valid session - log out.
+      // Anything else (network blip, server mid-restart, timeout) deserves
+      // one retry before we give up and send the user back to the login
+      // screen, so a brief hiccup on refresh doesn't look like a session loss.
+      if (status === 401) {
+        clearAuthState()
+        return
+      }
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const { user } = await $fetch<{ user: AppUser }>('/api/auth/session')
+        currentUser.value = { ...user, profile: defaultProfile(user.name) }
+      } catch {
+        clearAuthState()
+        return
+      }
     }
     // Load profile (theme) and module permissions for the session's user.
     try {
@@ -174,8 +192,15 @@ export const useAuth = () => {
     try {
       await $fetch('/api/auth/refresh', { method: 'POST' })
       return true
-    } catch {
-      return false
+    } catch (err: unknown) {
+      // Only a genuine "session expired/invalid" response (401) should log
+      // the user out. A network blip, timeout, or transient 5xx (e.g. the
+      // server briefly restarting) is not proof the session is gone — treat
+      // it as "couldn't check right now" and try again on the next activity
+      // tick, instead of yanking an otherwise-active user out mid-work.
+      const status = (err as { response?: { status?: number }; statusCode?: number })?.response?.status
+        ?? (err as { statusCode?: number })?.statusCode
+      return status !== 401
     }
   }
 

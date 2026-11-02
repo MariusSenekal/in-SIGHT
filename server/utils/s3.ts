@@ -73,7 +73,7 @@ export const deleteFromS3 = async (key: string): Promise<void> => {
 }
 
 /** Short-lived signed URL so the bucket itself can stay private. */
-export const getSignedViewUrl = async (key: string, fileName: string, expiresInSeconds = 300): Promise<string> => {
+export const getSignedViewUrl = async (key: string, fileName: string, expiresInSeconds = 900): Promise<string> => {
   const command = new GetObjectCommand({
     Bucket: getBucket(),
     Key: key,

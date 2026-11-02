@@ -1,4 +1,4 @@
-const WARNING_AFTER_MS = 14 * 60 * 1000
+const WARNING_AFTER_MS = 29 * 60 * 1000
 const LOGOUT_COUNTDOWN_SECONDS = 60
 const TOKEN_REFRESH_INTERVAL_MS = 30 * 1000
 
@@ -46,6 +46,7 @@ export const useSessionGuard = () => {
     activityEvents.forEach(eventName => {
       window.removeEventListener(eventName, onActivity)
     })
+    document.removeEventListener('visibilitychange', onVisible)
 
     listenersBound = false
   }
@@ -120,6 +121,26 @@ export const useSessionGuard = () => {
     scheduleWarning()
   }
 
+  // Background tabs throttle setTimeout/setInterval, so the warning/countdown
+  // timers can run late (or not at all) while the tab is hidden. Re-check the
+  // session the moment the user comes back instead of waiting for a stray
+  // mouse move, so they don't land back on a page that silently lost its
+  // session minutes ago with no warning ever shown.
+  function onVisible() {
+    if (document.visibilityState !== 'visible' || !isAuthenticated.value) {
+      return
+    }
+
+    lastTokenRefreshMs.value = Date.now()
+    refreshToken().then((alive) => {
+      if (!alive) {
+        logoutFromPrompt()
+        return
+      }
+      scheduleWarning()
+    })
+  }
+
   const stayLoggedIn = async () => {
     if (!isAuthenticated.value) {
       await logout()
@@ -181,6 +202,7 @@ export const useSessionGuard = () => {
       activityEvents.forEach(eventName => {
         window.addEventListener(eventName, onActivity, { passive: true })
       })
+      document.addEventListener('visibilitychange', onVisible)
       listenersBound = true
     }
 

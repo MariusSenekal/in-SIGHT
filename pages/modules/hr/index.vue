@@ -180,9 +180,9 @@
                   density="comfortable"
                 />
               </v-col>
-              <v-col cols="12" sm="6">
+              <v-col v-if="!editingStaff" cols="12" sm="6">
                 <v-alert type="info" variant="tonal" density="compact" rounded="lg">
-                  Photos &amp; documents (ID photo, contracts, certificates, etc.) are added from
+                  Photos &amp; documents (ID photo, contracts, certificates, etc.) can be added from
                   <strong>View Details</strong> once this staff member is saved.
                 </v-alert>
               </v-col>

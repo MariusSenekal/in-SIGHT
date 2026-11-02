@@ -8,7 +8,7 @@ import { pgrestAdmin } from './pgrest'
 
 export const SESSION_COOKIE = 'insight_session'
 // Sign-out after this much inactivity (the client warns one minute before).
-export const SESSION_IDLE_SECONDS = 15 * 60
+export const SESSION_IDLE_SECONDS = 30 * 60
 // Hard cap on a session's lifetime, regardless of activity.
 const SESSION_MAX_SECONDS = 12 * 60 * 60
 // Only write last_seen_at when it is older than this, to avoid a write per request.
