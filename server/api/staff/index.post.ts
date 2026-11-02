@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
         next_of_kin_mobile: body.nextOfKinMobile || '',
         date_joined: body.dateJoined || null,
         contract_renewal_date: body.contractRenewalDate || null,
+        date_of_birth: body.dateOfBirth || null,
         trax_number: body.traxNumber || '',
         uif_number: body.uifNumber || '',
         role: body.role || '',

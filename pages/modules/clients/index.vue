@@ -331,33 +331,31 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="clientForm.lastServiced"
                   label="Last Serviced"
-                  type="date"
                   prepend-inner-icon="mdi-calendar-check"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="clientForm.nextServiceDue"
                   label="Next Service Due"
-                  type="date"
                   prepend-inner-icon="mdi-calendar-clock"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="clientForm.contractRenewalDate"
                   label="Contract Renewal Date"
-                  type="date"
                   prepend-inner-icon="mdi-file-sign"
-                  variant="outlined"
-                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <DatePickerField
+                  v-model="clientForm.dateOfBirth"
+                  label="Date of Birth (optional)"
+                  prepend-inner-icon="mdi-cake-variant"
                 />
               </v-col>
               <v-col cols="12">
@@ -461,6 +459,7 @@
                     Contact Person 1
                   </div>
                   <div class="details-row"><span class="details-label">Name</span><span class="details-value">{{ [viewClientTarget.name, viewClientTarget.surname].filter(Boolean).join(' ') || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Date of Birth</span><span class="details-value">{{ formatDate(viewClientTarget.date_of_birth) }}</span></div>
                   <div class="details-row"><span class="details-label">Email</span><span class="details-value">{{ viewClientTarget.email || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Mobile</span><span class="details-value">{{ viewClientTarget.mobile_number || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Landline</span><span class="details-value">{{ viewClientTarget.landline_number || '—' }}</span></div>
@@ -658,25 +657,18 @@
           <v-form ref="serviceEntryFormEl">
             <v-row dense>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="serviceEntryForm.serviceDate"
                   label="Date *"
-                  type="date"
                   prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  density="comfortable"
-                  :rules="[v => !!v || 'Required']"
+                  :rules="[(v: string) => !!v || 'Required']"
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <TimePickerField
                   v-model="serviceEntryForm.serviceTime"
                   label="Time *"
-                  type="time"
-                  prepend-inner-icon="mdi-clock-outline"
-                  variant="outlined"
-                  density="comfortable"
-                  :rules="[v => !!v || 'Required']"
+                  :rules="[(v: string) => !!v || 'Required']"
                 />
               </v-col>
               <v-col cols="12">
@@ -863,6 +855,7 @@ interface Client {
   contract_renewal_date: string | null
   reg_flags_notes: string
   next_service_due: string | null
+  date_of_birth: string | null
 }
 
 interface ServiceHistoryEntry {
@@ -923,6 +916,7 @@ const defaultClientForm = () => ({
   lastServiced: '',
   nextServiceDue: '',
   contractRenewalDate: '',
+  dateOfBirth: '',
   specialRequirements: '',
   regFlagsNotes: ''
 })
@@ -1064,6 +1058,7 @@ const openEditClientDialog = (client: Client) => {
     lastServiced: client.last_serviced ?? '',
     nextServiceDue: client.next_service_due ?? '',
     contractRenewalDate: client.contract_renewal_date ?? '',
+    dateOfBirth: client.date_of_birth ?? '',
     specialRequirements: client.special_requirements,
     regFlagsNotes: client.reg_flags_notes
   })
@@ -1102,6 +1097,7 @@ const submitClientForm = async () => {
       lastServiced: clientForm.lastServiced || null,
       nextServiceDue: clientForm.nextServiceDue || null,
       contractRenewalDate: clientForm.contractRenewalDate || null,
+      dateOfBirth: clientForm.dateOfBirth || null,
       specialRequirements: clientForm.specialRequirements,
       regFlagsNotes: clientForm.regFlagsNotes
     }
@@ -1284,7 +1280,8 @@ onMounted(loadClients)
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: rgba(var(--v-theme-on-surface), 0.85);
+  font-weight: 700;
   display: flex;
   align-items: center;
 }
@@ -1303,12 +1300,14 @@ onMounted(loadClients)
 
 .details-label {
   font-size: 0.82rem;
-  color: rgba(var(--v-theme-on-surface), 0.65);
+  color: #6b7280;
+  font-weight: 600;
 }
 
 .details-value {
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
   text-align: right;
 }
 </style>

@@ -100,7 +100,8 @@
             Edit Vehicle Specifications
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1">
+        <v-divider />
+        <v-card-text class="pa-5">
           <v-form ref="editFormEl" @submit.prevent="submitEdit">
             <v-row dense>
               <v-col cols="12" sm="6">
@@ -162,13 +163,10 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="editForm.licenseDiscRenewal"
                   label="License Disc Renewal"
-                  type="date"
                   prepend-inner-icon="mdi-calendar-clock"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
@@ -212,7 +210,8 @@
             Service History
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1" style="max-height: 600px; overflow-y: auto;">
+        <v-divider />
+        <v-card-text class="pa-5" style="max-height: 600px; overflow-y: auto;">
           <!-- Loading service history -->
           <div v-if="historyLoading" class="text-center py-4">
             <v-progress-circular indeterminate color="primary" size="48" />
@@ -268,7 +267,8 @@
             </div>
           </div>
         </v-card-text>
-        <v-card-actions class="px-5 pb-4">
+        <v-divider />
+        <v-card-actions class="px-5 py-4">
           <v-spacer />
           <v-btn variant="text" @click="showServiceHistory = false">Close</v-btn>
         </v-card-actions>
@@ -284,7 +284,8 @@
             {{ editingServiceId ? 'Edit Service Record' : 'Add Service Record' }}
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1">
+        <v-divider />
+        <v-card-text class="pa-5">
           <v-form @submit.prevent="submitService">
             <v-row dense>
               <!-- Date Picker -->

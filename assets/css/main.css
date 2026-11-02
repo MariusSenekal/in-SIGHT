@@ -247,6 +247,16 @@ h1, h2, h3, h4, h5 {
   font-weight: 600 !important;
 }
 
+/* Modal/dialog body text: Vuetify's text-medium-emphasis dims to 60% opacity by
+   default, which is too faint to read against a modal's card background.
+   Darken it (and the plain-black fallback v-card-text uses) inside any dialog. */
+.v-overlay .text-medium-emphasis {
+  opacity: 0.87 !important;
+}
+.v-overlay .v-card-text {
+  color: rgba(var(--v-theme-on-surface), 0.92);
+}
+
 /* ── Global Vuetify card improvements ──────────────────────────────────────── */
 .v-application .v-card {
   border: 1px solid rgba(var(--v-border-color), 0.12) !important;

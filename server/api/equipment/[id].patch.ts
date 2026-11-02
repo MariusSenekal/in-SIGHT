@@ -57,23 +57,39 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    let queryParams: Record<string, string> = { id: `eq.${id}` }
-    if (userCompanies && userCompanies.length > 0) {
-      // User belongs to a company - update equipment if it belongs to their company
-      const companyId = userCompanies[0].company_id
-      queryParams.owner_company_id = `eq.${companyId}`
-    } else {
-      // Regular user - update equipment if they own it
-      queryParams.owner_user_id = `eq.${payload.sub}`
+    const companyIds = (userCompanies ?? [])
+      .map(uc => Number(uc.company_id))
+      .filter(id => Number.isFinite(id))
+
+    const equipmentRows = await pgrestAdmin<any[]>('/equipment', {
+      query: { id: `eq.${id}` }
+    })
+
+    const item = equipmentRows?.[0]
+    if (!item) {
+      throw createError({ statusCode: 404, message: 'Equipment not found.' })
+    }
+
+    const ownerUserId = item.owner_user_id == null ? null : Number(item.owner_user_id)
+    const ownerCompanyId = item.owner_company_id == null ? null : Number(item.owner_company_id)
+
+    const hasAccess = (ownerUserId != null && ownerUserId === Number(payload.sub))
+      || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
+
+    if (!hasAccess) {
+      throw createError({ statusCode: 404, message: 'Equipment not found.' })
     }
 
     await pgrestAdmin('/equipment', {
       method: 'PATCH',
-      query: queryParams,
+      query: { id: `eq.${id}` },
       body: updates
     })
     return { success: true }
   } catch (error: unknown) {
+    if ((error as { statusCode?: number }).statusCode) {
+      throw error
+    }
     console.error('[API] Failed to update equipment:', error)
     throw createError({ statusCode: 500, message: 'Failed to update equipment.' })
   }

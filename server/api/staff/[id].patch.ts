@@ -43,6 +43,7 @@ export default defineEventHandler(async (event) => {
   if (body.nextOfKinMobile !== undefined)       updates.next_of_kin_mobile = body.nextOfKinMobile
   if (body.dateJoined !== undefined)            updates.date_joined = body.dateJoined || null
   if (body.contractRenewalDate !== undefined)   updates.contract_renewal_date = body.contractRenewalDate || null
+  if (body.dateOfBirth !== undefined)           updates.date_of_birth = body.dateOfBirth || null
   if (body.traxNumber !== undefined)            updates.trax_number = body.traxNumber
   if (body.uifNumber !== undefined)             updates.uif_number = body.uifNumber
   if (body.role !== undefined)                  updates.role = body.role

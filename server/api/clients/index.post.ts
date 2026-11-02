@@ -69,7 +69,8 @@ export default defineEventHandler(async (event) => {
         service_type: body.serviceType || '',
         contract_renewal_date: body.contractRenewalDate || null,
         reg_flags_notes: body.regFlagsNotes || '',
-        next_service_due: body.nextServiceDue || null
+        next_service_due: body.nextServiceDue || null,
+        date_of_birth: body.dateOfBirth || null
       },
       query: { select: '*' }
     })

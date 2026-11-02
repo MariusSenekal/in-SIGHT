@@ -12,7 +12,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   currentPath.value = to.fullPath
 
-  const { initAuth, ensureValidSession, isAdmin, isStaff, isClientAdmin, isClientTechnician } = useAuth()
+  const { initAuth, ensureValidSession, isAdmin, isStaff, isClientAdmin, isClientTechnician, currentUser } = useAuth()
   // Ask the server which user owns this browser's database session.
   await initAuth()
 
@@ -57,8 +57,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     }
   }
 
-  // Block modules routes for users who are not client admins/technicians/staff
-  if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value && !isStaff.value) {
+  // Block modules routes for users who are not client admins/technicians/staff/plain users
+  const isPlainUser = currentUser.value?.role === 'user'
+  if (to.path.startsWith('/modules') && !isClientAdmin.value && !isClientTechnician.value && !isAdmin.value && !isStaff.value && !isPlainUser) {
     return navigateTo('/')
   }
 

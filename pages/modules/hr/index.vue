@@ -292,23 +292,24 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="staffForm.dateJoined"
                   label="Date Joined"
-                  type="date"
                   prepend-inner-icon="mdi-calendar-account"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="staffForm.contractRenewalDate"
                   label="Contract Renewal Date"
-                  type="date"
                   prepend-inner-icon="mdi-file-sign"
-                  variant="outlined"
-                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <DatePickerField
+                  v-model="staffForm.dateOfBirth"
+                  label="Date of Birth (optional)"
+                  prepend-inner-icon="mdi-cake-variant"
                 />
               </v-col>
               <v-col cols="12" sm="6">
@@ -466,6 +467,7 @@
                   <div class="details-row"><span class="details-label">Role</span><span class="details-value">{{ viewStaffTarget.role || '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Date Joined</span><span class="details-value">{{ formatDate(viewStaffTarget.date_joined) }}</span></div>
                   <div class="details-row"><span class="details-label">Contract Renewal</span><span class="details-value">{{ formatDate(viewStaffTarget.contract_renewal_date) }}</span></div>
+                  <div class="details-row"><span class="details-label">Date of Birth</span><span class="details-value">{{ formatDate(viewStaffTarget.date_of_birth) }}</span></div>
                   <div class="details-row"><span class="details-label">Salary</span><span class="details-value">{{ viewStaffTarget.salary ?? '—' }}</span></div>
                   <div class="details-row"><span class="details-label">Frequency Paid</span><span class="details-value">{{ viewStaffTarget.frequency_paid || '—' }}</span></div>
                 </v-card>
@@ -548,6 +550,7 @@ interface StaffMember {
   next_of_kin_mobile: string
   date_joined: string | null
   contract_renewal_date: string | null
+  date_of_birth: string | null
   trax_number: string
   uif_number: string
   role: string
@@ -609,6 +612,7 @@ const defaultStaffForm = () => ({
   nextOfKinMobile: '',
   dateJoined: '',
   contractRenewalDate: '',
+  dateOfBirth: '',
   traxNumber: '',
   uifNumber: '',
   role: '',
@@ -684,6 +688,7 @@ const openEditStaffDialog = (member: StaffMember) => {
     nextOfKinMobile: member.next_of_kin_mobile,
     dateJoined: member.date_joined ?? '',
     contractRenewalDate: member.contract_renewal_date ?? '',
+    dateOfBirth: member.date_of_birth ?? '',
     traxNumber: member.trax_number,
     uifNumber: member.uif_number,
     role: member.role,
@@ -739,6 +744,7 @@ const submitStaffForm = async () => {
       nextOfKinMobile: staffForm.nextOfKinMobile,
       dateJoined: staffForm.dateJoined || null,
       contractRenewalDate: staffForm.contractRenewalDate || null,
+      dateOfBirth: staffForm.dateOfBirth || null,
       traxNumber: staffForm.traxNumber,
       uifNumber: staffForm.uifNumber,
       role: staffForm.role,
@@ -837,7 +843,8 @@ onMounted(loadStaff)
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.7);
+  color: rgba(var(--v-theme-on-surface), 0.85);
+  font-weight: 700;
   display: flex;
   align-items: center;
 }
@@ -856,12 +863,14 @@ onMounted(loadStaff)
 
 .details-label {
   font-size: 0.82rem;
-  color: rgba(var(--v-theme-on-surface), 0.65);
+  color: #6b7280;
+  font-weight: 600;
 }
 
 .details-value {
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
   text-align: right;
 }
 </style>

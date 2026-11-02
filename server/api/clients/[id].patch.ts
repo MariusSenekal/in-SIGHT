@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
   if (body.contractRenewalDate !== undefined)   updates.contract_renewal_date = body.contractRenewalDate || null
   if (body.regFlagsNotes !== undefined)         updates.reg_flags_notes = body.regFlagsNotes
   if (body.nextServiceDue !== undefined)        updates.next_service_due = body.nextServiceDue || null
+  if (body.dateOfBirth !== undefined)           updates.date_of_birth = body.dateOfBirth || null
 
   try {
     if (payload.app_role === 'client_admin') {

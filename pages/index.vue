@@ -364,7 +364,8 @@ const allActions = computed(() => [
     action: () => navigateTo('/modules'),
     adminOnly: false,
     clientAdminOnly: true,
-    showToClientTechnician: false
+    showToClientTechnician: false,
+    showToPlainUser: true
   },
   {
     key: 'management',
@@ -404,6 +405,8 @@ const allActions = computed(() => [
   },
 ])
 
+const isPlainUser = computed(() => currentUser.value?.role === 'user')
+
 const visibleActions = computed(() =>
   allActions.value.filter(a => {
     // For client technicians, only show actions marked for them
@@ -412,7 +415,7 @@ const visibleActions = computed(() =>
     }
     // For other roles, use the original filtering logic
     if (a.adminOnly && !isAdmin.value) return false
-    if (a.clientAdminOnly && !isClientAdmin.value) return false
+    if (a.clientAdminOnly && !isClientAdmin.value && !(a.showToPlainUser && isPlainUser.value)) return false
     return true
   })
 )

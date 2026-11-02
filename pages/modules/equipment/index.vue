@@ -69,11 +69,12 @@
                 </div>
               </v-card-text>
               <v-card-actions class="px-4 pb-4">
-                <v-btn 
-                  variant="text" 
-                  color="primary" 
+                <v-btn
+                  variant="text"
+                  color="info"
                   size="small"
-                  @click.stop="navigateTo(`/modules/equipment/${item.id}`)"
+                  prepend-icon="mdi-eye"
+                  @click.stop="openViewDialog(item)"
                 >
                   View Details
                 </v-btn>
@@ -106,7 +107,8 @@
             Add New Equipment
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1">
+        <v-divider />
+        <v-card-text class="pa-5">
           <v-form ref="addForm" @submit.prevent="submitAddEquipment">
             <v-row dense>
               <v-col cols="12" sm="6">
@@ -165,13 +167,10 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="newEquipment.nextServiceDue"
                   label="Next Service Due"
-                  type="date"
                   prepend-inner-icon="mdi-wrench-clock"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
             </v-row>
@@ -205,7 +204,8 @@
             Edit Equipment
           </div>
         </v-card-title>
-        <v-card-text class="pa-5 pt-1">
+        <v-divider />
+        <v-card-text class="pa-5">
           <v-form ref="editFormRef" @submit.prevent="submitEditEquipment">
             <v-row dense>
               <v-col cols="12" sm="6">
@@ -264,13 +264,10 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <DatePickerField
                   v-model="editEquipment.nextServiceDue"
                   label="Next Service Due"
-                  type="date"
                   prepend-inner-icon="mdi-wrench-clock"
-                  variant="outlined"
-                  density="comfortable"
                 />
               </v-col>
             </v-row>
@@ -291,6 +288,71 @@
           >
             Save Changes
           </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ─── View Equipment Dialog ─── -->
+    <v-dialog v-model="showViewDialog" max-width="760" scrollable>
+      <v-card rounded="xl">
+        <v-card-title class="pa-5 pb-3 d-flex align-center ga-2">
+          <v-icon icon="mdi-file-document-outline" color="info" />
+          Equipment Record Details
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-0" v-if="viewTarget">
+          <div class="equipment-details-hero pa-5">
+            <div class="d-flex align-start justify-space-between ga-3 flex-wrap">
+              <div class="d-flex align-center ga-3">
+                <v-avatar size="44" color="white" variant="tonal">
+                  <v-icon icon="mdi-toolbox" color="info" />
+                </v-avatar>
+                <div>
+                  <h3 class="text-h6 font-weight-bold mb-1">{{ viewTarget.make }} {{ viewTarget.model || viewTarget.name }}</h3>
+                  <p class="text-body-2 text-medium-emphasis mb-0">{{ viewTarget.year || viewTarget.category || 'Equipment' }}</p>
+                </div>
+              </div>
+              <div class="d-flex ga-2 flex-wrap">
+                <v-chip v-if="viewTarget.colour" color="info" variant="outlined" size="small">
+                  {{ viewTarget.colour }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
+
+          <div class="pa-5 pt-4">
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-toolbox-outline" size="18" color="primary" class="mr-1" />
+                    Equipment Information
+                  </div>
+                  <div class="details-row"><span class="details-label">Make</span><span class="details-value">{{ viewTarget.make || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Model</span><span class="details-value">{{ viewTarget.model || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Year</span><span class="details-value">{{ viewTarget.year || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Colour</span><span class="details-value">{{ viewTarget.colour || '—' }}</span></div>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-card variant="outlined" rounded="lg" class="details-section-card pa-4 h-100">
+                  <div class="details-section-title mb-3">
+                    <v-icon icon="mdi-barcode" size="18" color="secondary" class="mr-1" />
+                    Allocation & Service
+                  </div>
+                  <div class="details-row"><span class="details-label">Serial Number</span><span class="details-value">{{ viewTarget.serial_number || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Unit Allocation</span><span class="details-value">{{ viewTarget.unit_allocation || '—' }}</span></div>
+                  <div class="details-row"><span class="details-label">Next Service Due</span><span class="details-value">{{ formatDate(viewTarget.next_service_due) }}</span></div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="px-5 py-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showViewDialog = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -345,6 +407,19 @@ const showAddDialog = ref(false)
 const addLoading = ref(false)
 const addFeedback = ref('')
 const addFeedbackType = ref<'success' | 'error'>('success')
+
+const showViewDialog = ref(false)
+const viewTarget = ref<any>(null)
+
+const openViewDialog = (item: any) => {
+  viewTarget.value = item
+  showViewDialog.value = true
+}
+
+const formatDate = (date: string | null) => {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 const showEditDialog = ref(false)
 const editTarget = ref<any>(null)
@@ -571,5 +646,49 @@ onMounted(() => {
 
 .btn-gradient {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.equipment-details-hero {
+  background: linear-gradient(135deg, rgba(var(--v-theme-info), 0.12) 0%, rgba(var(--v-theme-primary), 0.06) 100%);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.details-section-card {
+  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+}
+
+.details-section-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.details-row:last-child {
+  border-bottom: 0;
+}
+
+.details-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.details-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  text-align: right;
 }
 </style>

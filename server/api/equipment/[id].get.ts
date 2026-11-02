@@ -47,31 +47,30 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    let equipment
-    if (userCompanies && userCompanies.length > 0) {
-      // User belongs to a company - get equipment if it belongs to their company
-      const companyId = userCompanies[0].company_id
-      equipment = await pgrestAdmin<any[]>('/equipment', {
-        query: {
-          id: `eq.${id}`,
-          owner_company_id: `eq.${companyId}`
-        }
-      })
-    } else {
-      // Regular user - get equipment if they own it
-      equipment = await pgrestAdmin<any[]>('/equipment', {
-        query: {
-          id: `eq.${id}`,
-          owner_user_id: `eq.${payload.sub}`
-        }
-      })
-    }
-    
-    if (!equipment || equipment.length === 0) {
+    const companyIds = (userCompanies ?? [])
+      .map(uc => Number(uc.company_id))
+      .filter(id => Number.isFinite(id))
+
+    const equipmentRows = await pgrestAdmin<any[]>('/equipment', {
+      query: { id: `eq.${id}` }
+    })
+
+    const item = equipmentRows?.[0]
+    if (!item) {
       throw createError({ statusCode: 404, message: 'Equipment not found.' })
     }
-    
-    return equipment[0]
+
+    const ownerUserId = item.owner_user_id == null ? null : Number(item.owner_user_id)
+    const ownerCompanyId = item.owner_company_id == null ? null : Number(item.owner_company_id)
+
+    const hasAccess = (ownerUserId != null && ownerUserId === Number(payload.sub))
+      || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
+
+    if (!hasAccess) {
+      throw createError({ statusCode: 404, message: 'Equipment not found.' })
+    }
+
+    return item
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) {
       throw error

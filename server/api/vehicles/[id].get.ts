@@ -48,33 +48,33 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    let vehicles
-    if (userCompanies && userCompanies.length > 0) {
-      // User belongs to a company - get vehicle if it belongs to their company
-      const companyId = userCompanies[0].company_id
-      vehicles = await pgrestAdmin<any[]>('/vehicles', {
-        query: {
-          select: '*',
-          id: `eq.${id}`,
-          owner_company_id: `eq.${companyId}`
-        }
-      })
-    } else {
-      // Regular user - get vehicle if they own it
-      vehicles = await pgrestAdmin<any[]>('/vehicles', {
-        query: {
-          select: '*',
-          id: `eq.${id}`,
-          owner_user_id: `eq.${payload.sub}`
-        }
-      })
-    }
-    
-    if (!vehicles || vehicles.length === 0) {
+    const companyIds = (userCompanies ?? [])
+      .map(uc => Number(uc.company_id))
+      .filter(id => Number.isFinite(id))
+
+    const vehicles = await pgrestAdmin<any[]>('/vehicles', {
+      query: {
+        select: '*',
+        id: `eq.${id}`
+      }
+    })
+
+    const vehicle = vehicles?.[0]
+    if (!vehicle) {
       throw createError({ statusCode: 404, message: 'Vehicle not found.' })
     }
-    
-    return vehicles[0]
+
+    const ownerUserId = vehicle.owner_user_id == null ? null : Number(vehicle.owner_user_id)
+    const ownerCompanyId = vehicle.owner_company_id == null ? null : Number(vehicle.owner_company_id)
+
+    const hasAccess = (ownerUserId != null && ownerUserId === Number(payload.sub))
+      || (ownerCompanyId != null && companyIds.includes(ownerCompanyId))
+
+    if (!hasAccess) {
+      throw createError({ statusCode: 404, message: 'Vehicle not found.' })
+    }
+
+    return vehicle
   } catch (error: unknown) {
     if ((error as { statusCode?: number }).statusCode === 404) {
       throw error
