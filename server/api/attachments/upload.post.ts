@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const { record, companySegment, recordSegment } = await loadOwnedRecordOrDeny(
+  const { record, userSegment, recordSegment } = await loadOwnedRecordOrDeny(
     payload, moduleKey, recordId, ['admin', 'client_admin']
   )
 
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
   for (const file of files) {
     const key = buildAttachmentKey({
       module: moduleKey,
-      companySegment,
+      userSegment,
       recordSegment,
       purposeSegment: purpose,
       fileName: file.filename

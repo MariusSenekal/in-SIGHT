@@ -21,7 +21,7 @@ export const loadOwnedRecordOrDeny = async (
   moduleKey: string,
   recordId: number,
   allowedAppRoles: string[]
-): Promise<{ record: OwnedRecord; companySegment: string; recordSegment: string }> => {
+): Promise<{ record: OwnedRecord; userSegment: string; recordSegment: string }> => {
   const config = attachmentModules[moduleKey]
   if (!config) {
     throw createError({ statusCode: 400, message: 'Unknown module.' })
@@ -56,17 +56,28 @@ export const loadOwnedRecordOrDeny = async (
     }
   }
 
-  let companySegment = `user-${record.owner_user_id ?? 'unassigned'}`
-  if (record.owner_company_id) {
-    const companies = await pgrestAdmin<Array<{ id: number; name: string }>>('/companies', {
-      query: { id: `eq.${record.owner_company_id}`, select: 'id,name' }
+  // Folder layout is Module/User/Record/Purpose. "User" is always the
+  // record's owner_user_id (the account that created it) rather than the
+  // company or whoever happens to be uploading right now: owner_user_id is
+  // set on every record at creation time regardless of role (admin,
+  // client_admin, or a plain user with no company), so it's the one
+  // consistently-populated identity to key the folder on. This also keeps
+  // every file for a given record under one stable folder even when a
+  // client_admin and their client_technicians share the same company and
+  // both upload to the same staff member's record.
+  let userSegment = `user-${record.owner_user_id ?? 'unassigned'}`
+  if (record.owner_user_id) {
+    const owners = await pgrestAdmin<Array<{ id: number; username: string; name: string }>>('/users', {
+      query: { id: `eq.${record.owner_user_id}`, select: 'id,username,name' }
     })
-    if (companies?.[0]?.name) companySegment = companies[0].name
+    const owner = owners?.[0]
+    if (owner?.username) userSegment = owner.username
+    else if (owner?.name) userSegment = owner.name
   }
 
   return {
     record,
-    companySegment,
+    userSegment,
     recordSegment: recordDisplayName(config, record)
   }
 }

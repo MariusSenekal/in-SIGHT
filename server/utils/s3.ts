@@ -34,11 +34,11 @@ export const slugifySegment = (value: string, fallback = 'general'): string => {
 
 /**
  * Build the S3 object key for an attachment following the required layout:
- * Module/<user-company>/<Record name>/<what the photo is for>/<file>
+ * Module/<user>/<Record name>/<what the photo is for>/<file>
  */
 export const buildAttachmentKey = (opts: {
   module: string
-  companySegment: string
+  userSegment: string
   recordSegment: string
   purposeSegment: string
   fileName: string
@@ -49,7 +49,7 @@ export const buildAttachmentKey = (opts: {
 
   return [
     slugifySegment(opts.module),
-    slugifySegment(opts.companySegment),
+    slugifySegment(opts.userSegment),
     slugifySegment(opts.recordSegment),
     slugifySegment(opts.purposeSegment),
     `${unique}-${safeFileName}`

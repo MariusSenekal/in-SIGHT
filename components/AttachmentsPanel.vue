@@ -20,15 +20,34 @@
           color="primary"
           variant="tonal"
           size="small"
-          prepend-icon="mdi-cloud-upload-outline"
+          prepend-icon="mdi-image-multiple-outline"
           :loading="uploading"
-          @click="triggerFilePicker"
+          @click="triggerPhotoPicker"
         >
-          Add Files
+          Add Photos
+        </v-btn>
+        <v-btn
+          color="secondary"
+          variant="tonal"
+          size="small"
+          prepend-icon="mdi-file-document-multiple-outline"
+          :loading="uploading"
+          @click="triggerDocumentPicker"
+        >
+          Add Documents
         </v-btn>
         <input
-          ref="fileInputRef"
+          ref="photoInputRef"
           type="file"
+          accept="image/*"
+          multiple
+          class="d-none"
+          @change="onFilesSelected"
+        />
+        <input
+          ref="documentInputRef"
+          type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           multiple
           class="d-none"
           @change="onFilesSelected"
@@ -47,10 +66,10 @@
       @dragover.prevent="isDragging = true"
       @dragleave.prevent="isDragging = false"
       @drop.prevent="onDrop"
-      @click="triggerFilePicker"
+      @click="triggerPhotoPicker"
     >
       <v-icon icon="mdi-tray-arrow-up" size="22" color="primary" class="mb-1" />
-      <div class="text-caption text-medium-emphasis">Drag &amp; drop files here, or click to browse</div>
+      <div class="text-caption text-medium-emphasis">Drag &amp; drop any number of photos or documents here, or use the buttons above</div>
     </div>
 
     <div v-if="loading" class="text-center py-4">
@@ -137,7 +156,8 @@ const uploading = ref(false)
 const errorMessage = ref('')
 const uploadPurpose = ref('Other')
 const isDragging = ref(false)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const photoInputRef = ref<HTMLInputElement | null>(null)
+const documentInputRef = ref<HTMLInputElement | null>(null)
 const busyId = ref<number | null>(null)
 const busyAction = ref<'view' | 'share' | 'delete' | null>(null)
 const snackbar = ref({ show: false, text: '', color: 'success' })
@@ -164,7 +184,8 @@ const loadAttachments = async () => {
 
 watch(() => [props.module, props.recordId], loadAttachments, { immediate: true })
 
-const triggerFilePicker = () => fileInputRef.value?.click()
+const triggerPhotoPicker = () => photoInputRef.value?.click()
+const triggerDocumentPicker = () => documentInputRef.value?.click()
 
 const uploadFiles = async (fileList: FileList | File[]) => {
   if (!props.recordId || !fileList.length) return
