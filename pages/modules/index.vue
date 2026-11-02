@@ -22,8 +22,14 @@
           </div>
         </v-card>
 
+        <!-- Loading state: don't flash every module as locked while permissions are still being confirmed -->
+        <div v-if="!modulesLoaded" class="text-center py-10">
+          <v-progress-circular indeterminate color="primary" size="40" />
+          <p class="text-body-2 text-medium-emphasis mt-3">Checking your module access&hellip;</p>
+        </div>
+
         <!-- Module cards grid -->
-        <v-row dense>
+        <v-row v-else dense>
           <v-col cols="12" sm="6" md="4" class="d-flex" v-for="module in availableModules" :key="module.key">
             <v-card
               rounded="xl"
@@ -60,7 +66,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-const { isAdmin, hasModuleAccess, logout } = useAuth()
+const { isAdmin, hasModuleAccess, logout, modulesLoaded } = useAuth()
 
 const handleLogout = () => {
   logout()

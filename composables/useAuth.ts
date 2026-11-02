@@ -60,6 +60,10 @@ export const useAuth = () => {
   const records = useState<any[]>('records', () => [])
   const serviceRequests = useState<any[]>('service-requests', () => [])
   const userModulePermissions = useState<string[]>('user-module-permissions', () => [])
+  // Distinguishes "haven't confirmed yet" from "confirmed: no modules" so a
+  // slow fetch (mobile networks especially, right after a cold refresh)
+  // doesn't flash every module as locked before the real answer arrives.
+  const modulesLoaded = useState<boolean>('user-module-permissions-loaded', () => false)
 
   const clearAuthState = () => {
     currentUser.value = null
@@ -71,6 +75,7 @@ export const useAuth = () => {
     records.value = []
     serviceRequests.value = []
     userModulePermissions.value = []
+    modulesLoaded.value = false
   }
 
   const loadSession = async () => {
@@ -391,17 +396,49 @@ export const useAuth = () => {
 
   // ── Module Permissions ────────────────────────────────────────────────────
 
+  const statusOf = (err: unknown): number | undefined =>
+    (err as { response?: { status?: number }; statusCode?: number })?.response?.status
+      ?? (err as { statusCode?: number })?.statusCode
+
+  // Mobile networks are slower and flakier to re-establish right after a cold
+  // page refresh (waking from background, reconnecting to cellular, etc.), so
+  // a single quick retry isn't always enough. Retry a few times with backoff
+  // before accepting defeat, and never let a transient failure wipe out
+  // already-known-good permissions.
   const loadUserModules = async (userId?: number): Promise<void> => {
     const targetUserId = userId ?? currentUser.value?.id
     if (!targetUserId) return
 
-    try {
-      const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`, {
-      })
-      userModulePermissions.value = result.modules || []
-    } catch (err) {
-      console.error('Failed to load user modules:', err)
-      userModulePermissions.value = []
+    const delaysMs = [1000, 2000, 4000]
+    for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+      try {
+        const result = await $fetch<{ modules: string[] }>(`/api/users/${targetUserId}/modules`)
+        userModulePermissions.value = result.modules || []
+        modulesLoaded.value = true
+        return
+      } catch (err: unknown) {
+        const status = statusOf(err)
+        // A real 401/403 means this user genuinely has no access - reflect
+        // that immediately, no point retrying.
+        if (status === 401 || status === 403) {
+          console.error('Failed to load user modules:', err)
+          userModulePermissions.value = []
+          modulesLoaded.value = true
+          return
+        }
+
+        if (attempt === delaysMs.length) {
+          console.error('Failed to load user modules after retries:', err)
+          // Leave existing permissions as-is rather than clearing them -
+          // better to show stale-but-correct access than to lock the user
+          // out of everything over a transient failure. Still mark as
+          // "loaded" so the UI stops showing a spinner forever.
+          modulesLoaded.value = true
+          return
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]))
+      }
     }
   }
 
@@ -481,6 +518,7 @@ export const useAuth = () => {
     linkUserToCompany,
     unlinkUserFromCompany,
     userModulePermissions,
+    modulesLoaded,
     loadUserModules,
     updateUserModules,
     hasModuleAccess,

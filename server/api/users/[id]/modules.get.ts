@@ -2,7 +2,6 @@
 // Fetch module permissions for a specific user
 
 import { defineEventHandler, getRouterParam, getRequestHeader, createError } from 'h3'
-import { pgrest } from '~/server/utils/pgrest'
 import { pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
@@ -61,8 +60,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const result = await pgrest<{ module: string }[]>('/user_module_permissions', {
-      token,
+    // Authorization is already fully handled above in JS (own record, admin,
+    // or client_admin within the same company), so this reads via the admin
+    // token like every other endpoint instead of forwarding the caller's
+    // short-lived (120s) internal JWT through RLS - one less thing that can
+    // transiently fail right after a page refresh.
+    const result = await pgrestAdmin<{ module: string }[]>('/user_module_permissions', {
       query: {
         select: 'module',
         user_id: `eq.${targetUserId}`
