@@ -95,6 +95,10 @@ export const useAuth = () => {
     } catch (error) {
       console.warn('Could not load profile on init:', error)
     }
+
+    if (import.meta.client) {
+      usePushNotifications().subscribe()
+    }
   }
 
   const initAuth = async () => {
@@ -132,7 +136,11 @@ export const useAuth = () => {
       
       // Load module permissions
       await loadUserModules()
-      
+
+      if (import.meta.client) {
+        usePushNotifications().subscribe()
+      }
+
       return { ok: true, message: 'Login successful.' }
     } catch (err: unknown) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Invalid username or password.'

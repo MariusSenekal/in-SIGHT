@@ -11,6 +11,7 @@
         @stay="stayLoggedIn"
         @logout="logoutFromPrompt"
       />
+      <BirthdayReminderDialog />
     </ClientOnly>
   </v-app>
 </template>

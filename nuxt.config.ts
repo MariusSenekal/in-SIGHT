@@ -10,6 +10,9 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     injectRegister: 'auto',
+    strategies: 'injectManifest',
+    srcDir: 'service-worker',
+    filename: 'sw.ts',
     manifest: {
       name: 'in-SIGHT',
       short_name: 'in-SIGHT',
@@ -48,8 +51,7 @@ export default defineNuxtConfig({
         }
       ]
     },
-    workbox: {
-      navigateFallback: '/',
+    injectManifest: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg,json,txt,woff2}']
     },
     client: {
@@ -97,6 +99,10 @@ export default defineNuxtConfig({
     // Server-only secrets — set via NUXT_JWT_SECRET and NUXT_PGREST_URL env vars
     jwtSecret: '',
     pgrestUrl: '',
+    // Web Push — set via NUXT_VAPID_PUBLIC_KEY / NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
+    vapidPublicKey: '',
+    vapidPrivateKey: '',
+    vapidSubject: 'mailto:support@in-sight.app',
     public: {
       siteUrl: 'https://login.in-sight.app'
     }
