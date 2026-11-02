@@ -181,17 +181,10 @@
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-file-input
-                  :model-value="selectedIdPhoto"
-                  label="Upload ID Photo"
-                  prepend-inner-icon="mdi-camera"
-                  prepend-icon=""
-                  accept="image/*"
-                  variant="outlined"
-                  density="comfortable"
-                  show-size
-                  @update:model-value="handleIdPhotoSelection"
-                />
+                <v-alert type="info" variant="tonal" density="compact" rounded="lg">
+                  Photos &amp; documents (ID photo, contracts, certificates, etc.) are added from
+                  <strong>View Details</strong> once this staff member is saved.
+                </v-alert>
               </v-col>
               <v-col cols="12" sm="6">
                 <v-select
@@ -375,9 +368,6 @@
           </v-form>
           <v-alert v-if="staffFeedback" :type="staffFeedbackType" variant="tonal" density="compact" class="mt-3">
             {{ staffFeedback }}
-          </v-alert>
-          <v-alert v-if="photoUploadMessage" :type="photoUploadMessageType" variant="tonal" density="compact" class="mt-3">
-            {{ photoUploadMessage }}
           </v-alert>
         </v-card-text>
         <v-divider />
@@ -605,9 +595,6 @@ const staffFeedback = ref('')
 const staffFeedbackType = ref<'success' | 'error'>('success')
 const showViewStaffDialog = ref(false)
 const viewStaffTarget = ref<StaffMember | null>(null)
-const selectedIdPhoto = ref<File | File[] | null>(null)
-const photoUploadMessage = ref('')
-const photoUploadMessageType = ref<'info' | 'success' | 'error'>('info')
 
 const defaultStaffForm = () => ({
   name: '',
@@ -678,8 +665,6 @@ const openAddStaffDialog = () => {
   editingStaff.value = null
   Object.assign(staffForm, defaultStaffForm())
   staffFeedback.value = ''
-  selectedIdPhoto.value = null
-  photoUploadMessage.value = ''
   showStaffDialog.value = true
 }
 
@@ -709,27 +694,12 @@ const openEditStaffDialog = (member: StaffMember) => {
     isActive: member.is_active
   })
   staffFeedback.value = ''
-  selectedIdPhoto.value = null
-  photoUploadMessage.value = ''
   showStaffDialog.value = true
 }
 
 const openViewStaffDialog = (member: StaffMember) => {
   viewStaffTarget.value = member
   showViewStaffDialog.value = true
-}
-
-const handleIdPhotoSelection = (value: File | File[] | null) => {
-  selectedIdPhoto.value = value
-
-  const hasSelection = Array.isArray(value)
-    ? value.length > 0
-    : !!value
-
-  photoUploadMessage.value = hasSelection
-    ? 'Cloud storage still being planned and implimented.'
-    : ''
-  photoUploadMessageType.value = 'info'
 }
 
 const submitStaffForm = async () => {
