@@ -90,6 +90,13 @@ const navigationItems = computed(() => [
     show: isAdmin.value
   },
   {
+    to: '/dashboard/bulk-import',
+    title: 'Bulk Import',
+    description: 'Download templates and bulk-import records.',
+    icon: 'mdi-file-upload-outline',
+    show: isAdmin.value
+  },
+  {
     to: '/records',
     title: 'Records Dashboard',
     description: 'All records and tracking.',
@@ -124,6 +131,11 @@ const pageConfigs: Record<string, { title: string; description: string; icon: st
     title: 'Service Requests',
     description: 'Review maintenance, cleaning and satisfaction feedback from users.',
     icon: 'mdi-clipboard-list-outline'
+  },
+  '/dashboard/bulk-import': {
+    title: 'Bulk Import',
+    description: 'Download a module template, fill it in, and bulk-import records for a specific user/client.',
+    icon: 'mdi-file-upload-outline'
   },
   '/records': {
     title: 'Records Dashboard',
