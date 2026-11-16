@@ -528,7 +528,13 @@ const submitService = async () => {
 }
 
 watch(() => props.modelValue, (val) => {
-  if (val && serviceHistory.value.length === 0) {
+  if (val) {
+    loadServiceHistory()
+  }
+}, { immediate: true })
+
+watch(() => props.recordId, () => {
+  if (props.modelValue) {
     loadServiceHistory()
   }
 })
