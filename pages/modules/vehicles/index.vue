@@ -383,7 +383,7 @@
             variant="outlined"
             color="error"
             prepend-icon="mdi-history"
-            @click="navigateTo(`/modules/vehicles/${viewTarget.id}`)"
+            @click="openServiceHistory(viewTarget)"
           >
             View Service History
           </v-btn>
@@ -392,6 +392,14 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Service History Dialog -->
+    <ServiceHistoryDialog
+      v-if="serviceHistoryTarget"
+      v-model="showServiceHistory"
+      module="vehicles"
+      :record-id="serviceHistoryTarget.id"
+    />
 
     <!-- Delete Vehicle Dialog -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -462,6 +470,14 @@ const viewTarget = ref<Vehicle | null>(null)
 const openViewDialog = (vehicle: Vehicle) => {
   viewTarget.value = vehicle
   showViewDialog.value = true
+}
+
+const showServiceHistory = ref(false)
+const serviceHistoryTarget = ref<Vehicle | null>(null)
+
+const openServiceHistory = (vehicle: Vehicle) => {
+  serviceHistoryTarget.value = vehicle
+  showServiceHistory.value = true
 }
 
 const showEditDialog = ref(false)
