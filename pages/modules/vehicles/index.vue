@@ -378,6 +378,15 @@
         </v-card-text>
         <v-divider />
         <v-card-actions class="px-5 py-4">
+          <v-btn
+            v-if="viewTarget"
+            variant="outlined"
+            color="error"
+            prepend-icon="mdi-history"
+            @click="navigateTo(`/modules/vehicles/${viewTarget.id}`)"
+          >
+            View Service History
+          </v-btn>
           <v-spacer />
           <v-btn variant="text" @click="showViewDialog = false">Close</v-btn>
         </v-card-actions>
