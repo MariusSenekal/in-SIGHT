@@ -1,15 +1,17 @@
-// POST /api/bulk-import/upload - Bulk INSERT new records, parsed from a CSV
-// built against our own template, into one module's table, all attributed
-// to a single target user/client the admin picked. This never updates
-// existing rows — every row in the file becomes a brand-new record.
+// POST /api/bulk-import/upload - Bulk INSERT new records, built from the
+// row data the admin reviewed (and optionally edited/added/deleted) in the
+// preview grid, into one module's table, all attributed to a single target
+// user/client the admin picked. This never updates existing rows — every
+// row becomes a brand-new record.
 import { requireAuth, pgrestAdmin } from '~/server/utils/pgrest'
 import { bulkImportSchemas } from '~/server/utils/bulkImportSchemas'
-import { validateImport } from '~/server/utils/bulkImportValidate'
+import { validateRows } from '~/server/utils/bulkImportValidate'
+import { generateUniqueRecordCodes } from '~/server/utils/recordCode'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin'])
 
-  const body = await readBody<{ module: string; targetUserId: number; csv: string }>(event)
+  const body = await readBody<{ module: string; targetUserId: number; rows: Array<Record<string, string>> }>(event)
   const schema = bulkImportSchemas[body?.module]
   if (!schema) {
     throw createError({ statusCode: 400, message: 'Unknown module.' })
@@ -18,6 +20,10 @@ export default defineEventHandler(async (event) => {
   const targetUserId = Number(body.targetUserId)
   if (!targetUserId) {
     throw createError({ statusCode: 400, message: 'A target user is required.' })
+  }
+
+  if (!Array.isArray(body.rows) || body.rows.length === 0) {
+    throw createError({ statusCode: 400, message: 'No rows to import.' })
   }
 
   const targetUsers = await pgrestAdmin<Array<{ id: number }>>('/users', {
@@ -32,17 +38,18 @@ export default defineEventHandler(async (event) => {
   })
   const ownerCompanyId = memberships?.length ? Number(memberships[0].company_id) : null
 
-  const result = validateImport(body.module, body.csv, { userId: targetUserId, companyId: ownerCompanyId })
-
-  if (!result.headersMatch) {
-    throw createError({
-      statusCode: 400,
-      message: 'This file\'s columns don\'t match the current template. Please re-download the template and re-enter your data.'
-    })
-  }
+  const result = validateRows(body.module, body.rows, { userId: targetUserId, companyId: ownerCompanyId })
 
   if (result.records.length === 0) {
     return { inserted: 0, errors: result.errors }
+  }
+
+  // QR records need a unique `code`, same as the single-record create
+  // endpoint - the generic bulk-import schema/validator has no notion of
+  // this, so it's stamped on here, specifically for this one module.
+  if (body.module === 'records') {
+    const codes = await generateUniqueRecordCodes(result.records.length)
+    result.records.forEach((record, i) => { record.code = codes[i] })
   }
 
   try {
@@ -52,8 +59,14 @@ export default defineEventHandler(async (event) => {
       query: { select: 'id' }
     })
     return { inserted: Array.isArray(inserted) ? inserted.length : result.records.length, errors: result.errors }
-  } catch (error: unknown) {
-    console.error('[API] Bulk import insert failed:', error)
-    throw createError({ statusCode: 500, message: 'Failed to insert records. No records were imported.' })
+  } catch (error: any) {
+    console.error('[API] Bulk import insert failed:', error?.data ?? error)
+    const pgMessage = error?.data?.message || error?.data?.hint
+    throw createError({
+      statusCode: 500,
+      message: pgMessage
+        ? `Failed to insert records: ${pgMessage}`
+        : 'Failed to insert records. No records were imported.'
+    })
   }
 })

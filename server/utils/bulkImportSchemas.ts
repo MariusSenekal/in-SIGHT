@@ -4,6 +4,15 @@ export interface BulkFieldSpec {
   required?: boolean
   type?: 'number' | 'date' | 'boolean'
   example: string
+  /**
+   * Value to send when this optional field is left blank, matching the
+   * column's own DEFAULT so every bulk-inserted row still carries the same
+   * set of keys (PostgREST requires that) without violating NOT NULL.
+   * Defaults to '' for plain text fields and null for typed ones - only
+   * set this when a typed column is NOT NULL with a non-null default,
+   * e.g. staff_members.is_active (BOOLEAN NOT NULL DEFAULT TRUE).
+   */
+  blankValue?: unknown
 }
 
 export interface BulkImportSchema {
@@ -70,7 +79,7 @@ export const bulkImportSchemas: Record<string, BulkImportSchema> = {
       { header: 'Salary', key: 'salary', type: 'number', example: '9500' },
       { header: 'Frequency Paid', key: 'frequency_paid', example: 'Monthly' },
       { header: 'Additional Information', key: 'additional_information', example: '' },
-      { header: 'Is Active (TRUE/FALSE)', key: 'is_active', type: 'boolean', example: 'TRUE' }
+      { header: 'Is Active (TRUE/FALSE)', key: 'is_active', type: 'boolean', example: 'TRUE', blankValue: true }
     ]
   },
   vehicles: {
@@ -99,5 +108,26 @@ export const bulkImportSchemas: Record<string, BulkImportSchema> = {
       { header: 'Unit Allocation', key: 'unit_allocation', example: 'Main Warehouse' },
       { header: 'Next Service Due (YYYY-MM-DD)', key: 'next_service_due', type: 'date', example: '2026-12-01' }
     ]
+  },
+  records: {
+    label: 'Cleaning / Compliance',
+    table: '/records',
+    fields: [
+      { header: 'Name', key: 'name', required: true, example: 'Reception Cleaning Station' },
+      { header: 'Type', key: 'type', example: 'Cleaning Station' },
+      { header: 'Location', key: 'location', example: 'Main Building, Ground Floor' },
+      { header: 'Description', key: 'description', example: '' }
+    ]
   }
+}
+
+// Maps a bulk-import module key to the permission key stored in
+// insight.user_module_permissions (the two use different vocab in a few
+// places across the app - this is the single place that reconciles them).
+export const bulkImportPermissionModule: Record<string, string> = {
+  clients: 'clients',
+  staff: 'hr',
+  vehicles: 'vehicle',
+  equipment: 'equipment',
+  records: 'cleaning'
 }

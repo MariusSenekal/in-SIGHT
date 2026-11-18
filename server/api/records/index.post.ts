@@ -1,16 +1,7 @@
 // POST /api/records
 // Admin/staff creates a new QR record.
 import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
-
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-const generateCode = () => {
-  let suffix = ''
-  for (let i = 0; i < 6; i++) {
-    suffix += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
-  }
-  return `REC-${suffix}`
-}
+import { generateRecordCode } from '../../utils/recordCode'
 
 export default defineEventHandler(async (event) => {
   requireAuth(event, ['admin', 'staff', 'cleaner', 'uv-hero'])
@@ -28,7 +19,7 @@ export default defineEventHandler(async (event) => {
   if (!name?.trim()) throw createError({ statusCode: 400, message: 'Record name is required.' })
 
   // Generate a unique code (retry on collision)
-  let code = generateCode()
+  let code = generateRecordCode()
   let attempts = 0
   while (attempts < 10) {
     const existing = await pgrest<any[]>('/records', {
@@ -36,7 +27,7 @@ export default defineEventHandler(async (event) => {
       query: { code: `eq.${code}`, select: 'id' }
     })
     if (!existing?.length) break
-    code = generateCode()
+    code = generateRecordCode()
     attempts++
   }
 
