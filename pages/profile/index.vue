@@ -303,6 +303,15 @@ const buildDiagnostics = async (extra?: string) => {
   lines.push(`Notification.permission: ${('Notification' in window) ? Notification.permission : 'n/a'}`)
   lines.push(`displayMode standalone: ${window.matchMedia('(display-mode: standalone)').matches}`)
   lines.push(`displayMode fullscreen: ${window.matchMedia('(display-mode: fullscreen)').matches}`)
+  lines.push(`location.href: ${window.location.href}`)
+  const pwa = useNuxtApp().$pwa
+  lines.push(`$pwa present: ${!!pwa}`)
+  if (pwa) {
+    lines.push(`$pwa.registrationError: ${pwa.registrationError?.value}`)
+    lines.push(`$pwa.swActivated: ${pwa.swActivated?.value}`)
+    lines.push(`$pwa.offlineReady: ${pwa.offlineReady?.value}`)
+    lines.push(`$pwa.needRefresh: ${pwa.needRefresh?.value}`)
+  }
   try {
     const regs = await navigator.serviceWorker.getRegistrations()
     lines.push(`SW registrations: ${regs.length}`)
@@ -311,6 +320,18 @@ const buildDiagnostics = async (extra?: string) => {
     })
   } catch (error) {
     lines.push(`SW registrations: error — ${error instanceof Error ? error.message : String(error)}`)
+  }
+  try {
+    const swResp = await fetch('/sw.js', { cache: 'no-store' })
+    lines.push(`/sw.js fetch: status=${swResp.status} content-type=${swResp.headers.get('content-type')}`)
+  } catch (error) {
+    lines.push(`/sw.js fetch: error — ${error instanceof Error ? error.message : String(error)}`)
+  }
+  try {
+    const manual = await navigator.serviceWorker.register('/sw.js', { scope: '/', type: 'classic' })
+    lines.push(`manual register() succeeded: scope=${manual.scope}`)
+  } catch (error) {
+    lines.push(`manual register() threw: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`)
   }
   try {
     const { publicKey } = await $fetch<{ publicKey: string }>('/api/push/public-key')
