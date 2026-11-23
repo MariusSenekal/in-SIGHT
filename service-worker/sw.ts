@@ -5,14 +5,18 @@
 declare let self: ServiceWorkerGlobalScope
 
 import { precacheAndRoute } from 'workbox-precaching'
-import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { createHandlerBoundToURL } from 'workbox-precaching'
 
+// This app is ssr:false with Nitro serving '/' dynamically on every
+// request -- there is no static index.html in the build output for
+// globPatterns to precache. A NavigationRoute bound to '/' via
+// createHandlerBoundToURL('/') therefore throws "non-precached-url" the
+// moment this script is evaluated (precached URLs are looked up eagerly
+// at call time, not lazily), which crashes the ENTIRE service worker
+// before it can register at all -- no error surfaces anywhere except the
+// browser's own "ServiceWorker script evaluation failed". Navigations
+// are left to hit the network/Nitro directly; only static assets (JS,
+// CSS, icons) get precached below.
 precacheAndRoute(self.__WB_MANIFEST)
-
-// Equivalent of the old generateSW `navigateFallback: '/'` option: any
-// unmatched navigation falls back to the cached app shell for offline use.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/')))
 
 self.addEventListener('install', () => {
   self.skipWaiting()
