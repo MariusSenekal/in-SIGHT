@@ -5,6 +5,7 @@
 import { pgrestAdmin } from '../utils/pgrest'
 import { getUpcomingBirthdays } from '../utils/birthdays'
 import { sendPushToUser } from '../utils/push'
+import { createNotification } from '../utils/notifications'
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
 const TRIGGER_HOUR = 7 // local server time — don't push before 07:00
@@ -63,11 +64,25 @@ const runBirthdayPushCheck = async () => {
 
     for (const bday of birthdays) {
       const label = bday.type === 'client' ? 'Client' : 'HR'
+      const title = `🎂 Birthday ${bday.when}`
+      const body = `${ownerName}'s account — ${label} record ${bday.name}'s birthday is ${bday.when}.`
+      const url = bday.type === 'client' ? '/modules/clients' : '/modules/hr'
+
       await sendPushToUser(ownerId, {
-        title: `🎂 Birthday ${bday.when}`,
-        body: `${ownerName}'s account — ${label} record ${bday.name}'s birthday is ${bday.when}.`,
+        title,
+        body,
         tag: `birthday-${bday.type}-${bday.id}-${bday.when}`,
-        url: bday.type === 'client' ? '/modules/clients' : '/modules/hr'
+        url
+      })
+
+      await createNotification({
+        userId: ownerId,
+        type: 'birthday',
+        title,
+        body,
+        linkType: bday.type === 'client' ? 'clients' : 'hr',
+        linkId: bday.id,
+        dedupeKey: `birthday-${bday.type}-${bday.id}-${bday.when}-${todayDateString()}`
       })
     }
   }

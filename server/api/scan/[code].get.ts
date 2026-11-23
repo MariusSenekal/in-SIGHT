@@ -75,6 +75,17 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Resolve the cleaner/staff name who actioned each entry (created_by -> users.name),
+  // so the scan page can show it next to the role badge in its own column.
+  const creatorIds = [...new Set((entries ?? []).map((e: any) => e.created_by).filter((id: unknown) => id != null))]
+  let nameByCreatorId = new Map<number, string>()
+  if (creatorIds.length > 0) {
+    const creators = await pgrestAdmin<Array<{ id: number; name: string }>>('/users', {
+      query: { id: `in.(${creatorIds.join(',')})`, select: 'id,name' }
+    })
+    nameByCreatorId = new Map((creators ?? []).map((u) => [Number(u.id), u.name]))
+  }
+
   // Fetch completion history for all entries
   const entryIds = (entries ?? []).map((e: any) => e.id)
   let completionHistory: any[] = []
@@ -107,6 +118,7 @@ export default defineEventHandler(async (event) => {
         status: e.status,
         notes: e.notes ?? '',
         createdByRole: e.created_by_role || null,
+        createdByName: e.created_by != null ? (nameByCreatorId.get(Number(e.created_by)) ?? null) : null,
         checkCompletedAt: formatTimeOrNull(e.check_completed_at),
         cleaningCompletedAt: formatTimeOrNull(e.cleaning_completed_at),
         uvCheckCompletedAt: formatTimeOrNull(e.uv_check_completed_at),

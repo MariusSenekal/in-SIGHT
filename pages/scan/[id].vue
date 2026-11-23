@@ -42,7 +42,11 @@
                 </th>
                 <th>
                   <span class="material-symbols-outlined table-icon">person</span>
-                  <span class="header-text">Completed By</span>
+                  <span class="header-text">Role</span>
+                </th>
+                <th>
+                  <span class="material-symbols-outlined table-icon">badge</span>
+                  <span class="header-text">Name</span>
                 </th>
                 <th>
                   <span class="material-symbols-outlined table-icon">flag</span>
@@ -77,6 +81,9 @@
                       {{ getRoleLabel(entry) }}
                     </span>
                   </div>
+                </td>
+                <td class="user-name-cell">
+                  <span class="user-name-text">{{ entry.createdByName || '—' }}</span>
                 </td>
                 <td class="status-cell">
                   <span class="status-badge" :class="entry.status">
@@ -2235,6 +2242,17 @@ textarea.request-input {
   color: #6b7280;
 }
 
+.user-name-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.user-name-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
 /* Location Column */
 .location-header {
   text-align: center;
@@ -2506,6 +2524,15 @@ textarea.request-input {
     font-size: 0.65rem;
     letter-spacing: 0.02em;
     white-space: nowrap;
+  }
+
+  /* Name column: compact on mobile */
+  .user-name-cell {
+    min-width: 60px;
+  }
+
+  .user-name-text {
+    font-size: 0.7rem;
   }
 
   /* Location column: compact on mobile */

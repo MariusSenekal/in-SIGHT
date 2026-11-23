@@ -1,6 +1,6 @@
 // GET /api/entries
 // Returns all service entries with embedded tasks and messages. Admin/staff.
-import { requireAuth, pgrest, getBearerToken } from '../../utils/pgrest'
+import { requireAuth, pgrest, pgrestAdmin, getBearerToken } from '../../utils/pgrest'
 
 const fmt = (iso: string | null) =>
   iso
@@ -33,6 +33,19 @@ export default defineEventHandler(async (event) => {
 
   const rows = await pgrest<any[]>('/service_entries', { token, query })
 
+  // Resolve the cleaner/staff name who actioned each entry (created_by -> users.name).
+  // Looked up with the admin token since a cleaner/uv-hero's own RLS policy only
+  // lets them see their own user row -- but everyone on this page is already
+  // staff/cleaner/uv-hero/admin, so surfacing just the display name is safe here.
+  const creatorIds = [...new Set((rows ?? []).map((e: any) => e.created_by).filter((id: unknown) => id != null))]
+  let nameByCreatorId = new Map<number, string>()
+  if (creatorIds.length > 0) {
+    const creators = await pgrestAdmin<Array<{ id: number; name: string }>>('/users', {
+      query: { id: `in.(${creatorIds.join(',')})`, select: 'id,name' }
+    })
+    nameByCreatorId = new Map((creators ?? []).map((u) => [Number(u.id), u.name]))
+  }
+
   // Fetch completion history for all entries
   const entryIds = (rows ?? []).map((e: any) => e.id)
   let completionHistory: any[] = []
@@ -57,6 +70,7 @@ export default defineEventHandler(async (event) => {
       status: e.status,
       notes: e.notes ?? '',
       createdByRole: e.created_by_role || null,
+      createdByName: e.created_by != null ? (nameByCreatorId.get(Number(e.created_by)) ?? null) : null,
       checkCompletedAt: fmtOrNull(e.check_completed_at),
       cleaningCompletedAt: fmtOrNull(e.cleaning_completed_at),
       uvCheckCompletedAt: fmtOrNull(e.uv_check_completed_at),

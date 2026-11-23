@@ -30,6 +30,7 @@ export interface ServiceEntry {
   status: ScheduleStatus
   notes: string
   createdByRole: string | null
+  createdByName?: string | null
   checkCompletedAt: string | null
   cleaningCompletedAt: string | null
   uvCheckCompletedAt?: string | null

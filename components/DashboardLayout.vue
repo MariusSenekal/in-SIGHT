@@ -15,7 +15,8 @@
                 <p class="text-caption text-white d-none d-sm-block" style="opacity:0.8">{{ pageConfig.description }}</p>
               </div>
             </div>
-            <div class="d-flex ga-2 flex-wrap" style="position: relative; z-index: 1;">
+            <div class="d-flex align-center ga-2 flex-wrap" style="position: relative; z-index: 1;">
+              <NotificationBell />
               <v-btn color="white" variant="tonal" prepend-icon="mdi-arrow-left" size="small" @click="navigateTo('/')">Back</v-btn>
               <v-btn color="white" variant="outlined" prepend-icon="mdi-logout" size="small" @click="handleLogout">Log Out</v-btn>
             </div>
