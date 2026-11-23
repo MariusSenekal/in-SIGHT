@@ -428,10 +428,15 @@ const submitLogin = async () => {
     formMessage.value = 'Please enter both username and password.'
     return
   }
-  
+
+  // Must run synchronously, before any await, or the browser treats the
+  // user gesture (this click) as expired and silently skips the
+  // permission prompt instead of showing it -- see usePushNotifications.ts.
+  usePushNotifications().requestPermission()
+
   loginLoading.value = true
   formMessage.value = ''
-  
+
   try {
     const result = await login(loginForm.username, loginForm.password)
     if (!result.ok) { 

@@ -14,16 +14,28 @@ export const usePushNotifications = () => {
   const isSupported = () =>
     import.meta.client && 'serviceWorker' in navigator && 'PushManager' in window
 
+  // Most mobile browsers only show the permission popup when
+  // requestPermission() is called synchronously inside a user gesture
+  // (a click/tap handler) with no `await` ahead of it -- call this as the
+  // very first line of that handler. Once the gesture window has passed
+  // (e.g. after an awaited login request), the browser silently resolves
+  // to 'default' instead of prompting, with no error at all.
+  const requestPermission = (): Promise<NotificationPermission> => {
+    if (!isSupported()) return Promise.resolve('denied')
+    if (Notification.permission !== 'default') return Promise.resolve(Notification.permission)
+    return Notification.requestPermission()
+  }
+
+  // Finishes the subscription using whatever permission state already
+  // exists -- never prompts itself, so it's safe to call from async code
+  // (e.g. straight after login) once requestPermission() has already run
+  // inside the click handler, or on every subsequent app load where the
+  // user already granted permission.
   const subscribe = async (): Promise<void> => {
     if (!isSupported()) return
-    if (Notification.permission === 'denied') return
+    if (Notification.permission !== 'granted') return
 
     try {
-      const permission = Notification.permission === 'granted'
-        ? 'granted'
-        : await Notification.requestPermission()
-      if (permission !== 'granted') return
-
       const registration = await navigator.serviceWorker.ready
       let subscription = await registration.pushManager.getSubscription()
 
@@ -46,6 +58,16 @@ export const usePushNotifications = () => {
     }
   }
 
+  // Requests permission (must be called directly from a click/tap handler)
+  // then subscribes if granted -- the one call sites that aren't already
+  // inside a user gesture (e.g. session restore on page load) should call
+  // subscribe() alone instead, since permission will already be resolved
+  // from a previous visit by then.
+  const requestPermissionAndSubscribe = async (): Promise<void> => {
+    await requestPermission()
+    await subscribe()
+  }
+
   const unsubscribe = async (): Promise<void> => {
     if (!isSupported()) return
     try {
@@ -62,5 +84,5 @@ export const usePushNotifications = () => {
     }
   }
 
-  return { isSupported, subscribe, unsubscribe }
+  return { isSupported, requestPermission, subscribe, requestPermissionAndSubscribe, unsubscribe }
 }

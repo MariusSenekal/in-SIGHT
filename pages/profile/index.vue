@@ -90,6 +90,69 @@
       </v-card-text>
     </v-card>
 
+    <!-- ── Notifications ──────────────────────────────────────────────── -->
+    <v-card rounded="xl" elevation="2" class="mb-5">
+      <div class="card-top-strip" />
+      <v-card-text class="pa-5">
+        <div class="d-flex align-center ga-2 mb-3">
+          <v-icon icon="mdi-bell-outline" color="primary" size="24" />
+          <h2 class="text-subtitle-1 text-md-h6 font-weight-bold">Notifications</h2>
+        </div>
+
+        <p class="text-body-2 text-medium-emphasis mb-3">
+          Get alerted on this device for upcoming services, birthdays and contract renewals.
+        </p>
+
+        <v-btn
+          v-if="pushPermission !== 'granted'"
+          color="primary"
+          variant="flat"
+          prepend-icon="mdi-bell-ring-outline"
+          class="btn-gradient"
+          :loading="enablingPush"
+          :disabled="pushPermission === 'denied' || !pushSupported"
+          @click="enablePushNotifications"
+        >
+          Enable Notifications
+        </v-btn>
+        <v-chip v-else color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">
+          Notifications enabled on this device
+        </v-chip>
+
+        <v-alert
+          v-if="pushPermission === 'denied'"
+          type="warning"
+          variant="tonal"
+          density="compact"
+          rounded="lg"
+          class="mt-3"
+        >
+          Notifications are blocked for this site in your browser. Open your browser/app settings
+          and allow notifications for in-SIGHT, then reload this page.
+        </v-alert>
+        <v-alert
+          v-else-if="!pushSupported"
+          type="info"
+          variant="tonal"
+          density="compact"
+          rounded="lg"
+          class="mt-3"
+        >
+          This browser doesn't support push notifications.
+        </v-alert>
+        <v-alert
+          v-else-if="pushMessage"
+          type="info"
+          variant="tonal"
+          density="compact"
+          rounded="lg"
+          class="mt-3"
+        >
+          {{ pushMessage }}
+        </v-alert>
+      </v-card-text>
+    </v-card>
+
     <!-- ── Theme picker ───────────────────────────────────────────────── -->
     <v-card rounded="xl" elevation="2">
       <div class="card-top-strip" />
@@ -189,8 +252,37 @@
 const { currentUser, initAuth, updateProfile } = useAuth()
 const { goBack } = useAppNavigation()
 const { currentThemeName, applyTheme, themeOptions } = useAppTheme()
+const { isSupported: pushIsSupported, requestPermissionAndSubscribe } = usePushNotifications()
 
 const profileMessage = ref('')
+
+// ── Notifications ────────────────────────────────────────────────────────
+const pushSupported = ref(false)
+const pushPermission = ref<NotificationPermission>('default')
+const enablingPush = ref(false)
+const pushMessage = ref('')
+
+const refreshPushPermission = () => {
+  pushSupported.value = pushIsSupported()
+  pushPermission.value = pushSupported.value ? Notification.permission : 'denied'
+}
+
+// Enable Notifications is a direct click handler -- requestPermission()
+// must run as its very first synchronous step (no await ahead of it) or
+// the browser silently skips the prompt instead of showing it.
+const enablePushNotifications = async () => {
+  enablingPush.value = true
+  pushMessage.value = ''
+  try {
+    await requestPermissionAndSubscribe()
+    refreshPushPermission()
+    if (pushPermission.value !== 'granted') {
+      pushMessage.value = 'Notifications were not enabled. You can try again below.'
+    }
+  } finally {
+    enablingPush.value = false
+  }
+}
 
 const lightThemes = computed(() => themeOptions.filter(t => !t.dark))
 const darkThemes  = computed(() => themeOptions.filter(t => t.dark))
@@ -214,6 +306,8 @@ onMounted(() => {
   profileForm.phone = currentUser.value.profile?.phone || ''
   profileForm.location = currentUser.value.profile?.location || ''
   profileForm.bio = currentUser.value.profile?.bio || ''
+
+  refreshPushPermission()
 })
 
 const saveProfile = async () => {
