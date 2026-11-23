@@ -162,6 +162,16 @@
         >
           {{ pushMessage }}
         </v-alert>
+
+        <!-- Diagnostic readout so a failure can be screenshotted and reported
+             exactly, instead of showing only "it didn't work". -->
+        <v-expansion-panels class="mt-4" variant="accordion">
+          <v-expansion-panel title="Diagnostics" bg-color="transparent">
+            <v-expansion-panel-text>
+              <div class="text-caption" style="font-family: monospace; white-space: pre-wrap;">{{ pushDiagnostics }}</div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
       </v-card-text>
     </v-card>
 
@@ -280,6 +290,37 @@ const pushSubscribed = ref(false)
 const enablingPush = ref(false)
 const disablingPush = ref(false)
 const pushMessage = ref('')
+const pushDiagnostics = ref('Not checked yet.')
+
+const buildDiagnostics = async (extra?: string) => {
+  const lines: string[] = []
+  lines.push(`timestamp: ${new Date().toISOString()}`)
+  lines.push(`userAgent: ${navigator.userAgent}`)
+  lines.push(`isSecureContext: ${window.isSecureContext}`)
+  lines.push(`'serviceWorker' in navigator: ${'serviceWorker' in navigator}`)
+  lines.push(`'PushManager' in window: ${'PushManager' in window}`)
+  lines.push(`'Notification' in window: ${'Notification' in window}`)
+  lines.push(`Notification.permission: ${('Notification' in window) ? Notification.permission : 'n/a'}`)
+  lines.push(`displayMode standalone: ${window.matchMedia('(display-mode: standalone)').matches}`)
+  lines.push(`displayMode fullscreen: ${window.matchMedia('(display-mode: fullscreen)').matches}`)
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    lines.push(`SW registrations: ${regs.length}`)
+    regs.forEach((r, i) => {
+      lines.push(`  [${i}] scope=${r.scope} active=${r.active?.state ?? 'none'} waiting=${r.waiting?.state ?? 'none'} installing=${r.installing?.state ?? 'none'}`)
+    })
+  } catch (error) {
+    lines.push(`SW registrations: error — ${error instanceof Error ? error.message : String(error)}`)
+  }
+  try {
+    const { publicKey } = await $fetch<{ publicKey: string }>('/api/push/public-key')
+    lines.push(`server publicKey present: ${!!publicKey} (len ${publicKey?.length ?? 0})`)
+  } catch (error) {
+    lines.push(`server publicKey fetch: error — ${error instanceof Error ? error.message : String(error)}`)
+  }
+  if (extra) lines.push(`last action: ${extra}`)
+  pushDiagnostics.value = lines.join('\n')
+}
 
 const refreshPushPermission = async () => {
   pushSupported.value = pushIsSupported()
@@ -299,9 +340,11 @@ const enablePushNotifications = async () => {
     if (pushPermission.value !== 'granted' || !pushSubscribed.value) {
       pushMessage.value = 'Notifications were not enabled. You can try again below.'
     }
+    await buildDiagnostics('enable (no exception thrown)')
   } catch (error) {
     await refreshPushPermission()
     pushMessage.value = error instanceof Error ? error.message : 'Failed to enable notifications.'
+    await buildDiagnostics(`enable threw: ${pushMessage.value}`)
   } finally {
     enablingPush.value = false
   }
@@ -341,6 +384,7 @@ onMounted(() => {
   profileForm.bio = currentUser.value.profile?.bio || ''
 
   refreshPushPermission()
+  buildDiagnostics('page opened')
 })
 
 const saveProfile = async () => {
