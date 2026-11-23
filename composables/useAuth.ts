@@ -133,7 +133,7 @@ export const useAuth = () => {
     }
 
     if (import.meta.client) {
-      usePushNotifications().subscribe()
+      usePushNotifications().subscribe().catch(() => {})
     }
   }
 
@@ -174,7 +174,7 @@ export const useAuth = () => {
       await loadUserModules()
 
       if (import.meta.client) {
-        usePushNotifications().subscribe()
+        usePushNotifications().subscribe().catch(() => {})
       }
 
       return { ok: true, message: 'Login successful.' }

@@ -10,6 +10,19 @@ const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)))
 }
 
+// navigator.serviceWorker.ready never resolves or rejects if no service
+// worker ever successfully activates for this origin -- so every call that
+// awaits it is raced against this timeout instead of hanging forever with
+// no error and no way to tell the user what went wrong.
+const SW_READY_TIMEOUT_MS = 8000
+
+const getReadyRegistration = async (): Promise<ServiceWorkerRegistration> => {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Service worker did not become ready in time.')), SW_READY_TIMEOUT_MS)
+  )
+  return Promise.race([navigator.serviceWorker.ready, timeout])
+}
+
 export const usePushNotifications = () => {
   const isSupported = () =>
     import.meta.client && 'serviceWorker' in navigator && 'PushManager' in window
@@ -30,32 +43,30 @@ export const usePushNotifications = () => {
   // exists -- never prompts itself, so it's safe to call from async code
   // (e.g. straight after login) once requestPermission() has already run
   // inside the click handler, or on every subsequent app load where the
-  // user already granted permission.
+  // user already granted permission. Throws on failure so a caller that's
+  // driving a loading spinner (the profile page's Enable button) can show
+  // the real reason instead of spinning forever with a swallowed error.
   const subscribe = async (): Promise<void> => {
-    if (!isSupported()) return
+    if (!isSupported()) throw new Error('Push notifications are not supported in this browser.')
     if (Notification.permission !== 'granted') return
 
-    try {
-      const registration = await navigator.serviceWorker.ready
-      let subscription = await registration.pushManager.getSubscription()
+    const registration = await getReadyRegistration()
+    let subscription = await registration.pushManager.getSubscription()
 
-      if (!subscription) {
-        const { publicKey } = await $fetch<{ publicKey: string }>('/api/push/public-key')
-        if (!publicKey) return
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource
-        })
-      }
-
-      const json = subscription.toJSON()
-      await $fetch('/api/push/subscribe', {
-        method: 'POST',
-        body: { endpoint: json.endpoint, keys: json.keys }
+    if (!subscription) {
+      const { publicKey } = await $fetch<{ publicKey: string }>('/api/push/public-key')
+      if (!publicKey) throw new Error('Push is not configured on the server yet.')
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource
       })
-    } catch (error) {
-      console.warn('[push] Failed to subscribe this device:', error)
     }
+
+    const json = subscription.toJSON()
+    await $fetch('/api/push/subscribe', {
+      method: 'POST',
+      body: { endpoint: json.endpoint, keys: json.keys }
+    })
   }
 
   // Requests permission (must be called directly from a click/tap handler)
@@ -76,7 +87,7 @@ export const usePushNotifications = () => {
   const isSubscribed = async (): Promise<boolean> => {
     if (!isSupported() || Notification.permission !== 'granted') return false
     try {
-      const registration = await navigator.serviceWorker.ready
+      const registration = await getReadyRegistration()
       const subscription = await registration.pushManager.getSubscription()
       return subscription !== null
     } catch {
@@ -87,7 +98,7 @@ export const usePushNotifications = () => {
   const unsubscribe = async (): Promise<void> => {
     if (!isSupported()) return
     try {
-      const registration = await navigator.serviceWorker.ready
+      const registration = await getReadyRegistration()
       const subscription = await registration.pushManager.getSubscription()
       if (!subscription) return
 

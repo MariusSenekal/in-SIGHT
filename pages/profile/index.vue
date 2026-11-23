@@ -299,6 +299,9 @@ const enablePushNotifications = async () => {
     if (pushPermission.value !== 'granted' || !pushSubscribed.value) {
       pushMessage.value = 'Notifications were not enabled. You can try again below.'
     }
+  } catch (error) {
+    await refreshPushPermission()
+    pushMessage.value = error instanceof Error ? error.message : 'Failed to enable notifications.'
   } finally {
     enablingPush.value = false
   }
