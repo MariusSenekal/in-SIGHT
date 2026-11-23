@@ -103,8 +103,23 @@
           Get alerted on this device for upcoming services, birthdays and contract renewals.
         </p>
 
+        <div v-if="pushPermission === 'granted' && pushSubscribed" class="d-flex align-center ga-3 flex-wrap">
+          <v-chip color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">
+            Notifications enabled on this device
+          </v-chip>
+          <v-btn
+            variant="text"
+            size="small"
+            color="error"
+            prepend-icon="mdi-bell-off-outline"
+            :loading="disablingPush"
+            @click="disablePushNotifications"
+          >
+            Disable
+          </v-btn>
+        </div>
         <v-btn
-          v-if="pushPermission !== 'granted'"
+          v-else
           color="primary"
           variant="flat"
           prepend-icon="mdi-bell-ring-outline"
@@ -115,9 +130,6 @@
         >
           Enable Notifications
         </v-btn>
-        <v-chip v-else color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">
-          Notifications enabled on this device
-        </v-chip>
 
         <v-alert
           v-if="pushPermission === 'denied'"
@@ -252,19 +264,27 @@
 const { currentUser, initAuth, updateProfile } = useAuth()
 const { goBack } = useAppNavigation()
 const { currentThemeName, applyTheme, themeOptions } = useAppTheme()
-const { isSupported: pushIsSupported, requestPermissionAndSubscribe } = usePushNotifications()
+const {
+  isSupported: pushIsSupported,
+  requestPermissionAndSubscribe,
+  isSubscribed: pushIsSubscribed,
+  unsubscribe: pushUnsubscribe
+} = usePushNotifications()
 
 const profileMessage = ref('')
 
 // ── Notifications ────────────────────────────────────────────────────────
 const pushSupported = ref(false)
 const pushPermission = ref<NotificationPermission>('default')
+const pushSubscribed = ref(false)
 const enablingPush = ref(false)
+const disablingPush = ref(false)
 const pushMessage = ref('')
 
-const refreshPushPermission = () => {
+const refreshPushPermission = async () => {
   pushSupported.value = pushIsSupported()
   pushPermission.value = pushSupported.value ? Notification.permission : 'denied'
+  pushSubscribed.value = pushSupported.value ? await pushIsSubscribed() : false
 }
 
 // Enable Notifications is a direct click handler -- requestPermission()
@@ -275,12 +295,22 @@ const enablePushNotifications = async () => {
   pushMessage.value = ''
   try {
     await requestPermissionAndSubscribe()
-    refreshPushPermission()
-    if (pushPermission.value !== 'granted') {
+    await refreshPushPermission()
+    if (pushPermission.value !== 'granted' || !pushSubscribed.value) {
       pushMessage.value = 'Notifications were not enabled. You can try again below.'
     }
   } finally {
     enablingPush.value = false
+  }
+}
+
+const disablePushNotifications = async () => {
+  disablingPush.value = true
+  try {
+    await pushUnsubscribe()
+    await refreshPushPermission()
+  } finally {
+    disablingPush.value = false
   }
 }
 

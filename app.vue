@@ -13,6 +13,18 @@
       />
       <BirthdayReminderDialog />
     </ClientOnly>
+
+    <!-- An installed PWA keeps running its already-downloaded service worker
+         indefinitely (registerType: 'prompt' never auto-activates a new one),
+         so without this, a deployed fix never reaches an open install until
+         the OS happens to fully kill and relaunch it. Tapping Update here is
+         the only reliable way an existing install picks up a new build. -->
+    <v-snackbar v-model="showUpdateBanner" :timeout="-1" location="bottom" color="primary">
+      A new version of in-SIGHT is available.
+      <template #actions>
+        <v-btn variant="text" @click="applyUpdate">Update</v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -113,4 +125,12 @@ onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
 })
+
+// ── PWA update banner ────────────────────────────────────────────────────
+const { $pwa } = useNuxtApp()
+const showUpdateBanner = computed(() => Boolean($pwa?.needRefresh?.value))
+
+const applyUpdate = async () => {
+  await $pwa?.updateServiceWorker(true)
+}
 </script>

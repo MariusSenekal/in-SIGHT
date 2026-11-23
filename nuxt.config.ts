@@ -60,6 +60,11 @@ export default defineNuxtConfig({
       globPatterns: ['**/*.{js,css,html,ico,png,svg,json,txt,woff2}']
     },
     client: {
+      // Setting `client` at all replaces the module's default object
+      // wholesale (it's `??`, not a merge) -- registerPlugin must be
+      // repeated here or the $pwa helper (needRefresh/updateServiceWorker)
+      // never gets injected, silently, with no error.
+      registerPlugin: true,
       periodicSyncForUpdates: 3600
     },
     devOptions: {

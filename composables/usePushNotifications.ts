@@ -68,6 +68,22 @@ export const usePushNotifications = () => {
     await subscribe()
   }
 
+  // True only when this device both has OS/browser permission AND holds a
+  // live PushManager subscription -- permission can be 'granted' while the
+  // subscription itself was removed (e.g. disabled from another tab, or
+  // dropped by the browser), so the profile page checks this rather than
+  // permission alone before showing "enabled".
+  const isSubscribed = async (): Promise<boolean> => {
+    if (!isSupported() || Notification.permission !== 'granted') return false
+    try {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      return subscription !== null
+    } catch {
+      return false
+    }
+  }
+
   const unsubscribe = async (): Promise<void> => {
     if (!isSupported()) return
     try {
@@ -79,10 +95,12 @@ export const usePushNotifications = () => {
         method: 'POST',
         body: { endpoint: subscription.endpoint }
       }).catch(() => {})
+
+      await subscription.unsubscribe()
     } catch (error) {
       console.warn('[push] Failed to unsubscribe this device:', error)
     }
   }
 
-  return { isSupported, requestPermission, subscribe, requestPermissionAndSubscribe, unsubscribe }
+  return { isSupported, requestPermission, subscribe, requestPermissionAndSubscribe, isSubscribed, unsubscribe }
 }
