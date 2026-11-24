@@ -162,6 +162,37 @@
           </div>
         </v-card>
 
+        <!-- Enable notifications banner — the native permission popup only ever
+             shows up in response to a direct tap, so returning users who are
+             already logged in (and therefore never see the login form again)
+             need their own tappable prompt here, not just the button buried in
+             the profile page. -->
+        <v-alert
+          v-if="showEnableNotificationsBanner"
+          type="info"
+          variant="tonal"
+          border="start"
+          rounded="xl"
+          closable
+          class="mb-5"
+          icon="mdi-bell-ring-outline"
+          @click:close="dismissNotificationsBanner"
+        >
+          <div class="d-flex flex-column flex-sm-row align-sm-center justify-space-between ga-3">
+            <div>
+              <div class="font-weight-bold">Turn on notifications</div>
+              <div class="text-body-2">Get alerted about service reminders, requests and updates.</div>
+            </div>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              :loading="enablingBannerPush"
+              @click="enableNotificationsFromBanner"
+            >Enable</v-btn>
+          </div>
+        </v-alert>
+
         <!-- Action cards grid -->
         <v-row dense>
           <v-col cols="12" sm="6" v-for="action in visibleActions" :key="action.key">
@@ -282,6 +313,59 @@ const showProfileModal = ref(false)
 const loginLoading = ref(false)
 
 const loginForm = reactive({ username: '', password: '' })
+
+// ── Enable notifications banner ─────────────────────────────────────────────
+// loadSession()/login() in useAuth only ever call subscribe(), which never
+// prompts -- the native permission popup requires a direct tap, so a
+// returning user with a persisted session (the normal case on mobile, where
+// they're almost never shown the login form again) otherwise has no path to
+// the prompt besides digging into the profile page. This banner gives every
+// logged-in user that tap on the first screen they land on.
+const { isSupported: pushIsSupported, requestPermissionAndSubscribe, isSubscribed: pushIsSubscribed } = usePushNotifications()
+const NOTIFICATIONS_BANNER_DISMISSED_KEY = 'insight_notifications_banner_dismissed'
+const showEnableNotificationsBanner = ref(false)
+const enablingBannerPush = ref(false)
+
+const refreshNotificationsBanner = async () => {
+  if (!currentUser.value || !pushIsSupported()) {
+    showEnableNotificationsBanner.value = false
+    return
+  }
+  if (localStorage.getItem(NOTIFICATIONS_BANNER_DISMISSED_KEY) === '1') {
+    showEnableNotificationsBanner.value = false
+    return
+  }
+  if (Notification.permission === 'denied') {
+    showEnableNotificationsBanner.value = false
+    return
+  }
+  showEnableNotificationsBanner.value = !(await pushIsSubscribed())
+}
+
+const dismissNotificationsBanner = () => {
+  localStorage.setItem(NOTIFICATIONS_BANNER_DISMISSED_KEY, '1')
+  showEnableNotificationsBanner.value = false
+}
+
+// Direct click handler -- requestPermissionAndSubscribe() must run with no
+// `await` ahead of it or the browser silently skips the native prompt.
+const enableNotificationsFromBanner = async () => {
+  enablingBannerPush.value = true
+  try {
+    await requestPermissionAndSubscribe()
+    if (Notification.permission === 'denied') {
+      dismissNotificationsBanner()
+    } else {
+      await refreshNotificationsBanner()
+    }
+  } catch {
+    // Leave the banner up so the user can retry.
+  } finally {
+    enablingBannerPush.value = false
+  }
+}
+
+watch(currentUser, () => { refreshNotificationsBanner() })
 
 // ── Maintenance ───────────────────────────────────────────────────────────────
 const showMaintenanceDialog = ref(false)
@@ -420,7 +504,10 @@ const visibleActions = computed(() =>
   })
 )
 
-onMounted(() => { initAuth() })
+onMounted(async () => {
+  await initAuth()
+  await refreshNotificationsBanner()
+})
 
 const submitLogin = async () => {
   if (loginLoading.value) return
