@@ -44,9 +44,39 @@
                 <v-icon icon="mdi-car" size="32" color="primary" />
               </div>
               <v-card-text class="pa-4">
-                <h3 class="text-h6 font-weight-bold mb-1">
-                  {{ vehicle.make }} {{ vehicle.model }}
-                </h3>
+                <div class="d-flex align-start justify-space-between ga-2 mb-1">
+                  <h3 class="text-h6 font-weight-bold">
+                    {{ vehicle.make }} {{ vehicle.model }}
+                  </h3>
+                  <v-menu>
+                    <template #activator="{ props: menuProps }">
+                      <v-chip
+                        v-bind="menuProps"
+                        :color="statusColor(vehicle.status)"
+                        size="small"
+                        variant="tonal"
+                        class="flex-shrink-0"
+                        @click.stop
+                      >
+                        {{ statusLabel(vehicle.status) }}
+                        <v-icon icon="mdi-menu-down" size="16" end />
+                      </v-chip>
+                    </template>
+                    <v-list density="compact">
+                      <v-list-item
+                        v-for="option in vehicleStatusOptions"
+                        :key="option.value"
+                        :active="vehicle.status === option.value"
+                        @click="setVehicleStatus(vehicle, option.value)"
+                      >
+                        <template #prepend>
+                          <v-icon :icon="option.icon" :color="statusColor(option.value)" size="18" />
+                        </template>
+                        <v-list-item-title>{{ option.title }}</v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </div>
                 <p class="text-body-2 text-medium-emphasis mb-3">{{ vehicle.year }}</p>
                 
                 <div class="d-flex flex-column ga-2">
@@ -455,6 +485,25 @@ interface Vehicle {
   vin_number: string
   license_disc_renewal: string | null
   next_service_due_km: number | null
+  status: string
+}
+
+const vehicleStatusOptions = [
+  { value: 'active', title: 'Active', icon: 'mdi-check-circle' },
+  { value: 'inactive', title: 'Inactive', icon: 'mdi-close-circle' },
+  { value: 'in_maintenance', title: 'In Maintenance', icon: 'mdi-wrench' }
+]
+
+const statusLabel = (status: string) =>
+  vehicleStatusOptions.find(o => o.value === status)?.title ?? status
+
+const statusColor = (status: string) => {
+  const map: Record<string, string> = {
+    active: 'success',
+    inactive: 'default',
+    in_maintenance: 'warning'
+  }
+  return map[status] ?? 'default'
 }
 
 const vehicles = ref<Vehicle[]>([])
@@ -532,6 +581,21 @@ const loadVehicles = async () => {
     console.error('Failed to load vehicles:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const setVehicleStatus = async (vehicle: Vehicle, status: string) => {
+  if (vehicle.status === status) return
+  const previousStatus = vehicle.status
+  vehicle.status = status
+  try {
+    await $fetch(`/api/vehicles/${vehicle.id}`, {
+      method: 'PATCH',
+      body: { status }
+    })
+  } catch (error) {
+    vehicle.status = previousStatus
+    console.error('Failed to update vehicle status:', error)
   }
 }
 

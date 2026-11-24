@@ -2,6 +2,8 @@
 import { pgrest, pgrestAdmin } from '~/server/utils/pgrest'
 import { verifyJwt } from '~/server/utils/jwt'
 
+const VEHICLE_STATUSES = ['active', 'inactive', 'in_maintenance']
+
 export default defineEventHandler(async (event) => {
   const authHeader = getRequestHeader(event, 'authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -32,6 +34,12 @@ export default defineEventHandler(async (event) => {
   if (body.licenseDiscRenewal !== undefined) updates.license_disc_renewal = body.licenseDiscRenewal || null
   if (body.nextServiceDueKm !== undefined) {
     updates.next_service_due_km = body.nextServiceDueKm ? parseInt(body.nextServiceDueKm) : null
+  }
+  if (body.status !== undefined) {
+    if (!VEHICLE_STATUSES.includes(body.status)) {
+      throw createError({ statusCode: 400, message: 'Invalid vehicle status.' })
+    }
+    updates.status = body.status
   }
 
   try {
