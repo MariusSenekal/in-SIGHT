@@ -12,7 +12,7 @@ import { sendPushToUser } from '../utils/push'
 import { createNotification } from '../utils/notifications'
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
-const TRIGGER_HOUR = 7 // local server time — don't notify before 07:00
+const TRIGGER_HOUR = 8 // server runs UTC; 08:00 UTC = 10:00 SAST — don't notify before then
 const RUN_KIND = 'client_date_reminders'
 
 const todayDateString = () => {
