@@ -92,7 +92,11 @@ export const upsertPreference = async (pref: {
   intervalDays: number[]
   sendTimeSast: string
 }): Promise<void> => {
-  await pgrestAdmin('/notification_preferences', {
+  // on_conflict must name the unique constraint's columns explicitly --
+  // resolution=merge-duplicates alone only resolves conflicts on the
+  // primary key, so a second save of the same (user_id, type) without it
+  // 409s instead of updating (verified against the live PostgREST).
+  await pgrestAdmin('/notification_preferences?on_conflict=user_id,type', {
     method: 'POST',
     body: {
       user_id: pref.userId,

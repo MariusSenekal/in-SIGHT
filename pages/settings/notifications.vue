@@ -183,6 +183,16 @@
           >
             {{ saveMessage }}
           </v-alert>
+          <v-alert
+            v-if="saveError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            rounded="lg"
+            class="mt-3"
+          >
+            {{ saveError }}
+          </v-alert>
         </template>
       </v-card-text>
     </v-card>
@@ -250,6 +260,7 @@ const TYPE_DEFS: Array<{
 const loaded = ref(false)
 const saving = ref(false)
 const saveMessage = ref('')
+const saveError = ref('')
 
 const form = reactive<Record<NotificationType, PreferenceForm>>({
   next_service_due: { enabled: true, intervalDays: [90, 30, 1], sendTimeSast: '10:00' },
@@ -287,6 +298,7 @@ const loadPreferences = async () => {
 const savePreferences = async () => {
   saving.value = true
   saveMessage.value = ''
+  saveError.value = ''
   try {
     const body = visibleTypes.value.map((def) => ({
       type: def.type,
@@ -297,8 +309,8 @@ const savePreferences = async () => {
     await $fetch('/api/notification-preferences', { method: 'PUT', body })
     saveMessage.value = 'Reminder settings saved.'
     setTimeout(() => { saveMessage.value = '' }, 3000)
-  } catch {
-    saveMessage.value = ''
+  } catch (error) {
+    saveError.value = (error as { data?: { message?: string } })?.data?.message ?? 'Failed to save reminder settings. Please try again.'
   } finally {
     saving.value = false
   }

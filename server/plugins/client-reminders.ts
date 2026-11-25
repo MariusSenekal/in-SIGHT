@@ -10,7 +10,7 @@
 // (SAST) their reminders may go out from, and disable either type, via
 // insight.notification_preferences — see server/utils/notificationPreferences.ts.
 import { pgrestAdmin } from '../utils/pgrest'
-import { getDueReminders, REMINDER_INTERVALS_DAYS, type ReminderKind } from '../utils/clientReminders'
+import { getDueReminders, type ReminderKind } from '../utils/clientReminders'
 import { sendPushToUser } from '../utils/push'
 import { createNotification } from '../utils/notifications'
 import { getAllPreferences, resolvePreference, sastTimeHasReached } from '../utils/notificationPreferences'
@@ -68,8 +68,8 @@ const runClientReminderCheck = async () => {
 
     const ownedClients = clients.filter((c) => Number(c.owner_user_id) === ownerId)
     const reminders = getDueReminders(ownedClients, {
-      next_service_due: servicePref.enabled ? (servicePref.intervalDays.length ? servicePref.intervalDays : REMINDER_INTERVALS_DAYS) : [],
-      contract_renewal: contractPref.enabled ? (contractPref.intervalDays.length ? contractPref.intervalDays : REMINDER_INTERVALS_DAYS) : []
+      next_service_due: servicePref.enabled ? servicePref.intervalDays : [],
+      contract_renewal: contractPref.enabled ? contractPref.intervalDays : []
     })
 
     for (const kind of ['next_service_due', 'contract_renewal'] as ReminderKind[]) {

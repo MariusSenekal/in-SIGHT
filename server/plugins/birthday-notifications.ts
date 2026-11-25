@@ -6,7 +6,7 @@
 // time of day (SAST) their reminders may go out from, via
 // insight.notification_preferences — see server/utils/notificationPreferences.ts.
 import { pgrestAdmin } from '../utils/pgrest'
-import { getUpcomingBirthdays, DEFAULT_BIRTHDAY_DAYS_BEFORE } from '../utils/birthdays'
+import { getUpcomingBirthdays } from '../utils/birthdays'
 import { sendPushToUser } from '../utils/push'
 import { createNotification } from '../utils/notifications'
 import { getAllPreferences, resolvePreference, sastTimeHasReached } from '../utils/notificationPreferences'
@@ -69,10 +69,11 @@ const runBirthdayPushCheck = async () => {
     if (!sastTimeHasReached(pref.sendTimeSast)) continue
     if (await hasRunToday(ownerId)) continue
 
+    if (pref.intervalDays.length === 0) { await markRunToday(ownerId); continue }
+
     const ownedClients = (clients ?? []).filter((c) => Number(c.owner_user_id) === ownerId)
     const ownedStaff = (staff ?? []).filter((s) => Number(s.owner_user_id) === ownerId)
-    const daysBefore = pref.intervalDays.length ? pref.intervalDays : DEFAULT_BIRTHDAY_DAYS_BEFORE
-    const birthdays = getUpcomingBirthdays(ownedClients, ownedStaff, daysBefore)
+    const birthdays = getUpcomingBirthdays(ownedClients, ownedStaff, pref.intervalDays)
 
     if (birthdays.length > 0) {
       const ownerName = nameById.get(ownerId) || 'your account'
