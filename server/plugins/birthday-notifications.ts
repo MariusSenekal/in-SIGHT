@@ -1,14 +1,17 @@
 // Sends a push notification to a record's OWNER ONLY (never their teammates
-// or company) once a day for every client/staff birthday that's today or
-// tomorrow. Runs in-process since the app is a long-lived container, not a
-// serverless function — no external cron infra needed.
+// or company) once a day for every client/staff birthday landing on one of
+// that owner's configured day-offsets (defaults to today/tomorrow). Runs
+// in-process since the app is a long-lived container, not a serverless
+// function — no external cron infra needed. Each owner can also set what
+// time of day (SAST) their reminders may go out from, via
+// insight.notification_preferences — see server/utils/notificationPreferences.ts.
 import { pgrestAdmin } from '../utils/pgrest'
-import { getUpcomingBirthdays } from '../utils/birthdays'
+import { getUpcomingBirthdays, DEFAULT_BIRTHDAY_DAYS_BEFORE } from '../utils/birthdays'
 import { sendPushToUser } from '../utils/push'
 import { createNotification } from '../utils/notifications'
+import { getAllPreferences, resolvePreference, sastTimeHasReached } from '../utils/notificationPreferences'
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
-const TRIGGER_HOUR = 8 // server runs UTC; 08:00 UTC = 10:00 SAST — don't push before then
 
 const todayDateString = () => {
   const now = new Date()
@@ -18,29 +21,35 @@ const todayDateString = () => {
   return `${y}-${m}-${d}`
 }
 
-const hasRunToday = async (): Promise<boolean> => {
+// The daily gate is per-owner (not global) since each owner can pick their
+// own send time -- one owner having already been notified today must never
+// block another owner whose configured time arrives later.
+const runKindFor = (ownerId: number) => `birthday_push:${ownerId}`
+
+const hasRunToday = async (ownerId: number): Promise<boolean> => {
   const rows = await pgrestAdmin<any[]>('/notification_runs', {
-    query: { run_date: `eq.${todayDateString()}`, kind: 'eq.birthday_push', select: 'run_date' }
+    query: { run_date: `eq.${todayDateString()}`, kind: `eq.${runKindFor(ownerId)}`, select: 'run_date' }
   })
   return (rows?.length ?? 0) > 0
 }
 
-const markRunToday = async () => {
+const markRunToday = async (ownerId: number) => {
   await pgrestAdmin('/notification_runs', {
     method: 'POST',
-    body: { run_date: todayDateString(), kind: 'birthday_push' },
+    body: { run_date: todayDateString(), kind: runKindFor(ownerId) },
     extraHeaders: { Prefer: 'resolution=ignore-duplicates' }
   }).catch(() => {})
 }
 
 const runBirthdayPushCheck = async () => {
-  const [clients, staff] = await Promise.all([
+  const [clients, staff, preferencesByUser] = await Promise.all([
     pgrestAdmin<any[]>('/clients', {
       query: { date_of_birth: 'not.is.null', owner_user_id: 'not.is.null', select: 'id,company_name,name,surname,date_of_birth,owner_user_id' }
     }),
     pgrestAdmin<any[]>('/staff_members', {
       query: { date_of_birth: 'not.is.null', owner_user_id: 'not.is.null', select: 'id,name,surname,date_of_birth,owner_user_id' }
-    })
+    }),
+    getAllPreferences()
   ])
 
   const ownerIds = new Set<number>()
@@ -55,44 +64,51 @@ const runBirthdayPushCheck = async () => {
   const nameById = new Map((users ?? []).map((u) => [Number(u.id), u.name]))
 
   for (const ownerId of ownerIds) {
+    const pref = resolvePreference(preferencesByUser.get(ownerId), ownerId, 'birthday')
+    if (!pref.enabled) continue
+    if (!sastTimeHasReached(pref.sendTimeSast)) continue
+    if (await hasRunToday(ownerId)) continue
+
     const ownedClients = (clients ?? []).filter((c) => Number(c.owner_user_id) === ownerId)
     const ownedStaff = (staff ?? []).filter((s) => Number(s.owner_user_id) === ownerId)
-    const birthdays = getUpcomingBirthdays(ownedClients, ownedStaff)
-    if (birthdays.length === 0) continue
+    const daysBefore = pref.intervalDays.length ? pref.intervalDays : DEFAULT_BIRTHDAY_DAYS_BEFORE
+    const birthdays = getUpcomingBirthdays(ownedClients, ownedStaff, daysBefore)
 
-    const ownerName = nameById.get(ownerId) || 'your account'
+    if (birthdays.length > 0) {
+      const ownerName = nameById.get(ownerId) || 'your account'
 
-    for (const bday of birthdays) {
-      const label = bday.type === 'client' ? 'Client' : 'HR'
-      const title = `🎂 Birthday ${bday.when}`
-      const body = `${ownerName}'s account — ${label} record ${bday.name}'s birthday is ${bday.when}.`
-      const url = bday.type === 'client' ? '/modules/clients' : '/modules/hr'
+      for (const bday of birthdays) {
+        const label = bday.type === 'client' ? 'Client' : 'HR'
+        const whenLabel = bday.daysBefore === 0 ? 'today' : bday.daysBefore === 1 ? 'tomorrow' : `in ${bday.daysBefore} days`
+        const title = `🎂 Birthday ${whenLabel}`
+        const body = `${ownerName}'s account — ${label} record ${bday.name}'s birthday is ${whenLabel}.`
+        const url = bday.type === 'client' ? '/modules/clients' : '/modules/hr'
 
-      await sendPushToUser(ownerId, {
-        title,
-        body,
-        tag: `birthday-${bday.type}-${bday.id}-${bday.when}`,
-        url
-      })
+        await sendPushToUser(ownerId, {
+          title,
+          body,
+          tag: `birthday-${bday.type}-${bday.id}-${whenLabel}`,
+          url
+        })
 
-      await createNotification({
-        userId: ownerId,
-        type: 'birthday',
-        title,
-        body,
-        linkType: bday.type === 'client' ? 'clients' : 'hr',
-        linkId: bday.id,
-        dedupeKey: `birthday-${bday.type}-${bday.id}-${bday.when}-${todayDateString()}`
-      })
+        await createNotification({
+          userId: ownerId,
+          type: 'birthday',
+          title,
+          body,
+          linkType: bday.type === 'client' ? 'clients' : 'hr',
+          linkId: bday.id,
+          dedupeKey: `birthday-${bday.type}-${bday.id}-${whenLabel}-${todayDateString()}`
+        })
+      }
     }
+
+    await markRunToday(ownerId)
   }
 }
 
 const maybeRun = async () => {
-  if (new Date().getHours() < TRIGGER_HOUR) return
-  if (await hasRunToday()) return
   await runBirthdayPushCheck()
-  await markRunToday()
 }
 
 export default defineNitroPlugin(() => {

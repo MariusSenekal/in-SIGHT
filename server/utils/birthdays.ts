@@ -4,6 +4,7 @@ export interface UpcomingBirthday {
   name: string
   dateOfBirth: string
   when: 'today' | 'tomorrow'
+  daysBefore: number
 }
 
 interface ClientRow {
@@ -29,48 +30,57 @@ const monthDay = (dateString: string): { month: number; day: number } | null => 
   return { month: Number(m), day: Number(d) }
 }
 
+// daysBefore lists how many days ahead of the birthday to notify at (0 =
+// the day itself, 1 = the day before, etc.) -- defaults to the historical
+// today+tomorrow behaviour when the caller has no saved preference.
+export const DEFAULT_BIRTHDAY_DAYS_BEFORE = [0, 1] as const
+
 export const getUpcomingBirthdays = (
   clients: ClientRow[],
-  staff: StaffRow[]
+  staff: StaffRow[],
+  daysBefore: readonly number[] = DEFAULT_BIRTHDAY_DAYS_BEFORE
 ): UpcomingBirthday[] => {
   const now = new Date()
-  const today = { month: now.getMonth() + 1, day: now.getDate() }
-  const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  const tomorrow = { month: tomorrowDate.getMonth() + 1, day: tomorrowDate.getDate() }
+  const targets = daysBefore.map((offset) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset)
+    return { offset, month: d.getMonth() + 1, day: d.getDate() }
+  })
 
-  const classify = (md: { month: number; day: number } | null): 'today' | 'tomorrow' | null => {
+  const classify = (md: { month: number; day: number } | null): { when: 'today' | 'tomorrow'; daysBefore: number } | null => {
     if (!md) return null
-    if (md.month === today.month && md.day === today.day) return 'today'
-    if (md.month === tomorrow.month && md.day === tomorrow.day) return 'tomorrow'
-    return null
+    const match = targets.find((t) => t.month === md.month && t.day === md.day)
+    if (!match) return null
+    return { when: match.offset === 0 ? 'today' : 'tomorrow', daysBefore: match.offset }
   }
 
   const results: UpcomingBirthday[] = []
 
   for (const client of clients) {
     if (!client.date_of_birth) continue
-    const when = classify(monthDay(client.date_of_birth))
-    if (!when) continue
+    const match = classify(monthDay(client.date_of_birth))
+    if (!match) continue
     const contactName = [client.name, client.surname].filter(Boolean).join(' ')
     results.push({
       type: 'client',
       id: client.id,
       name: contactName || client.company_name,
       dateOfBirth: client.date_of_birth,
-      when
+      when: match.when,
+      daysBefore: match.daysBefore
     })
   }
 
   for (const member of staff) {
     if (!member.date_of_birth) continue
-    const when = classify(monthDay(member.date_of_birth))
-    if (!when) continue
+    const match = classify(monthDay(member.date_of_birth))
+    if (!match) continue
     results.push({
       type: 'staff',
       id: member.id,
       name: [member.name, member.surname].filter(Boolean).join(' '),
       dateOfBirth: member.date_of_birth,
-      when
+      when: match.when,
+      daysBefore: match.daysBefore
     })
   }
 

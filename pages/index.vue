@@ -144,12 +144,12 @@
               </div>
               <div class="welcome-hero__actions">
                 <v-btn
-                  prepend-icon="mdi-account-circle-outline"
+                  prepend-icon="mdi-cog-outline"
                   variant="tonal"
                   color="white"
                   size="small"
-                  @click="showProfileModal = true"
-                >Profile</v-btn>
+                  @click="navigateTo('/settings')"
+                >Settings</v-btn>
                 <v-btn
                   color="white"
                   variant="outlined"
@@ -279,21 +279,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Profile quick-view dialog -->
-    <v-dialog v-model="showProfileModal" max-width="460">
-      <v-card rounded="xl">
-        <v-card-title class="pa-5 pb-3">My Profile</v-card-title>
-        <v-card-text class="pa-5 pt-1">
-          <p class="mb-1"><strong>Name:</strong> {{ currentUser?.profile?.displayName || currentUser?.name }}</p>
-          <p><strong>Username:</strong> {{ currentUser?.username }}</p>
-        </v-card-text>
-        <v-card-actions class="px-5 pb-4">
-          <v-spacer />
-          <v-btn variant="text" @click="showProfileModal = false">Close</v-btn>
-          <v-btn color="primary" variant="flat" @click="goToProfilePage">Open Profile Page</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 <script setup lang="ts">
@@ -309,7 +294,6 @@ const { getRecords } = useRecords()
 
 const formMessage = ref('')
 const showLoginPassword = ref(false)
-const showProfileModal = ref(false)
 const loginLoading = ref(false)
 
 const loginForm = reactive({ username: '', password: '' })
@@ -543,10 +527,6 @@ const submitLogin = async () => {
   }
 }
 
-const goToProfilePage = () => {
-  showProfileModal.value = false
-  navigateTo('/profile')
-}
 </script>
 
 <style scoped>

@@ -1,17 +1,17 @@
 // Computes which clients have a next-service-due or contract-renewal date
-// landing on one of the reminder intervals (90, 30 or 1 day(s) out) from
+// landing on one of the user's configured reminder intervals (days out) from
 // today. Mirrors birthdays.ts's date-safe parsing -- dates are bare
 // "YYYY-MM-DD" strings compared by whole days only, never through
 // Date-based UTC math, so no timezone can shift which day a reminder fires.
 
 export type ReminderKind = 'next_service_due' | 'contract_renewal'
 
+// Historical default, used when a user has no saved preference row.
 export const REMINDER_INTERVALS_DAYS = [90, 30, 1] as const
-export type ReminderInterval = (typeof REMINDER_INTERVALS_DAYS)[number]
 
 export interface ClientReminder {
   kind: ReminderKind
-  intervalDays: ReminderInterval
+  intervalDays: number
   clientId: number
   clientName: string
   dueDate: string
@@ -43,7 +43,13 @@ const clientLabel = (client: ClientRow): string => {
   return client.company_name || contact
 }
 
-export const getDueReminders = (clients: ClientRow[]): ClientReminder[] => {
+// intervalsByKind lets each client's owner have their own set of days-before
+// to be reminded at, per type -- falls back to the historical 90/30/1 when a
+// kind is missing (user never saved a preference).
+export const getDueReminders = (
+  clients: ClientRow[],
+  intervalsByKind?: Partial<Record<ReminderKind, readonly number[]>>
+): ClientReminder[] => {
   const results: ClientReminder[] = []
 
   for (const client of clients) {
@@ -56,8 +62,9 @@ export const getDueReminders = (clients: ClientRow[]): ClientReminder[] => {
       if (!dateValue) continue
       const diff = daysBetween(dateValue)
       if (diff === null) continue
-      const interval = REMINDER_INTERVALS_DAYS.find((days) => days === diff)
-      if (!interval) continue
+      const allowedIntervals = intervalsByKind?.[kind] ?? REMINDER_INTERVALS_DAYS
+      const interval = allowedIntervals.find((days) => days === diff)
+      if (interval === undefined) continue
 
       results.push({
         kind,
