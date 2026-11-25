@@ -24,7 +24,7 @@ interface StaffRow {
 // Parses a bare "YYYY-MM-DD" string without going through Date-based UTC
 // parsing, so no timezone can ever shift which day it lands on.
 const monthDay = (dateString: string): { month: number; day: number } | null => {
-  const [, m, d] = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/) ?? []
+  const [, , m, d] = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/) ?? []
   if (!m || !d) return null
   return { month: Number(m), day: Number(d) }
 }
